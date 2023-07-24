@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/console/prompt"
@@ -39,6 +38,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/node"
+	keystore2 "github.com/ethereum/go-ethereum/pqaccounts/keystore"
 
 	// Force-load the tracer engines to trigger registration
 	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
@@ -448,12 +448,12 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
 		utils.Fatalf("Account unlock with HTTP access is forbidden!")
 	}
-	backends := stack.AccountManager().Backends(keystore.KeyStoreType)
+	backends := stack.PQAccountManager().Backends(keystore2.KeyStoreType)
 	if len(backends) == 0 {
 		log.Warn("Failed to unlock accounts, keystore is not available")
 		return
 	}
-	ks := backends[0].(*keystore.KeyStore)
+	ks := backends[0].(*keystore2.KeyStore)
 	passwords := utils.MakePasswordList(ctx)
 	for i, account := range unlocks {
 		unlockAccount(ks, account, i, passwords)

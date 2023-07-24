@@ -36,6 +36,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/ethereum/go-ethereum/pqaccounts"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gofrs/flock"
 )
@@ -45,6 +46,7 @@ type Node struct {
 	eventmux      *event.TypeMux
 	config        *Config
 	accman        *accounts.Manager
+	pqaccman      *pqaccounts.Manager
 	log           log.Logger
 	keyDir        string        // key store directory
 	keyDirTemp    bool          // If true, key directory will be removed by Stop
@@ -128,6 +130,7 @@ func New(conf *Config) (*Node, error) {
 	// Creates an empty AccountManager with no backends. Callers (e.g. cmd/geth)
 	// are required to add the backends later on.
 	node.accman = accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: conf.InsecureUnlockAllowed})
+	node.pqaccman = pqaccounts.NewManager(&pqaccounts.Config{InsecureUnlockAllowed: conf.InsecureUnlockAllowed})
 
 	// Initialize the p2p server. This creates the node key and discovery databases.
 	node.server.Config.PrivateKey = node.config.NodeKey()
@@ -236,6 +239,9 @@ func (n *Node) doClose(errs []error) error {
 	n.lock.Unlock()
 
 	if err := n.accman.Close(); err != nil {
+		errs = append(errs, err)
+	}
+	if err := n.pqaccman.Close(); err != nil {
 		errs = append(errs, err)
 	}
 	if n.keyDirTemp {
@@ -654,6 +660,11 @@ func (n *Node) KeyStoreDir() string {
 // AccountManager retrieves the account manager used by the protocol stack.
 func (n *Node) AccountManager() *accounts.Manager {
 	return n.accman
+}
+
+// PQAccountManager retrieves the account manager used by the protocol stack.
+func (n *Node) PQAccountManager() *pqaccounts.Manager {
+	return n.pqaccman
 }
 
 // IPCEndpoint retrieves the current IPC endpoint used by the protocol stack.
