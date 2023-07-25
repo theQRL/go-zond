@@ -195,6 +195,8 @@ func CommitGenesisState(db ethdb.Database, triedb *trie.Database, blockhash comm
 			genesis = DefaultGoerliGenesisBlock()
 		case params.SepoliaGenesisHash:
 			genesis = DefaultSepoliaGenesisBlock()
+		case params.BetaNetGenesisHash:
+			genesis = DefaultBetaNetGenesisBlock()
 		}
 		if genesis != nil {
 			alloc = genesis.Alloc
@@ -562,6 +564,19 @@ func DefaultSepoliaGenesisBlock() *Genesis {
 		Difficulty: big.NewInt(0x20000),
 		Timestamp:  1633267481,
 		Alloc:      decodePrealloc(sepoliaAllocData),
+	}
+}
+
+// DefaultBetaNetGenesisBlock returns the BetaNet network genesis block.
+func DefaultBetaNetGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.BetaNetChainConfig,
+		Nonce:      0,
+		ExtraData:  []byte("BetaNet!!"),
+		GasLimit:   0x1c9c380,
+		Difficulty: big.NewInt(0x20000),
+		Timestamp:  1633267481,
+		Alloc:      decodePrealloc(betaNetAllocData),
 	}
 }
 
