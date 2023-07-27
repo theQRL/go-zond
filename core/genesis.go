@@ -572,10 +572,10 @@ func DefaultBetaNetGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.BetaNetChainConfig,
 		Nonce:      0,
-		ExtraData:  []byte("BetaNet!!"),
+		ExtraData:  []byte("BetaNet, Zond, XMSS, Dilithium!!"),
 		GasLimit:   0x1c9c380,
-		Difficulty: big.NewInt(0x20000),
-		Timestamp:  1633267481,
+		Difficulty: big.NewInt(0x1),
+		Timestamp:  1690433720,
 		Alloc:      decodePrealloc(betaNetAllocData),
 	}
 }
