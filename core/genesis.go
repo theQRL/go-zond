@@ -575,8 +575,8 @@ func DefaultBetaNetGenesisBlock() *Genesis {
 		ExtraData:  []byte("BetaNet, Zond, XMSS, Dilithium!!"),
 		GasLimit:   0x1c9c380,
 		Difficulty: big.NewInt(0x1),
-		Timestamp:  1690433720,
-		Alloc:      decodePrealloc(betaNetAllocData),
+		Timestamp:  1691355800,
+		Alloc:      decodePreallocWithContractCode(betaNetAllocData),
 	}
 }
 
@@ -619,6 +619,21 @@ func decodePrealloc(data string) GenesisAlloc {
 	ga := make(GenesisAlloc, len(p))
 	for _, account := range p {
 		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance}
+	}
+	return ga
+}
+
+func decodePreallocWithContractCode(data string) GenesisAlloc {
+	var p []struct {
+		Addr, Balance *big.Int
+		Code          []byte
+	}
+	if err := rlp.NewStream(strings.NewReader(data), 0).Decode(&p); err != nil {
+		panic(err)
+	}
+	ga := make(GenesisAlloc, len(p))
+	for _, account := range p {
+		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance, Code: account.Code}
 	}
 	return ga
 }
