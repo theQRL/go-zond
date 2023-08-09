@@ -30,7 +30,9 @@ var MainnetBootnodes = []string{
 
 // SepoliaBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Sepolia test network.
-var BetaNetBootnodes = []string{}
+var BetaNetBootnodes = []string{
+	"enode://a1c66b0db0aef11f12327b83d0aea1e4f22d61afa0f7395633dd13ce9f84bd75b9e2ff583563944c33e6d9f552eaed36ba010ef365c92d37a00053035d2e3438@45.32.234.157:30303",
+}
 
 // SepoliaBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Sepolia test network.
