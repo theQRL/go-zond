@@ -39,8 +39,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
@@ -98,7 +98,7 @@ func (ks keyStorePassphrase) GetKey(addr common.Address, filename, auth string) 
 
 // StoreKey generates a key, encrypts with 'auth' and stores in the given directory
 func StoreKey(dir, auth string, scryptN, scryptP int) (accounts.Account, error) {
-	_, a, err := storeNewKey(&keyStorePassphrase{dir, scryptN, scryptP, false}, rand.Reader, auth)
+	_, a, err := storeNewKey(&keyStorePassphrase{dir, scryptN, scryptP, false}, auth)
 	return a, err
 }
 
@@ -182,8 +182,8 @@ func EncryptDataV3(data, auth []byte, scryptN, scryptP int) (CryptoJSON, error) 
 // EncryptKey encrypts a key using the specified scrypt parameters into a json
 // blob that can be decrypted later on.
 func EncryptKey(key *Key, auth string, scryptN, scryptP int) ([]byte, error) {
-	keyBytes := math.PaddedBigBytes(key.PrivateKey.D, 32)
-	cryptoStruct, err := EncryptDataV3(keyBytes, []byte(auth), scryptN, scryptP)
+	seed := key.Dilithium.GetSeed()
+	cryptoStruct, err := EncryptDataV3(seed[:], []byte(auth), scryptN, scryptP)
 	if err != nil {
 		return nil, err
 	}
@@ -225,15 +225,15 @@ func DecryptKey(keyjson []byte, auth string) (*Key, error) {
 	if err != nil {
 		return nil, err
 	}
-	key := crypto.ToECDSAUnsafe(keyBytes)
+	d := pqcrypto.ToDilithiumUnsafe(keyBytes)
 	id, err := uuid.FromBytes(keyId)
 	if err != nil {
 		return nil, err
 	}
 	return &Key{
-		Id:         id,
-		Address:    crypto.PubkeyToAddress(key.PublicKey),
-		PrivateKey: key,
+		Id:        id,
+		Address:   d.GetAddress(),
+		Dilithium: d,
 	}, nil
 }
 

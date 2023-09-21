@@ -21,8 +21,6 @@
 package keystore
 
 import (
-	"crypto/ecdsa"
-	crand "crypto/rand"
 	"errors"
 	"math/big"
 	"os"
@@ -35,8 +33,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/pqcrypto"
+	"github.com/theQRL/go-qrllib/dilithium"
 )
 
 var (
@@ -242,7 +241,7 @@ func (ks *KeyStore) Delete(a accounts.Account, passphrase string) error {
 	// immediately afterwards.
 	a, key, err := ks.getDecryptedKey(a, passphrase)
 	if key != nil {
-		zeroKey(key.PrivateKey)
+		key.Dilithium = nil
 	}
 	if err != nil {
 		return err
@@ -258,8 +257,7 @@ func (ks *KeyStore) Delete(a accounts.Account, passphrase string) error {
 	return err
 }
 
-// SignHash calculates a ECDSA signature for the given hash. The produced
-// signature is in the [R || S || V] format where V is 0 or 1.
+// SignHash returns the Dilithium signature for the given hash.
 func (ks *KeyStore) SignHash(a accounts.Account, hash []byte) ([]byte, error) {
 	// Look up the key to sign with and abort if it cannot be found
 	ks.mu.RLock()
@@ -269,8 +267,10 @@ func (ks *KeyStore) SignHash(a accounts.Account, hash []byte) ([]byte, error) {
 	if !found {
 		return nil, ErrLocked
 	}
-	// Sign the hash using plain ECDSA operations
-	return crypto.Sign(hash, unlockedKey.PrivateKey)
+
+	signature, err := unlockedKey.Dilithium.Sign(hash)
+
+	return signature[:], err
 }
 
 // SignTx signs the given transaction with the requested account.
@@ -285,7 +285,7 @@ func (ks *KeyStore) SignTx(a accounts.Account, tx *types.Transaction, chainID *b
 	}
 	// Depending on the presence of the chain ID, sign with 2718 or homestead
 	signer := types.LatestSignerForChainID(chainID)
-	return types.SignTx(tx, signer, unlockedKey.PrivateKey)
+	return types.SignTx(tx, signer, unlockedKey.Dilithium)
 }
 
 // SignHashWithPassphrase signs hash if the private key matching the given address
@@ -296,8 +296,8 @@ func (ks *KeyStore) SignHashWithPassphrase(a accounts.Account, passphrase string
 	if err != nil {
 		return nil, err
 	}
-	defer zeroKey(key.PrivateKey)
-	return crypto.Sign(hash, key.PrivateKey)
+	defer zeroKey(&key.Dilithium)
+	return pqcrypto.Sign(hash, &key.Dilithium)
 }
 
 // SignTxWithPassphrase signs the transaction if the private key matching the
@@ -307,10 +307,10 @@ func (ks *KeyStore) SignTxWithPassphrase(a accounts.Account, passphrase string, 
 	if err != nil {
 		return nil, err
 	}
-	defer zeroKey(key.PrivateKey)
+	defer zeroKey(&key.Dilithium)
 	// Depending on the presence of the chain ID, sign with or without replay protection.
 	signer := types.LatestSignerForChainID(chainID)
-	return types.SignTx(tx, signer, key.PrivateKey)
+	return types.SignTx(tx, signer, key.Dilithium)
 }
 
 // Unlock unlocks the given account indefinitely.
@@ -350,7 +350,7 @@ func (ks *KeyStore) TimedUnlock(a accounts.Account, passphrase string, timeout t
 		if u.abort == nil {
 			// The address was unlocked indefinitely, so unlocking
 			// it with a timeout would be confusing.
-			zeroKey(key.PrivateKey)
+			zeroKey(&key.Dilithium)
 			return nil
 		}
 		// Terminate the expire goroutine and replace it below.
@@ -397,7 +397,7 @@ func (ks *KeyStore) expire(addr common.Address, u *unlocked, timeout time.Durati
 		// because the map stores a new pointer every time the key is
 		// unlocked.
 		if ks.unlocked[addr] == u {
-			zeroKey(u.PrivateKey)
+			zeroKey(&u.Dilithium)
 			delete(ks.unlocked, addr)
 		}
 		ks.mu.Unlock()
@@ -407,7 +407,7 @@ func (ks *KeyStore) expire(addr common.Address, u *unlocked, timeout time.Durati
 // NewAccount generates a new key and stores it into the key directory,
 // encrypting it with the passphrase.
 func (ks *KeyStore) NewAccount(passphrase string) (accounts.Account, error) {
-	_, account, err := storeNewKey(ks.storage, crand.Reader, passphrase)
+	_, account, err := storeNewKey(ks.storage, passphrase)
 	if err != nil {
 		return accounts.Account{}, err
 	}
@@ -436,8 +436,8 @@ func (ks *KeyStore) Export(a accounts.Account, passphrase, newPassphrase string)
 // Import stores the given encrypted JSON key into the key directory.
 func (ks *KeyStore) Import(keyJSON []byte, passphrase, newPassphrase string) (accounts.Account, error) {
 	key, err := DecryptKey(keyJSON, passphrase)
-	if key != nil && key.PrivateKey != nil {
-		defer zeroKey(key.PrivateKey)
+	if key != nil && key.Dilithium != nil {
+		defer zeroKey(&key.Dilithium)
 	}
 	if err != nil {
 		return accounts.Account{}, err
@@ -453,12 +453,12 @@ func (ks *KeyStore) Import(keyJSON []byte, passphrase, newPassphrase string) (ac
 	return ks.importKey(key, newPassphrase)
 }
 
-// ImportECDSA stores the given key into the key directory, encrypting it with the passphrase.
-func (ks *KeyStore) ImportECDSA(priv *ecdsa.PrivateKey, passphrase string) (accounts.Account, error) {
+// ImportDilithium stores the given key into the key directory, encrypting it with the passphrase.
+func (ks *KeyStore) ImportDilithium(d *dilithium.Dilithium, passphrase string) (accounts.Account, error) {
 	ks.importMu.Lock()
 	defer ks.importMu.Unlock()
 
-	key := newKeyFromECDSA(priv)
+	key := newKeyFromDilithium(d)
 	if ks.cache.hasAddress(key.Address) {
 		return accounts.Account{
 			Address: key.Address,
@@ -506,10 +506,7 @@ func (ks *KeyStore) isUpdating() bool {
 	return ks.updating
 }
 
-// zeroKey zeroes a private key in memory.
-func zeroKey(k *ecdsa.PrivateKey) {
-	b := k.D.Bits()
-	for i := range b {
-		b[i] = 0
-	}
+// zeroKey nil to dilithium key in memory.
+func zeroKey(k **dilithium.Dilithium) {
+	*k = nil
 }

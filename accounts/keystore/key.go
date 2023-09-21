@@ -17,21 +17,18 @@
 package keystore
 
 import (
-	"bytes"
-	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/google/uuid"
+	"github.com/theQRL/go-qrllib/dilithium"
 )
 
 const (
@@ -42,9 +39,9 @@ type Key struct {
 	Id uuid.UUID // Version 4 "random" for unique id not derived from key data
 	// to simplify lookups we also store the address
 	Address common.Address
-	// we only store privkey as pubkey/address can be derived from it
-	// privkey in this struct is always in plaintext
-	PrivateKey *ecdsa.PrivateKey
+	// we only store seed as pubkey/address & private key can be derived from it
+	// seed in this struct is always in plaintext
+	Dilithium *dilithium.Dilithium
 }
 
 type keyStore interface {
@@ -57,10 +54,10 @@ type keyStore interface {
 }
 
 type plainKeyJSON struct {
-	Address    string `json:"address"`
-	PrivateKey string `json:"privatekey"`
-	Id         string `json:"id"`
-	Version    int    `json:"version"`
+	Address string `json:"address"`
+	HexSeed string `json:"hexSeed"`
+	Id      string `json:"id"`
+	Version int    `json:"version"`
 }
 
 type encryptedKeyJSONV3 struct {
@@ -93,7 +90,7 @@ type cipherparamsJSON struct {
 func (k *Key) MarshalJSON() (j []byte, err error) {
 	jStruct := plainKeyJSON{
 		hex.EncodeToString(k.Address[:]),
-		hex.EncodeToString(crypto.FromECDSA(k.PrivateKey)),
+		k.Dilithium.GetHexSeed(),
 		k.Id.String(),
 		version,
 	}
@@ -118,61 +115,39 @@ func (k *Key) UnmarshalJSON(j []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	privkey, err := crypto.HexToECDSA(keyJSON.PrivateKey)
+
+	k.Address = common.BytesToAddress(addr)
+	k.Dilithium, err = pqcrypto.HexToDilithium(keyJSON.HexSeed)
 	if err != nil {
 		return err
 	}
 
-	k.Address = common.BytesToAddress(addr)
-	k.PrivateKey = privkey
-
 	return nil
 }
 
-func newKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) *Key {
+func newKeyFromDilithium(d *dilithium.Dilithium) *Key {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		panic(fmt.Sprintf("Could not create random uuid: %v", err))
 	}
 	key := &Key{
-		Id:         id,
-		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
-		PrivateKey: privateKeyECDSA,
+		Id:        id,
+		Address:   d.GetAddress(),
+		Dilithium: d,
 	}
 	return key
 }
 
-// NewKeyForDirectICAP generates a key whose address fits into < 155 bits so it can fit
-// into the Direct ICAP spec. for simplicity and easier compatibility with other libs, we
-// retry until the first byte is 0.
-func NewKeyForDirectICAP(rand io.Reader) *Key {
-	randBytes := make([]byte, 64)
-	_, err := rand.Read(randBytes)
-	if err != nil {
-		panic("key generation: could not read from random source: " + err.Error())
-	}
-	reader := bytes.NewReader(randBytes)
-	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), reader)
-	if err != nil {
-		panic("key generation: ecdsa.GenerateKey failed: " + err.Error())
-	}
-	key := newKeyFromECDSA(privateKeyECDSA)
-	if !strings.HasPrefix(key.Address.Hex(), "0x00") {
-		return NewKeyForDirectICAP(rand)
-	}
-	return key
-}
-
-func newKey(rand io.Reader) (*Key, error) {
-	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), rand)
+func newKey() (*Key, error) {
+	d, err := dilithium.New()
 	if err != nil {
 		return nil, err
 	}
-	return newKeyFromECDSA(privateKeyECDSA), nil
+	return newKeyFromDilithium(d), nil
 }
 
-func storeNewKey(ks keyStore, rand io.Reader, auth string) (*Key, accounts.Account, error) {
-	key, err := newKey(rand)
+func storeNewKey(ks keyStore, auth string) (*Key, accounts.Account, error) {
+	key, err := newKey()
 	if err != nil {
 		return nil, accounts.Account{}, err
 	}
@@ -181,7 +156,7 @@ func storeNewKey(ks keyStore, rand io.Reader, auth string) (*Key, accounts.Accou
 		URL:     accounts.URL{Scheme: KeyStoreScheme, Path: ks.JoinPath(keyFileName(key.Address))},
 	}
 	if err := ks.StoreKey(a.URL.Path, key, auth); err != nil {
-		zeroKey(key.PrivateKey)
+		zeroKey(&key.Dilithium)
 		return nil, a, err
 	}
 	return key, a, err

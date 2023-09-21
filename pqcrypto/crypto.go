@@ -12,6 +12,9 @@ import (
 	"github.com/theQRL/go-qrllib/dilithium"
 )
 
+// DigestLength sets the signature digest exact length
+const DigestLength = 32
+
 // LoadDilithium loads Dilithium from the given file having hex seed (not extended hex seed).
 func LoadDilithium(file string) (*dilithium.Dilithium, error) {
 	fd, err := os.Open(file)
@@ -33,6 +36,10 @@ func LoadDilithium(file string) (*dilithium.Dilithium, error) {
 	}
 
 	return HexToDilithium(string(buf))
+}
+
+func GenerateDilithiumKey() (*dilithium.Dilithium, error) {
+	return dilithium.New()
 }
 
 // readASCII reads into 'buf', stopping when the buffer is full or
@@ -93,4 +100,8 @@ func HexToDilithium(hexSeedStr string) (*dilithium.Dilithium, error) {
 	copy(hexSeed[:], b)
 
 	return dilithium.NewDilithiumFromSeed(hexSeed)
+}
+
+func zeroBytes(d **dilithium.Dilithium) {
+	*d = nil
 }

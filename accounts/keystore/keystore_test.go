@@ -29,8 +29,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 )
 
 var testSigData = make([]byte, 32)
@@ -342,17 +342,17 @@ func TestWalletNotifications(t *testing.T) {
 // TestImportExport tests the import functionality of a keystore.
 func TestImportECDSA(t *testing.T) {
 	_, ks := tmpKeyStore(t, true)
-	key, err := crypto.GenerateKey()
+	key, err := pqcrypto.GenerateDilithiumKey()
 	if err != nil {
 		t.Fatalf("failed to generate key: %v", key)
 	}
-	if _, err = ks.ImportECDSA(key, "old"); err != nil {
+	if _, err = ks.ImportDilithium(key, "old"); err != nil {
 		t.Errorf("importing failed: %v", err)
 	}
-	if _, err = ks.ImportECDSA(key, "old"); err == nil {
+	if _, err = ks.ImportDilithium(key, "old"); err == nil {
 		t.Errorf("importing same key twice succeeded")
 	}
-	if _, err = ks.ImportECDSA(key, "new"); err == nil {
+	if _, err = ks.ImportDilithium(key, "new"); err == nil {
 		t.Errorf("importing same key twice succeeded")
 	}
 }

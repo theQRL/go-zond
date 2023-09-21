@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -85,13 +85,12 @@ func decryptPreSaleKey(fileContent []byte, password string) (key *Key, err error
 	if err != nil {
 		return nil, err
 	}
-	ethPriv := crypto.Keccak256(plainText)
-	ecKey := crypto.ToECDSAUnsafe(ethPriv)
+	d := pqcrypto.ToDilithiumUnsafe(plainText)
 
 	key = &Key{
-		Id:         uuid.UUID{},
-		Address:    crypto.PubkeyToAddress(ecKey.PublicKey),
-		PrivateKey: ecKey,
+		Id:        uuid.UUID{},
+		Address:   d.GetAddress(),
+		Dilithium: d,
 	}
 	derivedAddr := hex.EncodeToString(key.Address.Bytes()) // needed because .Hex() gives leading "0x"
 	expectedAddr := preSaleKeyStruct.EthAddr
