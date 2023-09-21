@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 	"math/big"
 	"strings"
 	"time"
@@ -380,8 +381,8 @@ func fetchKeystore(am *accounts.Manager) (*keystore.KeyStore, error) {
 
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
 // encrypting it with the passphrase.
-func (s *PersonalAccountAPI) ImportRawKey(privkey string, password string) (common.Address, error) {
-	key, err := crypto.HexToECDSA(privkey)
+func (s *PersonalAccountAPI) ImportRawKey(hexSeed string, password string) (common.Address, error) {
+	key, err := pqcrypto.HexToDilithium(hexSeed)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -389,7 +390,7 @@ func (s *PersonalAccountAPI) ImportRawKey(privkey string, password string) (comm
 	if err != nil {
 		return common.Address{}, err
 	}
-	acc, err := ks.ImportECDSA(key, password)
+	acc, err := ks.ImportDilithium(key, password)
 	return acc.Address, err
 }
 

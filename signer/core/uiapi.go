@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 	"math/big"
 	"os"
 
@@ -28,7 +29,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // SignerUIAPI implements methods Clef provides for a UI to query, in the bidirectional communication
@@ -122,8 +122,8 @@ func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
 // encrypting it with the passphrase.
 // Example call (should fail on password too short)
 // {"jsonrpc":"2.0","method":"clef_importRawKey","params":["1111111111111111111111111111111111111111111111111111111111111111","test"], "id":6}
-func (s *UIServerAPI) ImportRawKey(privkey string, password string) (accounts.Account, error) {
-	key, err := crypto.HexToECDSA(privkey)
+func (s *UIServerAPI) ImportRawKey(hexSeed string, password string) (accounts.Account, error) {
+	key, err := pqcrypto.HexToDilithium(hexSeed)
 	if err != nil {
 		return accounts.Account{}, err
 	}
@@ -131,7 +131,7 @@ func (s *UIServerAPI) ImportRawKey(privkey string, password string) (accounts.Ac
 		return accounts.Account{}, fmt.Errorf("password requirements not met: %v", err)
 	}
 	// No error
-	return fetchKeystore(s.am).ImportECDSA(key, password)
+	return fetchKeystore(s.am).ImportDilithium(key, password)
 }
 
 // OpenWallet initiates a hardware wallet opening procedure, establishing a USB

@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/theQRL/go-qrllib/dilithium"
 )
 
 var ErrInvalidChainId = errors.New("invalid chain id for signer")
@@ -95,14 +96,14 @@ func LatestSignerForChainID(chainID *big.Int) Signer {
 	return NewCancunSigner(chainID)
 }
 
-// SignTx signs the transaction using the given signer and private key.
-func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
+// SignTx signs the transaction using the given dilithium signer and private key.
+func SignTx(tx *Transaction, s Signer, d *dilithium.Dilithium) (*Transaction, error) {
 	h := s.Hash(tx)
-	sig, err := crypto.Sign(h[:], prv)
+	sig, err := d.Sign(h[:])
 	if err != nil {
 		return nil, err
 	}
-	return tx.WithSignature(s, sig)
+	return tx.WithSignature(s, sig[:])
 }
 
 // SignNewTx creates a transaction and signs it.

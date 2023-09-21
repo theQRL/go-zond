@@ -24,8 +24,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/pqaccounts"
-	keystore2 "github.com/ethereum/go-ethereum/pqaccounts/keystore"
 	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/urfave/cli/v2"
 )
@@ -191,9 +189,9 @@ nodes.
 )
 
 // makeAccountManager creates an account manager with backends
-func makeAccountManager(ctx *cli.Context) *pqaccounts.Manager {
+func makeAccountManager(ctx *cli.Context) *accounts.Manager {
 	cfg := loadBaseConfig(ctx)
-	am := pqaccounts.NewManager(&pqaccounts.Config{InsecureUnlockAllowed: cfg.Node.InsecureUnlockAllowed})
+	am := accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: cfg.Node.InsecureUnlockAllowed})
 	keydir, isEphemeral, err := cfg.Node.GetKeyStoreDir()
 	if err != nil {
 		utils.Fatalf("Failed to get the keystore directory: %v", err)
@@ -222,7 +220,7 @@ func accountList(ctx *cli.Context) error {
 }
 
 // tries unlocking the specified account a few times.
-func unlockAccount(ks *keystore2.KeyStore, address string, i int, passwords []string) (accounts.Account, string) {
+func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []string) (accounts.Account, string) {
 	account, err := utils.MakeAddress(ks, address)
 	if err != nil {
 		utils.Fatalf("Could not list accounts: %v", err)
@@ -235,7 +233,7 @@ func unlockAccount(ks *keystore2.KeyStore, address string, i int, passwords []st
 			log.Info("Unlocked account", "address", account.Address.Hex())
 			return account, password
 		}
-		if err, ok := err.(*keystore2.AmbiguousAddrError); ok {
+		if err, ok := err.(*keystore.AmbiguousAddrError); ok {
 			log.Info("Unlocked account", "address", account.Address.Hex())
 			return ambiguousAddrRecovery(ks, err, password), password
 		}
@@ -250,7 +248,7 @@ func unlockAccount(ks *keystore2.KeyStore, address string, i int, passwords []st
 	return accounts.Account{}, ""
 }
 
-func ambiguousAddrRecovery(ks *keystore2.KeyStore, err *keystore2.AmbiguousAddrError, auth string) accounts.Account {
+func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrError, auth string) accounts.Account {
 	fmt.Printf("Multiple key files exist for address %x:\n", err.Addr)
 	for _, a := range err.Matches {
 		fmt.Println("  ", a.URL)
@@ -318,11 +316,11 @@ func accountUpdate(ctx *cli.Context) error {
 		utils.Fatalf("No accounts specified to update")
 	}
 	am := makeAccountManager(ctx)
-	backends := am.Backends(keystore2.KeyStoreType)
+	backends := am.Backends(keystore.KeyStoreType)
 	if len(backends) == 0 {
 		utils.Fatalf("Keystore is not available")
 	}
-	ks := backends[0].(*keystore2.KeyStore)
+	ks := backends[0].(*keystore.KeyStore)
 
 	for _, addr := range ctx.Args().Slice() {
 		account, oldPassword := unlockAccount(ks, addr, 0, nil)
@@ -345,11 +343,11 @@ func importWallet(ctx *cli.Context) error {
 	}
 
 	am := makeAccountManager(ctx)
-	backends := am.Backends(keystore2.KeyStoreType)
+	backends := am.Backends(keystore.KeyStoreType)
 	if len(backends) == 0 {
 		utils.Fatalf("Keystore is not available")
 	}
-	ks := backends[0].(*keystore2.KeyStore)
+	ks := backends[0].(*keystore.KeyStore)
 	passphrase := utils.GetPassPhraseWithList("", false, 0, utils.MakePasswordList(ctx))
 
 	acct, err := ks.ImportPreSaleKey(keyJSON, passphrase)
@@ -370,11 +368,11 @@ func accountImport(ctx *cli.Context) error {
 		utils.Fatalf("Failed to load the private key: %v", err)
 	}
 	am := makeAccountManager(ctx)
-	backends := am.Backends(keystore2.KeyStoreType)
+	backends := am.Backends(keystore.KeyStoreType)
 	if len(backends) == 0 {
 		utils.Fatalf("Keystore is not available")
 	}
-	ks := backends[0].(*keystore2.KeyStore)
+	ks := backends[0].(*keystore.KeyStore)
 	passphrase := utils.GetPassPhraseWithList("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
 
 	acct, err := ks.ImportDilithium(key, passphrase)
