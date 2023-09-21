@@ -48,17 +48,18 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 )
 
 var (
-	bankKey, _ = crypto.GenerateKey()
-	bankAddr   = crypto.PubkeyToAddress(bankKey.PublicKey)
+	bankKey, _ = pqcrypto.GenerateDilithiumKey()
+	bankAddr   = bankKey.GetAddress()
 	bankFunds  = big.NewInt(1_000_000_000_000_000_000)
 
-	userKey1, _ = crypto.GenerateKey()
-	userKey2, _ = crypto.GenerateKey()
-	userAddr1   = crypto.PubkeyToAddress(userKey1.PublicKey)
-	userAddr2   = crypto.PubkeyToAddress(userKey2.PublicKey)
+	userKey1, _ = pqcrypto.GenerateDilithiumKey()
+	userKey2, _ = pqcrypto.GenerateDilithiumKey()
+	userAddr1   = userKey1.GetAddress()
+	userAddr2   = userKey2.GetAddress()
 
 	testContractAddr         common.Address
 	testContractCode         = common.Hex2Bytes("606060405260cc8060106000396000f360606040526000357c01000000000000000000000000000000000000000000000000000000009004806360cd2685146041578063c16431b914606b57603f565b005b6055600480803590602001909190505060a9565b6040518082815260200191505060405180910390f35b60886004808035906020019091908035906020019091905050608a565b005b80600060005083606481101560025790900160005b50819055505b5050565b6000600060005082606481101560025790900160005b5054905060c7565b91905056")
