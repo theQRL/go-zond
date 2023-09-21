@@ -297,7 +297,7 @@ func (ks *KeyStore) SignHashWithPassphrase(a accounts.Account, passphrase string
 		return nil, err
 	}
 	defer zeroKey(&key.Dilithium)
-	return pqcrypto.Sign(hash, &key.Dilithium)
+	return pqcrypto.Sign(hash, key.Dilithium)
 }
 
 // SignTxWithPassphrase signs the transaction if the private key matching the
