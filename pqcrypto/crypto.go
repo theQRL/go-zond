@@ -12,6 +12,8 @@ import (
 	"github.com/theQRL/go-qrllib/dilithium"
 )
 
+const DilithiumSignatureLength = dilithium.CryptoBytes
+
 // DigestLength sets the signature digest exact length
 const DigestLength = 32
 
