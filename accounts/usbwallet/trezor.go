@@ -265,7 +265,8 @@ func (w *trezorDriver) trezorSign(derivationPath []uint32, tx *types.Transaction
 	}
 
 	// Inject the final signature into the transaction and sanity check the sender
-	signed, err := tx.WithSignature(signer, signature)
+	// TODO (cyyber): Intentionally passed nil as pk, to be fixed later
+	signed, err := tx.WithSignatureAndPublicKey(signer, signature, nil)
 	if err != nil {
 		return common.Address{}, nil, err
 	}
