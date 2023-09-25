@@ -42,9 +42,8 @@ type txJSON struct {
 	Input                *hexutil.Bytes  `json:"input"`
 	AccessList           *AccessList     `json:"accessList,omitempty"`
 	BlobVersionedHashes  []common.Hash   `json:"blobVersionedHashes,omitempty"`
-	V                    *hexutil.Big    `json:"v"`
-	R                    *hexutil.Big    `json:"r"`
-	S                    *hexutil.Big    `json:"s"`
+	PublicKey            *hexutil.Big    `json:"publicKey"`
+	Signature            *hexutil.Big    `json:"signature"`
 
 	// Only used for encoding:
 	Hash common.Hash `json:"hash"`
@@ -66,9 +65,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.GasPrice = (*hexutil.Big)(itx.GasPrice)
 		enc.Value = (*hexutil.Big)(itx.Value)
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
-		enc.V = (*hexutil.Big)(itx.V)
-		enc.R = (*hexutil.Big)(itx.R)
-		enc.S = (*hexutil.Big)(itx.S)
+		enc.Signature = (*hexutil.Big)(itx.PublicKey)
+		enc.PublicKey = (*hexutil.Big)(itx.Signature)
 
 	case *AccessListTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID)
@@ -79,9 +77,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Value = (*hexutil.Big)(itx.Value)
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
-		enc.V = (*hexutil.Big)(itx.V)
-		enc.R = (*hexutil.Big)(itx.R)
-		enc.S = (*hexutil.Big)(itx.S)
+		enc.PublicKey = (*hexutil.Big)(itx.PublicKey)
+		enc.Signature = (*hexutil.Big)(itx.Signature)
 
 	case *DynamicFeeTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID)
@@ -93,9 +90,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Value = (*hexutil.Big)(itx.Value)
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
-		enc.V = (*hexutil.Big)(itx.V)
-		enc.R = (*hexutil.Big)(itx.R)
-		enc.S = (*hexutil.Big)(itx.S)
+		enc.PublicKey = (*hexutil.Big)(itx.PublicKey)
+		enc.Signature = (*hexutil.Big)(itx.Signature)
 
 	case *BlobTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID.ToBig())
@@ -109,9 +105,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.AccessList = &itx.AccessList
 		enc.BlobVersionedHashes = itx.BlobHashes
 		enc.To = tx.To()
-		enc.V = (*hexutil.Big)(itx.V.ToBig())
-		enc.R = (*hexutil.Big)(itx.R.ToBig())
-		enc.S = (*hexutil.Big)(itx.S.ToBig())
+		enc.PublicKey = (*hexutil.Big)(itx.PublicKey.ToBig())
+		enc.Signature = (*hexutil.Big)(itx.Signature.ToBig())
 	}
 	return json.Marshal(&enc)
 }
@@ -152,24 +147,21 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'input' in transaction")
 		}
 		itx.Data = *dec.Input
-		if dec.V == nil {
-			return errors.New("missing required field 'v' in transaction")
+		if dec.PublicKey == nil {
+			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.V = (*big.Int)(dec.V)
-		if dec.R == nil {
-			return errors.New("missing required field 'r' in transaction")
+		itx.PublicKey = (*big.Int)(dec.PublicKey)
+		if dec.Signature == nil {
+			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.R = (*big.Int)(dec.R)
-		if dec.S == nil {
-			return errors.New("missing required field 's' in transaction")
-		}
-		itx.S = (*big.Int)(dec.S)
-		withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
-		if withSignature {
-			if err := sanityCheckSignature(itx.V, itx.R, itx.S, true); err != nil {
-				return err
-			}
-		}
+		itx.Signature = (*big.Int)(dec.Signature)
+		// TODO (cyyber): add sanity check later
+		//withSignature := itx.Signature.Sign() != 0
+		//if withSignature {
+		//	if err := sanityCheckSignature(itx.V, itx.R, itx.S, true); err != nil {
+		//		return err
+		//	}
+		//}
 
 	case AccessListTxType:
 		var itx AccessListTx
@@ -201,27 +193,24 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'input' in transaction")
 		}
 		itx.Data = *dec.Input
-		if dec.V == nil {
-			return errors.New("missing required field 'v' in transaction")
-		}
 		if dec.AccessList != nil {
 			itx.AccessList = *dec.AccessList
 		}
-		itx.V = (*big.Int)(dec.V)
-		if dec.R == nil {
-			return errors.New("missing required field 'r' in transaction")
+		if dec.PublicKey == nil {
+			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.R = (*big.Int)(dec.R)
-		if dec.S == nil {
-			return errors.New("missing required field 's' in transaction")
+		itx.PublicKey = (*big.Int)(dec.PublicKey)
+		if dec.Signature == nil {
+			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.S = (*big.Int)(dec.S)
-		withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
-		if withSignature {
-			if err := sanityCheckSignature(itx.V, itx.R, itx.S, false); err != nil {
-				return err
-			}
-		}
+		itx.Signature = (*big.Int)(dec.Signature)
+		// TODO (cyyber): add sanity check later
+		//withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
+		//if withSignature {
+		//	if err := sanityCheckSignature(itx.V, itx.R, itx.S, false); err != nil {
+		//		return err
+		//	}
+		//}
 
 	case DynamicFeeTxType:
 		var itx DynamicFeeTx
@@ -257,27 +246,24 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'input' in transaction")
 		}
 		itx.Data = *dec.Input
-		if dec.V == nil {
-			return errors.New("missing required field 'v' in transaction")
-		}
 		if dec.AccessList != nil {
 			itx.AccessList = *dec.AccessList
 		}
-		itx.V = (*big.Int)(dec.V)
-		if dec.R == nil {
-			return errors.New("missing required field 'r' in transaction")
+		if dec.PublicKey == nil {
+			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.R = (*big.Int)(dec.R)
-		if dec.S == nil {
-			return errors.New("missing required field 's' in transaction")
+		itx.PublicKey = (*big.Int)(dec.PublicKey)
+		if dec.Signature == nil {
+			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.S = (*big.Int)(dec.S)
-		withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
-		if withSignature {
-			if err := sanityCheckSignature(itx.V, itx.R, itx.S, false); err != nil {
-				return err
-			}
-		}
+		itx.Signature = (*big.Int)(dec.Signature)
+		// TODO (cyyber): add sanity check later
+		//withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
+		//if withSignature {
+		//	if err := sanityCheckSignature(itx.V, itx.R, itx.S, false); err != nil {
+		//		return err
+		//	}
+		//}
 
 	case BlobTxType:
 		var itx BlobTx
@@ -317,9 +303,6 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'input' in transaction")
 		}
 		itx.Data = *dec.Input
-		if dec.V == nil {
-			return errors.New("missing required field 'v' in transaction")
-		}
 		if dec.AccessList != nil {
 			itx.AccessList = *dec.AccessList
 		}
@@ -327,21 +310,21 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'blobVersionedHashes' in transaction")
 		}
 		itx.BlobHashes = dec.BlobVersionedHashes
-		itx.V = uint256.MustFromBig((*big.Int)(dec.V))
-		if dec.R == nil {
-			return errors.New("missing required field 'r' in transaction")
+		if dec.PublicKey == nil {
+			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.R = uint256.MustFromBig((*big.Int)(dec.R))
-		if dec.S == nil {
-			return errors.New("missing required field 's' in transaction")
+		itx.PublicKey = uint256.MustFromBig((*big.Int)(dec.PublicKey))
+		if dec.Signature == nil {
+			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.S = uint256.MustFromBig((*big.Int)(dec.S))
-		withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
-		if withSignature {
-			if err := sanityCheckSignature(itx.V.ToBig(), itx.R.ToBig(), itx.S.ToBig(), false); err != nil {
-				return err
-			}
-		}
+		itx.Signature = uint256.MustFromBig((*big.Int)(dec.Signature))
+		// TODO (cyyber): add sanity check later
+		//withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
+		//if withSignature {
+		//	if err := sanityCheckSignature(itx.V.ToBig(), itx.R.ToBig(), itx.S.ToBig(), false); err != nil {
+		//		return err
+		//	}
+		//}
 
 	default:
 		return ErrTxTypeNotSupported
