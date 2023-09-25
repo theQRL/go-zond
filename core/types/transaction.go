@@ -252,7 +252,7 @@ func isProtectedV(V *big.Int) bool {
 
 // Protected says whether the transaction is replay-protected.
 func (tx *Transaction) Protected() bool {
-	switch _ := tx.inner.(type) {
+	switch tx.inner.(type) {
 	case *LegacyTx:
 		// TODO (cyyber): Remove support for Legacy Tx
 		//return tx.V != nil && isProtectedV(tx.V)
