@@ -8,11 +8,14 @@ import (
 	"io"
 	"os"
 
-	"github.com/theQRL/go-qrllib/common"
+	"github.com/ethereum/go-ethereum/common"
+	qrllibCommon "github.com/theQRL/go-qrllib/common"
 	"github.com/theQRL/go-qrllib/dilithium"
 )
 
 const DilithiumSignatureLength = dilithium.CryptoBytes
+
+const DilithiumPublicKeyLength = dilithium.CryptoPublicKeyBytes
 
 // DigestLength sets the signature digest exact length
 const DigestLength = 32
@@ -26,12 +29,12 @@ func LoadDilithium(file string) (*dilithium.Dilithium, error) {
 	defer fd.Close()
 
 	r := bufio.NewReader(fd)
-	buf := make([]byte, common.SeedSize*2)
+	buf := make([]byte, qrllibCommon.SeedSize*2)
 	n, err := readASCII(buf, r)
 	if err != nil {
 		return nil, err
 	} else if n != len(buf) {
-		return nil, fmt.Errorf("key file too short, want %v hex characters", common.SeedSize*2)
+		return nil, fmt.Errorf("key file too short, want %v hex characters", qrllibCommon.SeedSize*2)
 	}
 	if err := checkKeyFileEnd(r); err != nil {
 		return nil, err
@@ -80,7 +83,7 @@ func checkKeyFileEnd(r *bufio.Reader) error {
 // never be used unless you are sure the input is valid and want to avoid hitting
 // errors due to bad origin encoding (0 prefixes cut off).
 func ToDilithiumUnsafe(seed []byte) *dilithium.Dilithium {
-	var sizedSeed [common.SeedSize]uint8
+	var sizedSeed [qrllibCommon.SeedSize]uint8
 	copy(sizedSeed[:], seed)
 	d, err := dilithium.NewDilithiumFromSeed(sizedSeed)
 	if err != nil {
@@ -98,10 +101,16 @@ func HexToDilithium(hexSeedStr string) (*dilithium.Dilithium, error) {
 		return nil, errors.New("invalid hex data for private key")
 	}
 
-	var hexSeed [common.SeedSize]uint8
+	var hexSeed [qrllibCommon.SeedSize]uint8
 	copy(hexSeed[:], b)
 
 	return dilithium.NewDilithiumFromSeed(hexSeed)
+}
+
+func DilithiumPKToAddress(publicKey []byte) common.Address {
+	var pk [DilithiumPublicKeyLength]uint8
+	copy(pk[:], publicKey)
+	return dilithium.GetDilithiumAddressFromPK(pk)
 }
 
 func zeroBytes(d **dilithium.Dilithium) {

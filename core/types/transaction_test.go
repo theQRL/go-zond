@@ -30,7 +30,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/theQRL/go-qrllib/dilithium"
 )
 
 // The values in those tests are from the Transaction Tests
@@ -52,9 +54,10 @@ var (
 		2000,
 		big.NewInt(1),
 		common.FromHex("5544"),
-	).WithSignature(
+	).WithSignatureAndPublicKey(
 		HomesteadSigner{},
 		common.Hex2Bytes("98ff921201554726367d2be8c804a7ff89ccf285ebc57dff8ae4c44b9c19ac4a8887321be575c8095f789dd4c743dfe42c1820f9231f98a962b210e3ac2452a301"),
+		nil,
 	)
 
 	emptyEip2718Tx = NewTx(&AccessListTx{
@@ -67,9 +70,10 @@ var (
 		Data:     common.FromHex("5544"),
 	})
 
-	signedEip2718Tx, _ = emptyEip2718Tx.WithSignature(
+	signedEip2718Tx, _ = emptyEip2718Tx.WithSignatureAndPublicKey(
 		NewEIP2930Signer(big.NewInt(1)),
 		common.Hex2Bytes("c9519f4f2b30335884581971573fadf60c6204f59a911df35ee8a540456b266032f1e8e2c5dd761f9e4f88f41c8310aeaba26a8bfcdacfedfa12ec3862d3752101"),
+		nil,
 	)
 )
 
@@ -116,8 +120,8 @@ func TestEIP2718TransactionSigHash(t *testing.T) {
 // This test checks signature operations on access list transactions.
 func TestEIP2930Signer(t *testing.T) {
 	var (
-		key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		keyAddr = crypto.PubkeyToAddress(key.PublicKey)
+		key, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		keyAddr = common.Address(key.GetAddress())
 		signer1 = NewEIP2930Signer(big.NewInt(1))
 		signer2 = NewEIP2930Signer(big.NewInt(2))
 		tx0     = NewTx(&AccessListTx{Nonce: 1})
@@ -274,9 +278,9 @@ func TestTransactionPriceNonceSort1559(t *testing.T) {
 // the same account.
 func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	// Generate a batch of accounts to start with
-	keys := make([]*ecdsa.PrivateKey, 25)
+	keys := make([]*dilithium.Dilithium, 25)
 	for i := 0; i < len(keys); i++ {
-		keys[i], _ = crypto.GenerateKey()
+		keys[i], _ = pqcrypto.GenerateDilithiumKey()
 	}
 	signer := LatestSignerForChainID(common.Big1)
 
@@ -284,7 +288,7 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	groups := map[common.Address]Transactions{}
 	expectedCount := 0
 	for start, key := range keys {
-		addr := crypto.PubkeyToAddress(key.PublicKey)
+		addr := key.GetAddress()
 		count := 25
 		for i := 0; i < 25; i++ {
 			var tx *Transaction
@@ -361,16 +365,16 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 // are prioritized to avoid network spam attacks aiming for a specific ordering.
 func TestTransactionTimeSort(t *testing.T) {
 	// Generate a batch of accounts to start with
-	keys := make([]*ecdsa.PrivateKey, 5)
+	keys := make([]*dilithium.Dilithium, 5)
 	for i := 0; i < len(keys); i++ {
-		keys[i], _ = crypto.GenerateKey()
+		keys[i], _ = pqcrypto.GenerateDilithiumKey()
 	}
 	signer := HomesteadSigner{}
 
 	// Generate a batch of transactions with overlapping prices, but different creation times
 	groups := map[common.Address]Transactions{}
 	for start, key := range keys {
-		addr := crypto.PubkeyToAddress(key.PublicKey)
+		addr := common.Address(key.GetAddress())
 
 		tx, _ := SignTx(NewTransaction(0, common.Address{}, big.NewInt(100), 100, big.NewInt(1), nil), signer, key)
 		tx.time = time.Unix(0, int64(len(keys)-start))
@@ -407,7 +411,7 @@ func TestTransactionTimeSort(t *testing.T) {
 
 // TestTransactionCoding tests serializing/de-serializing to/from rlp and JSON.
 func TestTransactionCoding(t *testing.T) {
-	key, err := crypto.GenerateKey()
+	key, err := pqcrypto.GenerateDilithiumKey()
 	if err != nil {
 		t.Fatalf("could not generate key: %v", err)
 	}
@@ -534,7 +538,7 @@ func assertEqual(orig *Transaction, cpy *Transaction) error {
 
 func TestTransactionSizes(t *testing.T) {
 	signer := NewLondonSigner(big.NewInt(123))
-	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	to := common.HexToAddress("0x01")
 	for i, txdata := range []TxData{
 		&AccessListTx{

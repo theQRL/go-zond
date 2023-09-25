@@ -39,9 +39,8 @@ type BlobTx struct {
 	BlobHashes []common.Hash
 
 	// Signature values
-	V *uint256.Int `json:"v" gencodec:"required"`
-	R *uint256.Int `json:"r" gencodec:"required"`
-	S *uint256.Int `json:"s" gencodec:"required"`
+	PublicKey *uint256.Int `json:"publicKey" gencodec:"required"`
+	Signature *uint256.Int `json:"signature" gencodec:"required"`
 }
 
 // copy creates a deep copy of the transaction data and initializes all fields.
@@ -59,9 +58,8 @@ func (tx *BlobTx) copy() TxData {
 		GasTipCap:  new(uint256.Int),
 		GasFeeCap:  new(uint256.Int),
 		BlobFeeCap: new(uint256.Int),
-		V:          new(uint256.Int),
-		R:          new(uint256.Int),
-		S:          new(uint256.Int),
+		PublicKey:  new(uint256.Int),
+		Signature:  new(uint256.Int),
 	}
 	copy(cpy.AccessList, tx.AccessList)
 	copy(cpy.BlobHashes, tx.BlobHashes)
@@ -81,14 +79,11 @@ func (tx *BlobTx) copy() TxData {
 	if tx.BlobFeeCap != nil {
 		cpy.BlobFeeCap.Set(tx.BlobFeeCap)
 	}
-	if tx.V != nil {
-		cpy.V.Set(tx.V)
+	if tx.PublicKey != nil {
+		cpy.PublicKey.Set(tx.PublicKey)
 	}
-	if tx.R != nil {
-		cpy.R.Set(tx.R)
-	}
-	if tx.S != nil {
-		cpy.S.Set(tx.S)
+	if tx.Signature != nil {
+		cpy.Signature.Set(tx.Signature)
 	}
 	return cpy
 }
@@ -120,13 +115,16 @@ func (tx *BlobTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	return tip.Add(tip, baseFee)
 }
 
-func (tx *BlobTx) rawSignatureValues() (v, r, s *big.Int) {
-	return tx.V.ToBig(), tx.R.ToBig(), tx.S.ToBig()
+func (tx *BlobTx) rawSignatureValue() (signature *big.Int) {
+	return tx.Signature.ToBig()
 }
 
-func (tx *BlobTx) setSignatureValues(chainID, v, r, s *big.Int) {
+func (tx *BlobTx) rawPublicKeyValue() (publicKey *big.Int) {
+	return tx.PublicKey.ToBig()
+}
+
+func (tx *BlobTx) setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int) {
 	tx.ChainID.SetFromBig(chainID)
-	tx.V.SetFromBig(v)
-	tx.R.SetFromBig(r)
-	tx.S.SetFromBig(s)
+	tx.Signature.SetFromBig(signature)
+	tx.PublicKey.SetFromBig(publicKey)
 }

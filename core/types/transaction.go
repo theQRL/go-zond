@@ -87,8 +87,9 @@ type TxData interface {
 	blobGasFeeCap() *big.Int
 	blobHashes() []common.Hash
 
-	rawSignatureValues() (v, r, s *big.Int)
-	setSignatureValues(chainID, v, r, s *big.Int)
+	rawSignatureValue() (signature *big.Int)
+	rawPublicKeyValue() (publicKey *big.Int)
+	setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int)
 
 	// effectiveGasPrice computes the gas price paid by the transaction, given
 	// the inclusion block baseFee.
@@ -251,9 +252,11 @@ func isProtectedV(V *big.Int) bool {
 
 // Protected says whether the transaction is replay-protected.
 func (tx *Transaction) Protected() bool {
-	switch tx := tx.inner.(type) {
+	switch _ := tx.inner.(type) {
 	case *LegacyTx:
-		return tx.V != nil && isProtectedV(tx.V)
+		// TODO (cyyber): Remove support for Legacy Tx
+		//return tx.V != nil && isProtectedV(tx.V)
+		return true
 	default:
 		return true
 	}
@@ -320,10 +323,16 @@ func (tx *Transaction) Cost() *big.Int {
 	return total
 }
 
-// RawSignatureValues returns the V, R, S signature values of the transaction.
+// RawSignatureValue returns the signature value of the transaction.
 // The return values should not be modified by the caller.
-func (tx *Transaction) RawSignatureValues() (v, r, s *big.Int) {
-	return tx.inner.rawSignatureValues()
+func (tx *Transaction) RawSignatureValue() (signature *big.Int) {
+	return tx.inner.rawSignatureValue()
+}
+
+// RawPublicKeyValue returns the public key value of the transaction.
+// The return values should not be modified by the caller.
+func (tx *Transaction) RawPublicKeyValue() (publicKey *big.Int) {
+	return tx.inner.rawPublicKeyValue()
 }
 
 // GasFeeCapCmp compares the fee cap of two transactions.
@@ -427,15 +436,14 @@ func (tx *Transaction) Size() uint64 {
 	return size
 }
 
-// WithSignature returns a new transaction with the given signature.
-// This signature needs to be in the [R || S || V] format where V is 0 or 1.
-func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, error) {
-	r, s, v, err := signer.SignatureValues(tx, sig)
+// WithSignatureAndPublicKey returns a new transaction with the given signature.
+func (tx *Transaction) WithSignatureAndPublicKey(signer Signer, sig, pk []byte) (*Transaction, error) {
+	signature, publicKey, err := signer.SignatureAndPublicKeyValues(tx, sig, pk)
 	if err != nil {
 		return nil, err
 	}
 	cpy := tx.inner.copy()
-	cpy.setSignatureValues(signer.ChainID(), v, r, s)
+	cpy.setSignatureAndPublicKeyValues(signer.ChainID(), signature, publicKey)
 	return &Transaction{inner: cpy, time: tx.time}, nil
 }
 

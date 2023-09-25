@@ -35,9 +35,8 @@ type DynamicFeeTx struct {
 	AccessList AccessList
 
 	// Signature values
-	V *big.Int `json:"v" gencodec:"required"`
-	R *big.Int `json:"r" gencodec:"required"`
-	S *big.Int `json:"s" gencodec:"required"`
+	PublicKey *big.Int `json:"publicKey" gencodec:"required"`
+	Signature *big.Int `json:"signature" gencodec:"required"`
 }
 
 // copy creates a deep copy of the transaction data and initializes all fields.
@@ -53,9 +52,8 @@ func (tx *DynamicFeeTx) copy() TxData {
 		ChainID:    new(big.Int),
 		GasTipCap:  new(big.Int),
 		GasFeeCap:  new(big.Int),
-		V:          new(big.Int),
-		R:          new(big.Int),
-		S:          new(big.Int),
+		PublicKey:  new(big.Int),
+		Signature:  new(big.Int),
 	}
 	copy(cpy.AccessList, tx.AccessList)
 	if tx.Value != nil {
@@ -70,14 +68,11 @@ func (tx *DynamicFeeTx) copy() TxData {
 	if tx.GasFeeCap != nil {
 		cpy.GasFeeCap.Set(tx.GasFeeCap)
 	}
-	if tx.V != nil {
-		cpy.V.Set(tx.V)
+	if tx.PublicKey != nil {
+		cpy.PublicKey.Set(tx.PublicKey)
 	}
-	if tx.R != nil {
-		cpy.R.Set(tx.R)
-	}
-	if tx.S != nil {
-		cpy.S.Set(tx.S)
+	if tx.Signature != nil {
+		cpy.Signature.Set(tx.Signature)
 	}
 	return cpy
 }
@@ -109,10 +104,14 @@ func (tx *DynamicFeeTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.I
 	return tip.Add(tip, baseFee)
 }
 
-func (tx *DynamicFeeTx) rawSignatureValues() (v, r, s *big.Int) {
-	return tx.V, tx.R, tx.S
+func (tx *DynamicFeeTx) rawSignatureValue() (signature *big.Int) {
+	return tx.Signature
 }
 
-func (tx *DynamicFeeTx) setSignatureValues(chainID, v, r, s *big.Int) {
-	tx.ChainID, tx.V, tx.R, tx.S = chainID, v, r, s
+func (tx *DynamicFeeTx) rawPublicKeyValue() (publicKey *big.Int) {
+	return tx.PublicKey
+}
+
+func (tx *DynamicFeeTx) setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int) {
+	tx.ChainID, tx.PublicKey, tx.Signature = chainID, publicKey, signature
 }

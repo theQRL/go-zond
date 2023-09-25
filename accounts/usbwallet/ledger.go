@@ -384,7 +384,8 @@ func (w *ledgerDriver) ledgerSign(derivationPath []uint32, tx *types.Transaction
 		signer = types.NewEIP155Signer(chainID)
 		signature[64] -= byte(chainID.Uint64()*2 + 35)
 	}
-	signed, err := tx.WithSignature(signer, signature)
+	// TODO (cyyber): intentionally added pk as nil, fix this issue later
+	signed, err := tx.WithSignatureAndPublicKey(signer, signature, nil)
 	if err != nil {
 		return common.Address{}, nil, err
 	}

@@ -72,7 +72,11 @@ func NewKeyStoreTransactor(keystore *keystore.KeyStore, account accounts.Account
 			if err != nil {
 				return nil, err
 			}
-			return tx.WithSignature(signer, signature)
+			pk, err := keystore.GetPublicKey(account)
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignatureAndPublicKey(signer, signature, pk)
 		},
 		Context: context.Background(),
 	}, nil
@@ -96,7 +100,8 @@ func NewKeyedTransactor(d *dilithium.Dilithium) *TransactOpts {
 			if err != nil {
 				return nil, err
 			}
-			return tx.WithSignature(signer, signature)
+			pk := d.GetPK()
+			return tx.WithSignatureAndPublicKey(signer, signature, pk[:])
 		},
 		Context: context.Background(),
 	}
@@ -133,7 +138,11 @@ func NewKeyStoreTransactorWithChainID(keystore *keystore.KeyStore, account accou
 			if err != nil {
 				return nil, err
 			}
-			return tx.WithSignature(signer, signature)
+			pk, err := keystore.GetPublicKey(account)
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignatureAndPublicKey(signer, signature, pk)
 		},
 		Context: context.Background(),
 	}, nil
@@ -157,7 +166,8 @@ func NewKeyedTransactorWithChainID(d *dilithium.Dilithium, chainID *big.Int) (*T
 			if err != nil {
 				return nil, err
 			}
-			return tx.WithSignature(signer, signature)
+			pk := d.GetPK()
+			return tx.WithSignatureAndPublicKey(signer, signature, pk[:])
 		},
 		Context: context.Background(),
 	}, nil

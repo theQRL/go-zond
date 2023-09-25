@@ -17,7 +17,6 @@
 package t8ntool
 
 import (
-	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,12 +32,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/tests"
+	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/urfave/cli/v2"
 )
 
@@ -307,7 +307,7 @@ func Transition(ctx *cli.Context) error {
 // txWithKey is a helper-struct, to allow us to use the types.Transaction along with
 // a `secretKey`-field, for input
 type txWithKey struct {
-	key       *ecdsa.PrivateKey
+	key       *dilithium.Dilithium
 	tx        *types.Transaction
 	protected bool
 }
@@ -324,10 +324,10 @@ func (t *txWithKey) UnmarshalJSON(input []byte) error {
 	}
 	if data.Key != nil {
 		k := data.Key.Hex()[2:]
-		if ecdsaKey, err := crypto.HexToECDSA(k); err != nil {
+		if dilithiumKey, err := pqcrypto.HexToDilithium(k); err != nil {
 			return err
 		} else {
-			t.key = ecdsaKey
+			t.key = dilithiumKey
 		}
 	}
 	if data.Protected != nil {
@@ -361,8 +361,8 @@ func signUnsignedTransactions(txs []*txWithKey, signer types.Signer) (types.Tran
 	for i, txWithKey := range txs {
 		tx := txWithKey.tx
 		key := txWithKey.key
-		v, r, s := tx.RawSignatureValues()
-		if key != nil && v.BitLen()+r.BitLen()+s.BitLen() == 0 {
+		signature := tx.RawSignatureValue()
+		if key != nil && signature != nil {
 			// This transaction needs to be signed
 			var (
 				signed *types.Transaction
