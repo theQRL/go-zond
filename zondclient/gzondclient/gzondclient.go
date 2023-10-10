@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package gethclient provides an RPC client for geth-specific APIs.
-package gethclient
+// Package gzondclient provides an RPC client for geth-specific APIs.
+package gzondclient
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 
 // Client is a wrapper around rpc.Client that implements geth-specific functionality.
 //
-// If you want to use the standardized Ethereum RPC functionality, use ethclient.Client instead.
+// If you want to use the standardized Ethereum RPC functionality, use zondclient.Client instead.
 type Client struct {
 	c *rpc.Client
 }
@@ -134,7 +134,7 @@ func (ec *Client) GetProof(ctx context.Context, account common.Address, keys []s
 //
 // overrides specifies a map of contract states that should be overwritten before executing
 // the message call.
-// Please use ethclient.CallContract instead if you don't need the override functionality.
+// Please use zondclient.CallContract instead if you don't need the override functionality.
 func (ec *Client) CallContract(ctx context.Context, msg ethereum.CallMsg, blockNumber *big.Int, overrides *map[common.Address]OverrideAccount) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(
@@ -156,7 +156,7 @@ func (ec *Client) CallContract(ctx context.Context, msg ethereum.CallMsg, blockN
 //
 // blockOverrides specifies block fields exposed to the EVM that can be overridden for the call.
 //
-// Please use ethclient.CallContract instead if you don't need the override functionality.
+// Please use zondclient.CallContract instead if you don't need the override functionality.
 func (ec *Client) CallContractWithBlockOverrides(ctx context.Context, msg ethereum.CallMsg, blockNumber *big.Int, overrides *map[common.Address]OverrideAccount, blockOverrides BlockOverrides) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(

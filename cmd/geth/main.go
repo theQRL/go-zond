@@ -32,13 +32,13 @@ import (
 	"github.com/theQRL/go-zond/console/prompt"
 	"github.com/theQRL/go-zond/eth"
 	"github.com/theQRL/go-zond/eth/downloader"
-	"github.com/theQRL/go-zond/ethclient"
 	"github.com/theQRL/go-zond/internal/debug"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/node"
+	"github.com/theQRL/go-zond/zondclient"
 	// Force-load the tracer engines to trigger registration
 	_ "github.com/theQRL/go-zond/eth/tracers/js"
 	_ "github.com/theQRL/go-zond/eth/tracers/native"
@@ -355,7 +355,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 	if err != nil {
 		utils.Fatalf("Failed to attach to self: %v", err)
 	}
-	ethClient := ethclient.NewClient(rpcClient)
+	ethClient := zondclient.NewClient(rpcClient)
 
 	go func() {
 		// Open any wallets already attached

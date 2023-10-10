@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package gethclient
+package gzondclient
 
 import (
 	"bytes"
@@ -32,10 +32,10 @@ import (
 	"github.com/theQRL/go-zond/eth"
 	"github.com/theQRL/go-zond/eth/ethconfig"
 	"github.com/theQRL/go-zond/eth/filters"
-	"github.com/theQRL/go-zond/ethclient"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zondclient"
 )
 
 var (
@@ -203,7 +203,7 @@ func testAccessList(t *testing.T, client *rpc.Client) {
 
 func testGetProof(t *testing.T, client *rpc.Client) {
 	ec := New(client)
-	ethcl := ethclient.NewClient(client)
+	ethcl := zondclient.NewClient(client)
 	result, err := ec.GetProof(context.Background(), testAddr, []string{testSlot.String()}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -276,7 +276,7 @@ func testSetHead(t *testing.T, client *rpc.Client) {
 
 func testSubscribePendingTransactions(t *testing.T, client *rpc.Client) {
 	ec := New(client)
-	ethcl := ethclient.NewClient(client)
+	ethcl := zondclient.NewClient(client)
 	// Subscribe to Transactions
 	ch := make(chan common.Hash)
 	ec.SubscribePendingTransactions(context.Background(), ch)
@@ -310,7 +310,7 @@ func testSubscribePendingTransactions(t *testing.T, client *rpc.Client) {
 
 func testSubscribeFullPendingTransactions(t *testing.T, client *rpc.Client) {
 	ec := New(client)
-	ethcl := ethclient.NewClient(client)
+	ethcl := zondclient.NewClient(client)
 	// Subscribe to Transactions
 	ch := make(chan *types.Transaction)
 	ec.SubscribeFullPendingTransactions(context.Background(), ch)

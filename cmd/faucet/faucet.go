@@ -48,7 +48,6 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/eth/downloader"
 	"github.com/theQRL/go-zond/eth/ethconfig"
-	"github.com/theQRL/go-zond/ethclient"
 	"github.com/theQRL/go-zond/ethstats"
 	"github.com/theQRL/go-zond/internal/version"
 	"github.com/theQRL/go-zond/les"
@@ -58,6 +57,7 @@ import (
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/nat"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/zondclient"
 )
 
 var (
@@ -195,7 +195,7 @@ type request struct {
 type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Ethereum protocol stack
-	client *ethclient.Client   // Client connection to the Ethereum chain
+	client *zondclient.Client  // Client connection to the Ethereum chain
 	index  []byte              // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
@@ -274,7 +274,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 		stack.Close()
 		return nil, err
 	}
-	client := ethclient.NewClient(api)
+	client := zondclient.NewClient(api)
 
 	return &faucet{
 		config:   genesis.Config,
