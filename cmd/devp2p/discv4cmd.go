@@ -24,13 +24,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/cmd/devp2p/internal/v4test"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/theQRL/go-zond/cmd/devp2p/internal/v4test"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/internal/flags"
+	"github.com/theQRL/go-zond/p2p/discover"
+	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/params"
 	"github.com/urfave/cli/v2"
 )
 

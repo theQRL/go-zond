@@ -21,12 +21,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/math"
+	"github.com/theQRL/go-zond/core/rawdb"
+	"github.com/theQRL/go-zond/core/state"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/params"
 )
 
 var loopInterruptTests = []string{

@@ -25,11 +25,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console/prompt"
-	"github.com/ethereum/go-ethereum/p2p/dnsdisc"
-	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/theQRL/go-zond/accounts/keystore"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/console/prompt"
+	"github.com/theQRL/go-zond/p2p/dnsdisc"
+	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/urfave/cli/v2"
 )
 

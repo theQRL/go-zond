@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/light"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/light"
 )
 
 // Test light syncing which will download all headers from genesis.

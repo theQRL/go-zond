@@ -24,11 +24,11 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/p2p"
+	"github.com/theQRL/go-zond/rpc"
 )
 
 const (

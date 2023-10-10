@@ -21,10 +21,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/theQRL/go-zond"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/log"
 )
 
 // WaitMined waits for tx to be mined on the blockchain.

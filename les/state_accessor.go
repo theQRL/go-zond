@@ -21,12 +21,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers"
-	"github.com/ethereum/go-ethereum/light"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/core/state"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/eth/tracers"
+	"github.com/theQRL/go-zond/light"
 )
 
 // noopReleaser is returned in case there is no operation expected

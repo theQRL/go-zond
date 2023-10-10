@@ -19,8 +19,8 @@ package txpool
 import (
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/state"
 )
 
 // noncer is a tiny virtual state database to manage the executable nonces of

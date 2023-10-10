@@ -19,9 +19,9 @@ package downloader
 import (
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/eth/protocols/eth"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/eth/protocols/eth"
+	"github.com/theQRL/go-zond/log"
 )
 
 // bodyQueue implements typedQueue and is a type adapter between the generic

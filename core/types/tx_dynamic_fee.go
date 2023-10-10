@@ -19,7 +19,7 @@ package types
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/theQRL/go-zond/common"
 )
 
 // DynamicFeeTx represents an EIP-1559 transaction.

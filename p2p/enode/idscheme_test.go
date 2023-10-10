@@ -23,11 +23,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p/enr"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/p2p/enr"
+	"github.com/theQRL/go-zond/rlp"
 )
 
 var (

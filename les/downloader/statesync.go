@@ -21,13 +21,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/rawdb"
+	"github.com/theQRL/go-zond/core/state"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/trie"
 	"golang.org/x/crypto/sha3"
 )
 

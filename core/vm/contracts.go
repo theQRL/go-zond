@@ -22,13 +22,13 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/blake2b"
-	"github.com/ethereum/go-ethereum/crypto/bls12381"
-	"github.com/ethereum/go-ethereum/crypto/bn256"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/math"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/blake2b"
+	"github.com/theQRL/go-zond/crypto/bls12381"
+	"github.com/theQRL/go-zond/crypto/bn256"
+	"github.com/theQRL/go-zond/params"
 	"golang.org/x/crypto/ripemd160"
 )
 

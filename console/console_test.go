@@ -25,14 +25,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console/prompt"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
-	"github.com/ethereum/go-ethereum/internal/jsre"
-	"github.com/ethereum/go-ethereum/miner"
-	"github.com/ethereum/go-ethereum/node"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/console/prompt"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/eth"
+	"github.com/theQRL/go-zond/eth/ethconfig"
+	"github.com/theQRL/go-zond/internal/jsre"
+	"github.com/theQRL/go-zond/miner"
+	"github.com/theQRL/go-zond/node"
 )
 
 const (

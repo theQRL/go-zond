@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/hexutil"
+	"github.com/theQRL/go-zond/core/types"
 )
 
 var _ = (*payloadAttributesMarshaling)(nil)

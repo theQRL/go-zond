@@ -28,12 +28,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/internal/testlog"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
+	"github.com/theQRL/go-zond/internal/testlog"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/rpc"
 )
 
 const testMethod = "rpc_modules"

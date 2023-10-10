@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/rlp"
 )
 
 // Account is a modified version of a state.Account, where the root is replaced

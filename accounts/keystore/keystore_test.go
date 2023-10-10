@@ -27,10 +27,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/pqcrypto"
+	"github.com/theQRL/go-zond/accounts"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/event"
+	"github.com/theQRL/go-zond/pqcrypto"
 )
 
 var testSigData = make([]byte, 32)

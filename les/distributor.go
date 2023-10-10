@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/mclock"
-	"github.com/ethereum/go-ethereum/les/utils"
+	"github.com/theQRL/go-zond/common/mclock"
+	"github.com/theQRL/go-zond/les/utils"
 )
 
 // requestDistributor implements a mechanism that distributes requests to

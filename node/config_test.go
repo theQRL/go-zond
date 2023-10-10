@@ -23,8 +23,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/p2p"
 )
 
 // Tests that datadirs can be successfully created, be them manually configured

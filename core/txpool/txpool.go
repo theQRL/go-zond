@@ -26,16 +26,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/prque"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/prque"
+	"github.com/theQRL/go-zond/consensus/misc"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/core/state"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/event"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/metrics"
+	"github.com/theQRL/go-zond/params"
 )
 
 const (

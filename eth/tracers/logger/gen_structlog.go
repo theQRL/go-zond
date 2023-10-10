@@ -5,10 +5,10 @@ package logger
 import (
 	"encoding/json"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/hexutil"
+	"github.com/theQRL/go-zond/common/math"
+	"github.com/theQRL/go-zond/core/vm"
 	"github.com/holiman/uint256"
 )
 

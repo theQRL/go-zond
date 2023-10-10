@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/theQRL/go-zond/common"
 )
 
 func hexToNibbles(s string) []byte {

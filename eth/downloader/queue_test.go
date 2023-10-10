@@ -24,13 +24,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/trie"
 )
 
 // makeChain creates a chain of n blocks starting at and including parent.

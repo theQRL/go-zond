@@ -33,8 +33,8 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/rlp"
 )
 
 type allocItem struct {

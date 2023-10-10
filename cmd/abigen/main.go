@@ -24,12 +24,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common/compiler"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/theQRL/go-zond/accounts/abi/bind"
+	"github.com/theQRL/go-zond/cmd/utils"
+	"github.com/theQRL/go-zond/common/compiler"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/internal/flags"
+	"github.com/theQRL/go-zond/log"
 	"github.com/urfave/cli/v2"
 )
 

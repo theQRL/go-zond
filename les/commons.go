@@ -21,16 +21,16 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/light"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/core/rawdb"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/eth/ethconfig"
+	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/light"
+	"github.com/theQRL/go-zond/p2p"
+	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/params"
 )
 
 func errResp(code errCode, format string, v ...interface{}) error {

@@ -20,16 +20,16 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/consensus"
+	"github.com/theQRL/go-zond/consensus/misc"
+	"github.com/theQRL/go-zond/core/rawdb"
+	"github.com/theQRL/go-zond/core/state"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/trie"
 )
 
 // BlockGen creates blocks for testing.

@@ -34,27 +34,27 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/internal/ethapi"
-	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/signer/core"
-	"github.com/ethereum/go-ethereum/signer/core/apitypes"
-	"github.com/ethereum/go-ethereum/signer/fourbyte"
-	"github.com/ethereum/go-ethereum/signer/rules"
-	"github.com/ethereum/go-ethereum/signer/storage"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
+	"github.com/theQRL/go-zond/accounts"
+	"github.com/theQRL/go-zond/accounts/keystore"
+	"github.com/theQRL/go-zond/cmd/utils"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/hexutil"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/internal/ethapi"
+	"github.com/theQRL/go-zond/internal/flags"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/node"
+	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/signer/core"
+	"github.com/theQRL/go-zond/signer/core/apitypes"
+	"github.com/theQRL/go-zond/signer/fourbyte"
+	"github.com/theQRL/go-zond/signer/rules"
+	"github.com/theQRL/go-zond/signer/storage"
 	"github.com/urfave/cli/v2"
 )
 
@@ -868,7 +868,7 @@ func checkFile(filename string) error {
 	}
 	// Check the unix permission bits
 	// However, on windows, we cannot use the unix perm-bits, see
-	// https://github.com/ethereum/go-ethereum/issues/20123
+	// https://github.com/theQRL/go-zond/issues/20123
 	if runtime.GOOS != "windows" && info.Mode().Perm()&0377 != 0 {
 		return fmt.Errorf("file (%v) has insecure file permissions (%v)", filename, info.Mode().String())
 	}

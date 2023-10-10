@@ -5,12 +5,12 @@ package ethconfig
 import (
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/txpool"
-	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/eth/gasprice"
-	"github.com/ethereum/go-ethereum/miner"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core"
+	"github.com/theQRL/go-zond/core/txpool"
+	"github.com/theQRL/go-zond/eth/downloader"
+	"github.com/theQRL/go-zond/eth/gasprice"
+	"github.com/theQRL/go-zond/miner"
 )
 
 // MarshalTOML marshals as TOML.

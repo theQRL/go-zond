@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"math/bits"
 
-	"github.com/ethereum/go-ethereum/beacon/params"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	bls "github.com/protolambda/bls12-381-util"
+	"github.com/theQRL/go-zond/beacon/params"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/hexutil"
 )
 
 // SerializedSyncCommitteeSize is the size of the sync committee plus the

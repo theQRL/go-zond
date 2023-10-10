@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/theQRL/go-zond/common/hexutil"
+	"github.com/theQRL/go-zond/rpc"
 )
 
 type helloRPC string

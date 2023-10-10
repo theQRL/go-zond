@@ -24,11 +24,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/google/uuid"
 	"github.com/theQRL/go-qrllib/dilithium"
+	"github.com/theQRL/go-zond/accounts"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/pqcrypto"
 )
 
 const (

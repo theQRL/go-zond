@@ -1,4 +1,4 @@
-module github.com/ethereum/go-ethereum
+module github.com/theQRL/go-zond
 
 go 1.19
 

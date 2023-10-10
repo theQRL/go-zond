@@ -19,7 +19,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/theQRL/go-zond/params"
 )
 
 func TestTransaction(t *testing.T) {

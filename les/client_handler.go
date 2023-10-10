@@ -23,15 +23,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/mclock"
-	"github.com/ethereum/go-ethereum/core/forkid"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/protocols/eth"
-	"github.com/ethereum/go-ethereum/les/downloader"
-	"github.com/ethereum/go-ethereum/light"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/mclock"
+	"github.com/theQRL/go-zond/core/forkid"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/eth/protocols/eth"
+	"github.com/theQRL/go-zond/les/downloader"
+	"github.com/theQRL/go-zond/light"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/p2p"
 )
 
 // clientHandler is responsible for receiving and processing all incoming server

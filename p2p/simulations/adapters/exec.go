@@ -35,12 +35,12 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gorilla/websocket"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/node"
+	"github.com/theQRL/go-zond/p2p"
+	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/rpc"
 )
 
 func init() {

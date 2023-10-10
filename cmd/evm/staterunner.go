@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/eth/tracers/logger"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/tests"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/state"
+	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/eth/tracers/logger"
+	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/tests"
 	"github.com/urfave/cli/v2"
 )
 

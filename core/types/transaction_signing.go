@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/pqcrypto"
 	"github.com/theQRL/go-qrllib/dilithium"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/pqcrypto"
 )
 
 var ErrInvalidChainId = errors.New("invalid chain id for signer")

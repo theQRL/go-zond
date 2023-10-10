@@ -44,13 +44,13 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/simulations"
-	"github.com/ethereum/go-ethereum/p2p/simulations/adapters"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/internal/flags"
+	"github.com/theQRL/go-zond/p2p"
+	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/p2p/simulations"
+	"github.com/theQRL/go-zond/p2p/simulations/adapters"
+	"github.com/theQRL/go-zond/rpc"
 	"github.com/urfave/cli/v2"
 )
 

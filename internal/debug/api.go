@@ -35,8 +35,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/hashicorp/go-bexpr"
+	"github.com/theQRL/go-zond/log"
 )
 
 // Handler is the global debugging handler.

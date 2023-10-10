@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/theQRL/go-zond/common/math"
 )
 
 func TestCheckCompatible(t *testing.T) {

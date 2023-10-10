@@ -8,9 +8,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
 	qrllibCommon "github.com/theQRL/go-qrllib/common"
 	"github.com/theQRL/go-qrllib/dilithium"
+	"github.com/theQRL/go-zond/common"
 )
 
 const DilithiumSignatureLength = dilithium.CryptoBytes

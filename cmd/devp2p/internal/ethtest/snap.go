@@ -22,13 +22,13 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/eth/protocols/snap"
-	"github.com/ethereum/go-ethereum/internal/utesting"
-	"github.com/ethereum/go-ethereum/light"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/eth/protocols/snap"
+	"github.com/theQRL/go-zond/internal/utesting"
+	"github.com/theQRL/go-zond/light"
+	"github.com/theQRL/go-zond/trie"
 	"golang.org/x/crypto/sha3"
 )
 

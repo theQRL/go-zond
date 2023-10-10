@@ -16,7 +16,7 @@
 
 package bind
 
-import "github.com/ethereum/go-ethereum/accounts/abi"
+import "github.com/theQRL/go-zond/accounts/abi"
 
 // tmplData is the data structure required to fill the binding template.
 type tmplData struct {
@@ -91,12 +91,12 @@ import (
 	"strings"
 	"errors"
 
-	ethereum "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
+	ethereum "github.com/theQRL/go-zond"
+	"github.com/theQRL/go-zond/accounts/abi"
+	"github.com/theQRL/go-zond/accounts/abi/bind"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/event"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

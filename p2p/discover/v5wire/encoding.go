@@ -28,10 +28,10 @@ import (
 	"fmt"
 	"hash"
 
-	"github.com/ethereum/go-ethereum/common/mclock"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/enr"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/theQRL/go-zond/common/mclock"
+	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/p2p/enr"
+	"github.com/theQRL/go-zond/rlp"
 )
 
 // TODO concurrent WHOAREYOU tie-breaker
