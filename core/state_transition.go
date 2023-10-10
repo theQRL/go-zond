@@ -138,7 +138,7 @@ type Message struct {
 
 	// When SkipAccountChecks is true, the message nonce is not checked against the
 	// account nonce in state. It also disables checking that the sender is an EOA.
-	// This field will be set to true for operations like RPC eth_call.
+	// This field will be set to true for operations like RPC zond_call.
 	SkipAccountChecks bool
 }
 
@@ -273,7 +273,7 @@ func (st *StateTransition) preCheck() error {
 
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
 	if st.evm.ChainConfig().IsLondon(st.evm.Context.BlockNumber) {
-		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
+		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (zond_call)
 		if !st.evm.Config.NoBaseFee || msg.GasFeeCap.BitLen() > 0 || msg.GasTipCap.BitLen() > 0 {
 			if l := msg.GasFeeCap.BitLen(); l > 256 {
 				return fmt.Errorf("%w: address %v, maxFeePerGas bit length: %d", ErrFeeCapVeryHigh,

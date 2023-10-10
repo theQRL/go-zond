@@ -76,7 +76,7 @@ func (at *authTest) Run(t *testing.T) {
 		t.Fatalf("method was silent but did not return expected value: %q", x)
 	}
 
-	err = cl.CallContext(ctx, &x, "eth_helloWorld")
+	err = cl.CallContext(ctx, &x, "zond_helloWorld")
 	if at.expectCall2Fail {
 		if err == nil {
 			t.Fatal("expected call 2 to fail")
@@ -112,8 +112,8 @@ func TestAuthEndpoints(t *testing.T) {
 		AuthPort:  0,
 		JWTSecret: jwtPath,
 
-		WSModules:   []string{"eth", "engine"},
-		HTTPModules: []string{"eth", "engine"},
+		WSModules:   []string{"zond", "engine"},
+		HTTPModules: []string{"zond", "engine"},
 	}
 	node, err := New(conf)
 	if err != nil {
