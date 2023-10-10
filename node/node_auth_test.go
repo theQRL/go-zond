@@ -129,7 +129,7 @@ func TestAuthEndpoints(t *testing.T) {
 			Authenticated: true,
 		},
 		{
-			Namespace:     "eth",
+			Namespace:     "zond",
 			Version:       "1.0",
 			Service:       helloRPC("hello eth"),
 			Public:        true,
