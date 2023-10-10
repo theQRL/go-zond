@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common/mclock"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/les/utils"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
@@ -56,7 +56,7 @@ const (
 type ServerPool struct {
 	clock    mclock.Clock
 	unixTime func() int64
-	db       ethdb.KeyValueStore
+	db       zonddb.KeyValueStore
 
 	ns                  *nodestate.NodeStateMachine
 	vt                  *ValueTracker
@@ -151,7 +151,7 @@ var (
 )
 
 // NewServerPool creates a new server pool
-func NewServerPool(db ethdb.KeyValueStore, dbKey []byte, mixTimeout time.Duration, query QueryFunc, clock mclock.Clock, trustedURLs []string, requestList []RequestInfo) (*ServerPool, enode.Iterator) {
+func NewServerPool(db zonddb.KeyValueStore, dbKey []byte, mixTimeout time.Duration, query QueryFunc, clock mclock.Clock, trustedURLs []string, requestList []RequestInfo) (*ServerPool, enode.Iterator) {
 	s := &ServerPool{
 		db:           db,
 		clock:        clock,

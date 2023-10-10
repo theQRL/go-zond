@@ -32,7 +32,7 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/eth/tracers/logger"
+	"github.com/theQRL/go-zond/zond/tracers/logger"
 )
 
 func TestState(t *testing.T) {

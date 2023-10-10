@@ -34,7 +34,7 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
@@ -399,7 +399,7 @@ func exportPreimages(ctx *cli.Context) error {
 	return nil
 }
 
-func parseDumpConfig(ctx *cli.Context, stack *node.Node) (*state.DumpConfig, ethdb.Database, common.Hash, error) {
+func parseDumpConfig(ctx *cli.Context, stack *node.Node) (*state.DumpConfig, zonddb.Database, common.Hash, error) {
 	db := utils.MakeChainDatabase(ctx, stack, true)
 	var header *types.Header
 	if ctx.NArg() > 1 {

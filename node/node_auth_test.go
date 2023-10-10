@@ -87,7 +87,7 @@ func (at *authTest) Run(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to call rpc endpoint: %v", err)
 	}
-	if x != "hello eth" {
+	if x != "hello zond" {
 		t.Fatalf("method was silent but did not return expected value: %q", x)
 	}
 }
@@ -131,7 +131,7 @@ func TestAuthEndpoints(t *testing.T) {
 		{
 			Namespace:     "zond",
 			Version:       "1.0",
-			Service:       helloRPC("hello eth"),
+			Service:       helloRPC("hello zond"),
 			Public:        true,
 			Authenticated: true,
 		},

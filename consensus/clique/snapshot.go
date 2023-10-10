@@ -26,7 +26,7 @@ import (
 	"github.com/theQRL/go-zond/common/lru"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 )
@@ -89,7 +89,7 @@ func newSnapshot(config *params.CliqueConfig, sigcache *sigLRU, number uint64, h
 }
 
 // loadSnapshot loads an existing snapshot from the database.
-func loadSnapshot(config *params.CliqueConfig, sigcache *sigLRU, db ethdb.Database, hash common.Hash) (*Snapshot, error) {
+func loadSnapshot(config *params.CliqueConfig, sigcache *sigLRU, db zonddb.Database, hash common.Hash) (*Snapshot, error) {
 	blob, err := db.Get(append(rawdb.CliqueSnapshotPrefix, hash[:]...))
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func loadSnapshot(config *params.CliqueConfig, sigcache *sigLRU, db ethdb.Databa
 }
 
 // store inserts the snapshot into the database.
-func (s *Snapshot) store(db ethdb.Database) error {
+func (s *Snapshot) store(db zonddb.Database) error {
 	blob, err := json.Marshal(s)
 	if err != nil {
 		return err

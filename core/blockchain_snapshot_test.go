@@ -33,7 +33,7 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/params"
 )
 
@@ -51,8 +51,8 @@ type snapshotTestBasic struct {
 
 	// share fields, set in runtime
 	datadir string
-	db      ethdb.Database
-	genDb   ethdb.Database
+	db      zonddb.Database
+	genDb   zonddb.Database
 	engine  consensus.Engine
 	gspec   *Genesis
 }

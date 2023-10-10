@@ -75,7 +75,7 @@ func getCompletions(vm *goja.Runtime, line string) (results []string) {
 	// if the line itself is the only completion.
 	if len(results) == 1 && results[0] == line {
 		// Accessing the property will cause it to be evaluated.
-		// This can cause an error, e.g. in case of web3.eth.protocolVersion
+		// This can cause an error, e.g. in case of web3.zond.protocolVersion
 		// which has been dropped from geth. Ignore the error for autocompletion
 		// purposes.
 		obj := SafeGet(obj, parts[len(parts)-1])

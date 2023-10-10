@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	ipcAPIs  = "admin:1.0 clique:1.0 debug:1.0 engine:1.0 eth:1.0 miner:1.0 net:1.0 rpc:1.0 txpool:1.0 web3:1.0"
-	httpAPIs = "eth:1.0 net:1.0 rpc:1.0 web3:1.0"
+	ipcAPIs  = "admin:1.0 clique:1.0 debug:1.0 engine:1.0 zond:1.0 miner:1.0 net:1.0 rpc:1.0 txpool:1.0 web3:1.0"
+	httpAPIs = "zond:1.0 net:1.0 rpc:1.0 web3:1.0"
 )
 
 // spawns geth with the given command line args, using a set of flags to minimise
@@ -90,7 +90,7 @@ func TestAttachWelcome(t *testing.T) {
 	)
 	// Configure the instance for IPC attachment
 	if runtime.GOOS == "windows" {
-		ipc = `\\.\pipe\geth` + strconv.Itoa(trulyRandInt(100000, 999999))
+		ipc = `\\.\pipe\gzond` + strconv.Itoa(trulyRandInt(100000, 999999))
 	} else {
 		ipc = filepath.Join(t.TempDir(), "geth.ipc")
 	}

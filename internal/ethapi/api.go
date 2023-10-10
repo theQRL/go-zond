@@ -40,7 +40,7 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/eth/tracers/logger"
+	"github.com/theQRL/go-zond/zond/tracers/logger"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/params"

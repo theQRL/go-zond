@@ -28,17 +28,17 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/ethdb"
-	"github.com/theQRL/go-zond/ethdb/leveldb"
-	"github.com/theQRL/go-zond/ethdb/memorydb"
+	"github.com/theQRL/go-zond/zonddb"
+	"github.com/theQRL/go-zond/zonddb/leveldb"
+	"github.com/theQRL/go-zond/zonddb/memorydb"
 	"github.com/theQRL/go-zond/log"
 )
 
 // freezerdb is a database wrapper that enabled freezer data retrievals.
 type freezerdb struct {
 	ancientRoot string
-	ethdb.KeyValueStore
-	ethdb.AncientStore
+	zonddb.KeyValueStore
+	zonddb.AncientStore
 }
 
 // AncientDatadir returns the path of root ancient directory.
@@ -84,7 +84,7 @@ func (frdb *freezerdb) Freeze(threshold uint64) error {
 
 // nofreezedb is a database wrapper that disables freezer data retrievals.
 type nofreezedb struct {
-	ethdb.KeyValueStore
+	zonddb.KeyValueStore
 }
 
 // HasAncient returns an error as we don't have a backing chain freezer.
@@ -118,7 +118,7 @@ func (db *nofreezedb) AncientSize(kind string) (uint64, error) {
 }
 
 // ModifyAncients is not supported.
-func (db *nofreezedb) ModifyAncients(func(ethdb.AncientWriteOp) error) (int64, error) {
+func (db *nofreezedb) ModifyAncients(func(zonddb.AncientWriteOp) error) (int64, error) {
 	return 0, errNotSupported
 }
 
@@ -137,7 +137,7 @@ func (db *nofreezedb) Sync() error {
 	return errNotSupported
 }
 
-func (db *nofreezedb) ReadAncients(fn func(reader ethdb.AncientReaderOp) error) (err error) {
+func (db *nofreezedb) ReadAncients(fn func(reader zonddb.AncientReaderOp) error) (err error) {
 	// Unlike other ancient-related methods, this method does not return
 	// errNotSupported when invoked.
 	// The reason for this is that the caller might want to do several things:
@@ -166,7 +166,7 @@ func (db *nofreezedb) AncientDatadir() (string, error) {
 
 // NewDatabase creates a high level database on top of a given key-value data
 // store without a freezer moving immutable chain segments into cold storage.
-func NewDatabase(db ethdb.KeyValueStore) ethdb.Database {
+func NewDatabase(db zonddb.KeyValueStore) zonddb.Database {
 	return &nofreezedb{KeyValueStore: db}
 }
 
@@ -197,7 +197,7 @@ func resolveChainFreezerDir(ancient string) string {
 // value data store with a freezer moving immutable chain segments into cold
 // storage. The passed ancient indicates the path of root ancient directory
 // where the chain freezer can be opened.
-func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace string, readonly bool) (ethdb.Database, error) {
+func NewDatabaseWithFreezer(db zonddb.KeyValueStore, ancient string, namespace string, readonly bool) (zonddb.Database, error) {
 	// Create the idle freezer instance
 	frdb, err := newChainFreezer(resolveChainFreezerDir(ancient), namespace, readonly)
 	if err != nil {
@@ -299,20 +299,20 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace st
 
 // NewMemoryDatabase creates an ephemeral in-memory key-value database without a
 // freezer moving immutable chain segments into cold storage.
-func NewMemoryDatabase() ethdb.Database {
+func NewMemoryDatabase() zonddb.Database {
 	return NewDatabase(memorydb.New())
 }
 
 // NewMemoryDatabaseWithCap creates an ephemeral in-memory key-value database
 // with an initial starting capacity, but without a freezer moving immutable
 // chain segments into cold storage.
-func NewMemoryDatabaseWithCap(size int) ethdb.Database {
+func NewMemoryDatabaseWithCap(size int) zonddb.Database {
 	return NewDatabase(memorydb.NewWithCap(size))
 }
 
 // NewLevelDBDatabase creates a persistent key-value database without a freezer
 // moving immutable chain segments into cold storage.
-func NewLevelDBDatabase(file string, cache int, handles int, namespace string, readonly bool) (ethdb.Database, error) {
+func NewLevelDBDatabase(file string, cache int, handles int, namespace string, readonly bool) (zonddb.Database, error) {
 	db, err := leveldb.New(file, cache, handles, namespace, readonly)
 	if err != nil {
 		return nil, err
@@ -360,7 +360,7 @@ type OpenOptions struct {
 //	                   +----------------------------------------
 //	db is non-existent |  pebble default  |  specified type
 //	db is existent     |  from db         |  specified type (if compatible)
-func openKeyValueDatabase(o OpenOptions) (ethdb.Database, error) {
+func openKeyValueDatabase(o OpenOptions) (zonddb.Database, error) {
 	// Reject any unsupported database type
 	if len(o.Type) != 0 && o.Type != dbLeveldb && o.Type != dbPebble {
 		return nil, fmt.Errorf("unknown db.engine %v", o.Type)
@@ -399,7 +399,7 @@ func openKeyValueDatabase(o OpenOptions) (ethdb.Database, error) {
 // set on the provided OpenOptions.
 // The passed o.AncientDir indicates the path of root ancient directory where
 // the chain freezer can be opened.
-func Open(o OpenOptions) (ethdb.Database, error) {
+func Open(o OpenOptions) (zonddb.Database, error) {
 	kvdb, err := openKeyValueDatabase(o)
 	if err != nil {
 		return nil, err
@@ -447,7 +447,7 @@ func (s *stat) Count() string {
 
 // InspectDatabase traverses the entire database and checks the size
 // of all different categories of data.
-func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
+func InspectDatabase(db zonddb.Database, keyPrefix, keyStart []byte) error {
 	it := db.NewIterator(keyPrefix, keyStart)
 	defer it.Release()
 
@@ -610,7 +610,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 }
 
 // printChainMetadata prints out chain metadata to stderr.
-func printChainMetadata(db ethdb.KeyValueStore) {
+func printChainMetadata(db zonddb.KeyValueStore) {
 	fmt.Fprintf(os.Stderr, "Chain metadata\n")
 	for _, v := range ReadChainMetadata(db) {
 		fmt.Fprintf(os.Stderr, "  %s\n", strings.Join(v, ": "))
@@ -621,7 +621,7 @@ func printChainMetadata(db ethdb.KeyValueStore) {
 // ReadChainMetadata returns a set of key/value pairs that contains informatin
 // about the database chain status. This can be used for diagnostic purposes
 // when investigating the state of the node.
-func ReadChainMetadata(db ethdb.KeyValueStore) [][]string {
+func ReadChainMetadata(db zonddb.KeyValueStore) [][]string {
 	pp := func(val *uint64) string {
 		if val == nil {
 			return "<nil>"

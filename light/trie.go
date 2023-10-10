@@ -26,7 +26,7 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/trie"
 	"github.com/theQRL/go-zond/trie/trienode"
@@ -96,7 +96,7 @@ func (db *odrDatabase) TrieDB() *trie.Database {
 	return nil
 }
 
-func (db *odrDatabase) DiskDB() ethdb.KeyValueStore {
+func (db *odrDatabase) DiskDB() zonddb.KeyValueStore {
 	panic("not implemented")
 }
 
@@ -187,7 +187,7 @@ func (t *odrTrie) GetKey(sha []byte) []byte {
 	return nil
 }
 
-func (t *odrTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.KeyValueWriter) error {
+func (t *odrTrie) Prove(key []byte, fromLevel uint, proofDb zonddb.KeyValueWriter) error {
 	return errors.New("not implemented, needs client/server interface split")
 }
 

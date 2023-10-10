@@ -48,16 +48,16 @@ import (
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/crypto/kzg4844"
-	"github.com/theQRL/go-zond/eth"
-	ethcatalyst "github.com/theQRL/go-zond/eth/catalyst"
-	"github.com/theQRL/go-zond/eth/downloader"
-	"github.com/theQRL/go-zond/eth/ethconfig"
-	"github.com/theQRL/go-zond/eth/filters"
-	"github.com/theQRL/go-zond/eth/gasprice"
-	"github.com/theQRL/go-zond/eth/tracers"
-	"github.com/theQRL/go-zond/ethdb"
-	"github.com/theQRL/go-zond/ethdb/remotedb"
-	"github.com/theQRL/go-zond/ethstats"
+	"github.com/theQRL/go-zond/zond"
+	ethcatalyst "github.com/theQRL/go-zond/zond/catalyst"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/zond/filters"
+	"github.com/theQRL/go-zond/zond/gasprice"
+	"github.com/theQRL/go-zond/zond/tracers"
+	"github.com/theQRL/go-zond/zonddb"
+	"github.com/theQRL/go-zond/zonddb/remotedb"
+	"github.com/theQRL/go-zond/zondstats"
 	"github.com/theQRL/go-zond/graphql"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
@@ -258,13 +258,13 @@ var (
 		Category: flags.AccountCategory,
 	}
 	EthRequiredBlocksFlag = &cli.StringFlag{
-		Name:     "eth.requiredblocks",
+		Name:     "zond.requiredblocks",
 		Usage:    "Comma separated block number-to-hash mappings to require for peering (<number>=<hash>)",
 		Category: flags.EthCategory,
 	}
 	LegacyWhitelistFlag = &cli.StringFlag{
 		Name:     "whitelist",
-		Usage:    "Comma separated block number-to-hash mappings to enforce (<number>=<hash>) (deprecated in favor of --eth.requiredblocks)",
+		Usage:    "Comma separated block number-to-hash mappings to enforce (<number>=<hash>) (deprecated in favor of --zond.requiredblocks)",
 		Category: flags.DeprecatedCategory,
 	}
 	BloomFilterSizeFlag = &cli.Uint64Flag{
@@ -586,8 +586,8 @@ var (
 
 	// Logging and debug settings
 	EthStatsURLFlag = &cli.StringFlag{
-		Name:     "ethstats",
-		Usage:    "Reporting URL of a ethstats service (nodename:secret@host:port)",
+		Name:     "zondstats",
+		Usage:    "Reporting URL of a zondstats service (nodename:secret@host:port)",
 		Category: flags.MetricsCategory,
 	}
 	NoCompactionFlag = &cli.BoolFlag{
@@ -1571,7 +1571,7 @@ func setRequiredBlocks(ctx *cli.Context, cfg *ethconfig.Config) {
 	requiredBlocks := ctx.String(EthRequiredBlocksFlag.Name)
 	if requiredBlocks == "" {
 		if ctx.IsSet(LegacyWhitelistFlag.Name) {
-			log.Warn("The flag --whitelist is deprecated and will be removed, please use --eth.requiredblocks")
+			log.Warn("The flag --whitelist is deprecated and will be removed, please use --zond.requiredblocks")
 			requiredBlocks = ctx.String(LegacyWhitelistFlag.Name)
 		} else {
 			return
@@ -1636,7 +1636,7 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 	}
 }
 
-// SetEthConfig applies eth-related command line flags to the config.
+// SetEthConfig applies zond-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
 	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RinkebyFlag, GoerliFlag, SepoliaFlag, BetaNetFlag)
@@ -1911,7 +1911,7 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 // RegisterEthService adds an Ethereum client to the stack.
 // The second return value is the full node instance, which may be nil if the
 // node is running as a light client.
-func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *eth.Ethereum) {
+func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *zond.Ethereum) {
 	if cfg.SyncMode == downloader.LightSync {
 		backend, err := les.New(stack, cfg)
 		if err != nil {
@@ -1923,7 +1923,7 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 		}
 		return backend.ApiBackend, nil
 	}
-	backend, err := eth.New(stack, cfg)
+	backend, err := zond.New(stack, cfg)
 	if err != nil {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
@@ -1942,7 +1942,7 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 
 // RegisterEthStatsService configures the Ethereum Stats daemon and adds it to the node.
 func RegisterEthStatsService(stack *node.Node, backend ethapi.Backend, url string) {
-	if err := ethstats.New(stack, backend, backend.Engine(), url); err != nil {
+	if err := zondstats.New(stack, backend, backend.Engine(), url); err != nil {
 		Fatalf("Failed to register the Ethereum Stats service: %v", err)
 	}
 }
@@ -1955,7 +1955,7 @@ func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, filterSyst
 	}
 }
 
-// RegisterFilterAPI adds the eth log filtering RPC API to the node.
+// RegisterFilterAPI adds the zond log filtering RPC API to the node.
 func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconfig.Config) *filters.FilterSystem {
 	isLightClient := ethcfg.SyncMode == downloader.LightSync
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{
@@ -1969,7 +1969,7 @@ func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconf
 }
 
 // RegisterFullSyncTester adds the full-sync tester service into node.
-func RegisterFullSyncTester(stack *node.Node, eth *eth.Ethereum, path string) {
+func RegisterFullSyncTester(stack *node.Node, eth *zond.Ethereum, path string) {
 	blob, err := os.ReadFile(path)
 	if err != nil {
 		Fatalf("Failed to read block file: %v", err)
@@ -2065,13 +2065,13 @@ func SplitTagsFlag(tagsFlag string) map[string]string {
 }
 
 // MakeChainDatabase open an LevelDB using the flags passed to the client and will hard crash if it fails.
-func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ethdb.Database {
+func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) zonddb.Database {
 	var (
 		cache   = ctx.Int(CacheFlag.Name) * ctx.Int(CacheDatabaseFlag.Name) / 100
 		handles = MakeDatabaseHandles(ctx.Int(FDLimitFlag.Name))
 
 		err     error
-		chainDb ethdb.Database
+		chainDb zonddb.Database
 	)
 	switch {
 	case ctx.IsSet(RemoteDBFlag.Name):
@@ -2146,7 +2146,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 }
 
 // MakeChain creates a chain manager from set command line flags.
-func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockChain, ethdb.Database) {
+func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockChain, zonddb.Database) {
 	var (
 		gspec   = MakeGenesis(ctx)
 		chainDb = MakeChainDatabase(ctx, stack, readonly)

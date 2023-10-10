@@ -25,7 +25,7 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/trie"
 	"golang.org/x/crypto/sha3"
@@ -412,7 +412,7 @@ func (s *stateSync) loop() (err error) {
 }
 
 func (s *stateSync) commit(force bool) error {
-	if !force && s.bytesUncommitted < ethdb.IdealBatchSize {
+	if !force && s.bytesUncommitted < zonddb.IdealBatchSize {
 		return nil
 	}
 	start := time.Now()
@@ -446,7 +446,7 @@ func (s *stateSync) assignTasks() {
 			req.peer.log.Trace("Requesting batch of state data", "nodes", len(nodes), "codes", len(codes), "root", s.root)
 			select {
 			case s.d.trackStateReq <- req:
-				req.peer.FetchNodeData(append(nodes, codes...)) // Unified retrieval under eth/6x
+				req.peer.FetchNodeData(append(nodes, codes...)) // Unified retrieval under zond/6x
 			case <-s.cancel:
 			case <-s.d.cancelCh:
 			}

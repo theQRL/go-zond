@@ -26,7 +26,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/mclock"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/eth/fetcher"
+	"github.com/theQRL/go-zond/zond/fetcher"
 )
 
 var (

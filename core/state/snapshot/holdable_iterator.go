@@ -18,21 +18,21 @@ package snapshot
 
 import (
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // holdableIterator is a wrapper of underlying database iterator. It extends
 // the basic iterator interface by adding Hold which can hold the element
 // locally where the iterator is currently located and serve it up next time.
 type holdableIterator struct {
-	it     ethdb.Iterator
-	key    []byte
+	it  zonddb.Iterator
+	key []byte
 	val    []byte
 	atHeld bool
 }
 
 // newHoldableIterator initializes the holdableIterator with the given iterator.
-func newHoldableIterator(it ethdb.Iterator) *holdableIterator {
+func newHoldableIterator(it zonddb.Iterator) *holdableIterator {
 	return &holdableIterator{it: it}
 }
 

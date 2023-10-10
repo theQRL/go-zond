@@ -31,7 +31,7 @@ import (
 	"github.com/theQRL/go-zond/core/txpool"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/eth/downloader"
+	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/trie"
 )

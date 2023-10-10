@@ -18,12 +18,12 @@ package trie
 
 import (
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/trie/triedb/hashdb"
 )
 
 // newTestDatabase initializes the trie database with specified scheme.
-func newTestDatabase(diskdb ethdb.Database, scheme string) *Database {
+func newTestDatabase(diskdb zonddb.Database, scheme string) *Database {
 	db := prepare(diskdb, nil)
 	if scheme == rawdb.HashScheme {
 		db.backend = hashdb.New(diskdb, db.cleans, mptResolver{})

@@ -42,7 +42,7 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rpc"
@@ -181,7 +181,7 @@ func allTransactionTypes(addr common.Address, config *params.ChainConfig) []type
 }
 
 type testBackend struct {
-	db    ethdb.Database
+	db    zonddb.Database
 	chain *core.BlockChain
 }
 
@@ -219,7 +219,7 @@ func (b testBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 func (b testBackend) FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error) {
 	return nil, nil, nil, nil, nil
 }
-func (b testBackend) ChainDb() ethdb.Database           { return b.db }
+func (b testBackend) ChainDb() zonddb.Database          { return b.db }
 func (b testBackend) AccountManager() *accounts.Manager { return nil }
 func (b testBackend) ExtRPCEnabled() bool               { return false }
 func (b testBackend) RPCGasCap() uint64                 { return 10000000 }

@@ -21,14 +21,14 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 )
 
 // ReadDatabaseVersion retrieves the version number of the database.
-func ReadDatabaseVersion(db ethdb.KeyValueReader) *uint64 {
+func ReadDatabaseVersion(db zonddb.KeyValueReader) *uint64 {
 	var version uint64
 
 	enc, _ := db.Get(databaseVersionKey)
@@ -43,7 +43,7 @@ func ReadDatabaseVersion(db ethdb.KeyValueReader) *uint64 {
 }
 
 // WriteDatabaseVersion stores the version number of the database
-func WriteDatabaseVersion(db ethdb.KeyValueWriter, version uint64) {
+func WriteDatabaseVersion(db zonddb.KeyValueWriter, version uint64) {
 	enc, err := rlp.EncodeToBytes(version)
 	if err != nil {
 		log.Crit("Failed to encode database version", "err", err)
@@ -54,7 +54,7 @@ func WriteDatabaseVersion(db ethdb.KeyValueWriter, version uint64) {
 }
 
 // ReadChainConfig retrieves the consensus settings based on the given genesis hash.
-func ReadChainConfig(db ethdb.KeyValueReader, hash common.Hash) *params.ChainConfig {
+func ReadChainConfig(db zonddb.KeyValueReader, hash common.Hash) *params.ChainConfig {
 	data, _ := db.Get(configKey(hash))
 	if len(data) == 0 {
 		return nil
@@ -68,7 +68,7 @@ func ReadChainConfig(db ethdb.KeyValueReader, hash common.Hash) *params.ChainCon
 }
 
 // WriteChainConfig writes the chain config settings to the database.
-func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.ChainConfig) {
+func WriteChainConfig(db zonddb.KeyValueWriter, hash common.Hash, cfg *params.ChainConfig) {
 	if cfg == nil {
 		return
 	}
@@ -83,13 +83,13 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.Cha
 
 // ReadGenesisStateSpec retrieves the genesis state specification based on the
 // given genesis (block-)hash.
-func ReadGenesisStateSpec(db ethdb.KeyValueReader, blockhash common.Hash) []byte {
+func ReadGenesisStateSpec(db zonddb.KeyValueReader, blockhash common.Hash) []byte {
 	data, _ := db.Get(genesisStateSpecKey(blockhash))
 	return data
 }
 
 // WriteGenesisStateSpec writes the genesis state specification into the disk.
-func WriteGenesisStateSpec(db ethdb.KeyValueWriter, blockhash common.Hash, data []byte) {
+func WriteGenesisStateSpec(db zonddb.KeyValueWriter, blockhash common.Hash, data []byte) {
 	if err := db.Put(genesisStateSpecKey(blockhash), data); err != nil {
 		log.Crit("Failed to store genesis state", "err", err)
 	}
@@ -108,7 +108,7 @@ const crashesToKeep = 10
 // the previous data
 // - a list of timestamps
 // - a count of how many old unclean-shutdowns have been discarded
-func PushUncleanShutdownMarker(db ethdb.KeyValueStore) ([]uint64, uint64, error) {
+func PushUncleanShutdownMarker(db zonddb.KeyValueStore) ([]uint64, uint64, error) {
 	var uncleanShutdowns crashList
 	// Read old data
 	if data, err := db.Get(uncleanShutdownKey); err != nil {
@@ -136,7 +136,7 @@ func PushUncleanShutdownMarker(db ethdb.KeyValueStore) ([]uint64, uint64, error)
 }
 
 // PopUncleanShutdownMarker removes the last unclean shutdown marker
-func PopUncleanShutdownMarker(db ethdb.KeyValueStore) {
+func PopUncleanShutdownMarker(db zonddb.KeyValueStore) {
 	var uncleanShutdowns crashList
 	// Read old data
 	if data, err := db.Get(uncleanShutdownKey); err != nil {
@@ -154,7 +154,7 @@ func PopUncleanShutdownMarker(db ethdb.KeyValueStore) {
 }
 
 // UpdateUncleanShutdownMarker updates the last marker's timestamp to now.
-func UpdateUncleanShutdownMarker(db ethdb.KeyValueStore) {
+func UpdateUncleanShutdownMarker(db zonddb.KeyValueStore) {
 	var uncleanShutdowns crashList
 	// Read old data
 	if data, err := db.Get(uncleanShutdownKey); err != nil {
@@ -176,13 +176,13 @@ func UpdateUncleanShutdownMarker(db ethdb.KeyValueStore) {
 }
 
 // ReadTransitionStatus retrieves the eth2 transition status from the database
-func ReadTransitionStatus(db ethdb.KeyValueReader) []byte {
+func ReadTransitionStatus(db zonddb.KeyValueReader) []byte {
 	data, _ := db.Get(transitionStatusKey)
 	return data
 }
 
 // WriteTransitionStatus stores the eth2 transition status to the database
-func WriteTransitionStatus(db ethdb.KeyValueWriter, data []byte) {
+func WriteTransitionStatus(db zonddb.KeyValueWriter, data []byte) {
 	if err := db.Put(transitionStatusKey, data); err != nil {
 		log.Crit("Failed to store the eth2 transition status", "err", err)
 	}

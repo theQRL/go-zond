@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common/mclock"
-	"github.com/theQRL/go-zond/ethdb/memorydb"
+	"github.com/theQRL/go-zond/zonddb/memorydb"
 	"github.com/theQRL/go-zond/p2p/enode"
 
 	"github.com/theQRL/go-zond/les/utils"

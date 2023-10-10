@@ -28,7 +28,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/eth/protocols/eth"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/internal/utesting"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/rlpx"
@@ -62,9 +62,9 @@ func (s *Suite) dial() (*Conn, error) {
 	}
 	// set default p2p capabilities
 	conn.caps = []p2p.Cap{
-		{Name: "eth", Version: 66},
-		{Name: "eth", Version: 67},
-		{Name: "eth", Version: 68},
+		{Name: "zond", Version: 66},
+		{Name: "zond", Version: 67},
+		{Name: "zond", Version: 68},
 	}
 	conn.ourHighestProtoVersion = 68
 	return &conn, nil
@@ -116,7 +116,7 @@ func (c *Conn) handshake() error {
 		}
 		c.negotiateEthProtocol(msg.Caps)
 		if c.negotiatedProtoVersion == 0 {
-			return fmt.Errorf("could not negotiate eth protocol (remote caps: %v, local eth version: %v)", msg.Caps, c.ourHighestProtoVersion)
+			return fmt.Errorf("could not negotiate zond protocol (remote caps: %v, local zond version: %v)", msg.Caps, c.ourHighestProtoVersion)
 		}
 		// If we require snap, verify that it was negotiated
 		if c.ourHighestSnapProtoVersion != c.negotiatedSnapProtoVersion {
@@ -128,14 +128,14 @@ func (c *Conn) handshake() error {
 	}
 }
 
-// negotiateEthProtocol sets the Conn's eth protocol version to highest
+// negotiateEthProtocol sets the Conn's zond protocol version to highest
 // advertised capability from peer.
 func (c *Conn) negotiateEthProtocol(caps []p2p.Cap) {
 	var highestEthVersion uint
 	var highestSnapVersion uint
 	for _, capability := range caps {
 		switch capability.Name {
-		case "eth":
+		case "zond":
 			if capability.Version > highestEthVersion && capability.Version <= c.ourHighestProtoVersion {
 				highestEthVersion = capability.Version
 			}
@@ -184,9 +184,9 @@ loop:
 			return nil, fmt.Errorf("bad status message: %s", pretty.Sdump(msg))
 		}
 	}
-	// make sure eth protocol version is set for negotiation
+	// make sure zond protocol version is set for negotiation
 	if c.negotiatedProtoVersion == 0 {
-		return nil, errors.New("eth protocol version must be set in Conn")
+		return nil, errors.New("zond protocol version must be set in Conn")
 	}
 	if status == nil {
 		// default status message
@@ -238,7 +238,7 @@ func (c *Conn) readAndServe(chain *Chain, timeout time.Duration) Message {
 			}
 			resp := &BlockHeaders{
 				RequestId:          msg.ReqID(),
-				BlockHeadersPacket: eth.BlockHeadersPacket(headers),
+				BlockHeadersPacket: zond.BlockHeadersPacket(headers),
 			}
 			if err := c.Write(resp); err != nil {
 				return errorf("could not write to connection: %v", err)
@@ -379,8 +379,8 @@ func (s *Suite) waitForBlockImport(conn *Conn, block *types.Block) error {
 	conn.SetReadDeadline(time.Now().Add(20 * time.Second))
 	// create request
 	req := &GetBlockHeaders{
-		GetBlockHeadersPacket: &eth.GetBlockHeadersPacket{
-			Origin: eth.HashOrNumber{Hash: block.Hash()},
+		GetBlockHeadersPacket: &zond.GetBlockHeadersPacket{
+			Origin: zond.HashOrNumber{Hash: block.Hash()},
 			Amount: 1,
 		},
 	}
@@ -472,24 +472,24 @@ func (s *Suite) maliciousHandshakes(t *utesting.T) error {
 		{
 			Version: 5,
 			Caps: []p2p.Cap{
-				{Name: "eth", Version: 64},
-				{Name: "eth", Version: 65},
+				{Name: "zond", Version: 64},
+				{Name: "zond", Version: 65},
 			},
 			ID: append(pub0, byte(0)),
 		},
 		{
 			Version: 5,
 			Caps: []p2p.Cap{
-				{Name: "eth", Version: 64},
-				{Name: "eth", Version: 65},
+				{Name: "zond", Version: 64},
+				{Name: "zond", Version: 65},
 			},
 			ID: append(pub0, pub0...),
 		},
 		{
 			Version: 5,
 			Caps: []p2p.Cap{
-				{Name: "eth", Version: 64},
-				{Name: "eth", Version: 65},
+				{Name: "zond", Version: 64},
+				{Name: "zond", Version: 65},
 			},
 			ID: largeBuffer(2),
 		},
@@ -605,7 +605,7 @@ func (s *Suite) hashAnnounce() error {
 	}
 	err = sendConn.Write(&BlockHeaders{
 		RequestId:          blockHeaderReq.ReqID(),
-		BlockHeadersPacket: eth.BlockHeadersPacket{nextBlock.Header()},
+		BlockHeadersPacket: zond.BlockHeadersPacket{nextBlock.Header()},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to write to connection: %v", err)

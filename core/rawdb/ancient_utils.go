@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 type tableSize struct {
@@ -51,7 +51,7 @@ func (info *freezerInfo) size() common.StorageSize {
 }
 
 // inspectFreezers inspects all freezers registered in the system.
-func inspectFreezers(db ethdb.Database) ([]freezerInfo, error) {
+func inspectFreezers(db zonddb.Database) ([]freezerInfo, error) {
 	var infos []freezerInfo
 	for _, freezer := range freezers {
 		switch freezer {

@@ -24,7 +24,7 @@ import (
 	"unsafe"
 
 	"github.com/theQRL/go-zond/common/mclock"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/p2p/enode"
@@ -64,9 +64,9 @@ type (
 	NodeStateMachine struct {
 		started, closed     bool
 		lock                sync.Mutex
-		clock               mclock.Clock
-		db                  ethdb.KeyValueStore
-		dbNodeKey           []byte
+		clock     mclock.Clock
+		db        zonddb.KeyValueStore
+		dbNodeKey []byte
 		nodes               map[enode.ID]*nodeInfo
 		offlineCallbackList []offlineCallback
 		opFlag              bool       // an operation has started
@@ -317,7 +317,7 @@ func (f Flags) String() string {
 // NewNodeStateMachine creates a new node state machine.
 // If db is not nil then the node states, fields and active timeouts are persisted.
 // Persistence can be enabled or disabled for each state flag and field.
-func NewNodeStateMachine(db ethdb.KeyValueStore, dbKey []byte, clock mclock.Clock, setup *Setup) *NodeStateMachine {
+func NewNodeStateMachine(db zonddb.KeyValueStore, dbKey []byte, clock mclock.Clock, setup *Setup) *NodeStateMachine {
 	if setup.flags == nil {
 		panic("No state flags defined")
 	}

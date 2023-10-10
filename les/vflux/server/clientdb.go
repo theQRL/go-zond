@@ -24,7 +24,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/lru"
 	"github.com/theQRL/go-zond/common/mclock"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/les/utils"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p/enode"
@@ -56,8 +56,8 @@ var (
 )
 
 type nodeDB struct {
-	db            ethdb.KeyValueStore
-	cache         *lru.Cache[string, utils.ExpiredValue]
+	db    zonddb.KeyValueStore
+	cache *lru.Cache[string, utils.ExpiredValue]
 	auxbuf        []byte                                              // 37-byte auxiliary buffer for key encoding
 	verbuf        [2]byte                                             // 2-byte auxiliary buffer for db version
 	evictCallBack func(mclock.AbsTime, bool, utils.ExpiredValue) bool // Callback to determine whether the balance can be evicted.
@@ -66,7 +66,7 @@ type nodeDB struct {
 	cleanupHook   func() // Test hook used for testing
 }
 
-func newNodeDB(db ethdb.KeyValueStore, clock mclock.Clock) *nodeDB {
+func newNodeDB(db zonddb.KeyValueStore, clock mclock.Clock) *nodeDB {
 	ndb := &nodeDB{
 		db:      db,
 		cache:   lru.NewCache[string, utils.ExpiredValue](balanceCacheLimit),

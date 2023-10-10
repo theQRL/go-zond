@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common/mclock"
-	"github.com/theQRL/go-zond/ethdb"
-	"github.com/theQRL/go-zond/ethdb/memorydb"
+	"github.com/theQRL/go-zond/zonddb"
+	"github.com/theQRL/go-zond/zonddb/memorydb"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/enr"
 )
@@ -51,8 +51,8 @@ func testNodeIndex(id enode.ID) int {
 }
 
 type ServerPoolTest struct {
-	db                   ethdb.KeyValueStore
-	clock                *mclock.Simulated
+	db    zonddb.KeyValueStore
+	clock *mclock.Simulated
 	quit                 chan chan struct{}
 	preNeg, preNegFail   bool
 	sp                   *ServerPool

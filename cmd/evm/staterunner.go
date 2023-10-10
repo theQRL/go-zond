@@ -25,7 +25,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/eth/tracers/logger"
+	"github.com/theQRL/go-zond/zond/tracers/logger"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/tests"
 	"github.com/urfave/cli/v2"

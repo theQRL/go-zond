@@ -25,7 +25,7 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/eth/tracers"
+	"github.com/theQRL/go-zond/zond/tracers"
 	"github.com/theQRL/go-zond/light"
 )
 

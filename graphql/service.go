@@ -26,7 +26,7 @@ import (
 
 	"github.com/graph-gophers/graphql-go"
 	gqlErrors "github.com/graph-gophers/graphql-go/errors"
-	"github.com/theQRL/go-zond/eth/filters"
+	"github.com/theQRL/go-zond/zond/filters"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/rpc"

@@ -26,8 +26,8 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/eth/downloader"
-	"github.com/theQRL/go-zond/eth/ethconfig"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/les"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
@@ -230,7 +230,7 @@ func startLesService(t *testing.T, genesis *core.Genesis, headers []*types.Heade
 	}
 	lesService, err := les.New(n, ethcfg)
 	if err != nil {
-		t.Fatal("can't create eth service:", err)
+		t.Fatal("can't create zond service:", err)
 	}
 	if err := n.Start(); err != nil {
 		t.Fatal("can't start node:", err)

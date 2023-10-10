@@ -34,7 +34,7 @@ import (
 	"github.com/theQRL/go-zond/consensus/misc"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/eth/filters"
+	"github.com/theQRL/go-zond/zond/filters"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"

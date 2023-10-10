@@ -23,7 +23,7 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/trie/triedb/hashdb"
 	"github.com/theQRL/go-zond/trie/trienode"
@@ -68,7 +68,7 @@ type backend interface {
 // relevant with trie nodes and node preimages.
 type Database struct {
 	config    *Config          // Configuration for trie database
-	diskdb    ethdb.Database   // Persistent database to store the snapshot
+	diskdb    zonddb.Database  // Persistent database to store the snapshot
 	cleans    *fastcache.Cache // Megabytes permitted using for read caches
 	preimages *preimageStore   // The store for caching preimages
 	backend   backend          // The backend for managing trie nodes
@@ -76,7 +76,7 @@ type Database struct {
 
 // prepare initializes the database with provided configs, but the
 // database backend is still left as nil.
-func prepare(diskdb ethdb.Database, config *Config) *Database {
+func prepare(diskdb zonddb.Database, config *Config) *Database {
 	var cleans *fastcache.Cache
 	if config != nil && config.Cache > 0 {
 		if config.Journal == "" {
@@ -99,14 +99,14 @@ func prepare(diskdb ethdb.Database, config *Config) *Database {
 
 // NewDatabase initializes the trie database with default settings, namely
 // the legacy hash-based scheme is used by default.
-func NewDatabase(diskdb ethdb.Database) *Database {
+func NewDatabase(diskdb zonddb.Database) *Database {
 	return NewDatabaseWithConfig(diskdb, nil)
 }
 
 // NewDatabaseWithConfig initializes the trie database with provided configs.
 // The path-based scheme is not activated yet, always initialized with legacy
 // hash-based scheme by default.
-func NewDatabaseWithConfig(diskdb ethdb.Database, config *Config) *Database {
+func NewDatabaseWithConfig(diskdb zonddb.Database, config *Config) *Database {
 	db := prepare(diskdb, config)
 	db.backend = hashdb.New(diskdb, db.cleans, mptResolver{})
 	return db

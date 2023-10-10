@@ -23,7 +23,7 @@ import (
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/ethdb/memorydb"
+	"github.com/theQRL/go-zond/zonddb/memorydb"
 	"github.com/theQRL/go-zond/rlp"
 )
 

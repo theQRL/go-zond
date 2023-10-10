@@ -25,7 +25,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/eth/protocols/snap"
+	"github.com/theQRL/go-zond/zond/protocols/snap"
 	"github.com/theQRL/go-zond/internal/utesting"
 	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/trie"

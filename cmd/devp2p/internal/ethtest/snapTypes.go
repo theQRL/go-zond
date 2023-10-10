@@ -16,7 +16,7 @@
 
 package ethtest
 
-import "github.com/theQRL/go-zond/eth/protocols/snap"
+import "github.com/theQRL/go-zond/zond/protocols/snap"
 
 // GetAccountRange represents an account range query.
 type GetAccountRange snap.GetAccountRangePacket

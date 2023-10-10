@@ -26,7 +26,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/rlp"
@@ -72,8 +72,8 @@ type ChildResolver interface {
 // behind this split design is to provide read access to RPC handlers and sync
 // servers even while the trie is executing expensive garbage collection.
 type Database struct {
-	diskdb   ethdb.Database // Persistent storage for matured trie nodes
-	resolver ChildResolver  // The handler to resolve children of nodes
+	diskdb   zonddb.Database // Persistent storage for matured trie nodes
+	resolver ChildResolver   // The handler to resolve children of nodes
 
 	cleans  *fastcache.Cache            // GC friendly memory cache of clean node RLPs
 	dirties map[common.Hash]*cachedNode // Data and references relationships of dirty trie nodes
@@ -120,7 +120,7 @@ func (n *cachedNode) forChildren(resolver ChildResolver, onChild func(hash commo
 }
 
 // New initializes the hash-based node database.
-func New(diskdb ethdb.Database, cleans *fastcache.Cache, resolver ChildResolver) *Database {
+func New(diskdb zonddb.Database, cleans *fastcache.Cache, resolver ChildResolver) *Database {
 	return &Database{
 		diskdb:   diskdb,
 		resolver: resolver,
@@ -346,7 +346,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		rawdb.WriteLegacyTrieNode(batch, oldest, node.node)
 
 		// If we exceeded the ideal batch size, commit and reset
-		if batch.ValueSize() >= ethdb.IdealBatchSize {
+		if batch.ValueSize() >= zonddb.IdealBatchSize {
 			if err := batch.Write(); err != nil {
 				log.Error("Failed to write flush list to disk", "err", err)
 				return err
@@ -453,7 +453,7 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 }
 
 // commit is the private locked version of Commit.
-func (db *Database) commit(hash common.Hash, batch ethdb.Batch, uncacher *cleaner) error {
+func (db *Database) commit(hash common.Hash, batch zonddb.Batch, uncacher *cleaner) error {
 	// If the node does not exist, it's a previously committed node
 	node, ok := db.dirties[hash]
 	if !ok {
@@ -472,7 +472,7 @@ func (db *Database) commit(hash common.Hash, batch ethdb.Batch, uncacher *cleane
 	}
 	// If we've reached an optimal batch size, commit and start over
 	rawdb.WriteLegacyTrieNode(batch, hash, node.node)
-	if batch.ValueSize() >= ethdb.IdealBatchSize {
+	if batch.ValueSize() >= zonddb.IdealBatchSize {
 		if err := batch.Write(); err != nil {
 			return err
 		}

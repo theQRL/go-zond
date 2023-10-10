@@ -35,7 +35,7 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state/snapshot"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/trie"
@@ -340,7 +340,7 @@ func checkStateContent(ctx *cli.Context) error {
 	return nil
 }
 
-func showLeveldbStats(db ethdb.KeyValueStater) {
+func showLeveldbStats(db zonddb.KeyValueStater) {
 	if stats, err := db.Stat("leveldb.stats"); err != nil {
 		log.Warn("Failed to read database stats", "error", err)
 	} else {
@@ -591,7 +591,7 @@ func importLDBdata(ctx *cli.Context) error {
 }
 
 type preimageIterator struct {
-	iter ethdb.Iterator
+	iter zonddb.Iterator
 }
 
 func (iter *preimageIterator) Next() (byte, []byte, []byte, bool) {
@@ -610,8 +610,8 @@ func (iter *preimageIterator) Release() {
 
 type snapshotIterator struct {
 	init    bool
-	account ethdb.Iterator
-	storage ethdb.Iterator
+	account zonddb.Iterator
+	storage zonddb.Iterator
 }
 
 func (iter *snapshotIterator) Next() (byte, []byte, []byte, bool) {
@@ -640,12 +640,12 @@ func (iter *snapshotIterator) Release() {
 }
 
 // chainExporters defines the export scheme for all exportable chain data.
-var chainExporters = map[string]func(db ethdb.Database) utils.ChainDataIterator{
-	"preimage": func(db ethdb.Database) utils.ChainDataIterator {
+var chainExporters = map[string]func(db zonddb.Database) utils.ChainDataIterator{
+	"preimage": func(db zonddb.Database) utils.ChainDataIterator {
 		iter := db.NewIterator(rawdb.PreimagePrefix, nil)
 		return &preimageIterator{iter: iter}
 	},
-	"snapshot": func(db ethdb.Database) utils.ChainDataIterator {
+	"snapshot": func(db zonddb.Database) utils.ChainDataIterator {
 		account := db.NewIterator(rawdb.SnapshotAccountPrefix, nil)
 		storage := db.NewIterator(rawdb.SnapshotStoragePrefix, nil)
 		return &snapshotIterator{account: account, storage: storage}

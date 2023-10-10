@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 const tmpSuffix = ".tmp"
@@ -154,7 +154,7 @@ func (f *ResettableFreezer) AncientSize(kind string) (uint64, error) {
 
 // ReadAncients runs the given read operation while ensuring that no writes take place
 // on the underlying freezer.
-func (f *ResettableFreezer) ReadAncients(fn func(ethdb.AncientReaderOp) error) (err error) {
+func (f *ResettableFreezer) ReadAncients(fn func(zonddb.AncientReaderOp) error) (err error) {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 
@@ -162,7 +162,7 @@ func (f *ResettableFreezer) ReadAncients(fn func(ethdb.AncientReaderOp) error) (
 }
 
 // ModifyAncients runs the given write operation.
-func (f *ResettableFreezer) ModifyAncients(fn func(ethdb.AncientWriteOp) error) (writeSize int64, err error) {
+func (f *ResettableFreezer) ModifyAncients(fn func(zonddb.AncientWriteOp) error) (writeSize int64, err error) {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 

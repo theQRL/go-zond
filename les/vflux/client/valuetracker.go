@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common/mclock"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/les/utils"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p/enode"
@@ -130,9 +130,9 @@ func (nv *NodeValueTracker) RtStats() ResponseTimeStats {
 type ValueTracker struct {
 	clock        mclock.Clock
 	lock         sync.Mutex
-	quit         chan chan struct{}
-	db           ethdb.KeyValueStore
-	connected    map[enode.ID]*NodeValueTracker
+	quit      chan chan struct{}
+	db        zonddb.KeyValueStore
+	connected map[enode.ID]*NodeValueTracker
 	reqTypeCount int
 
 	refBasket      referenceBasket
@@ -172,7 +172,7 @@ type RequestInfo struct {
 
 // NewValueTracker creates a new ValueTracker and loads its previously saved state from
 // the database if possible.
-func NewValueTracker(db ethdb.KeyValueStore, clock mclock.Clock, reqInfo []RequestInfo, updatePeriod time.Duration, transferRate, statsExpRate, offlineExpRate float64) *ValueTracker {
+func NewValueTracker(db zonddb.KeyValueStore, clock mclock.Clock, reqInfo []RequestInfo, updatePeriod time.Duration, transferRate, statsExpRate, offlineExpRate float64) *ValueTracker {
 	now := clock.Now()
 
 	initRefBasket := requestBasket{items: make([]basketItem, len(reqInfo))}

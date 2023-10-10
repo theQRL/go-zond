@@ -25,8 +25,8 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/eth/ethconfig"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/enode"
@@ -46,9 +46,9 @@ type lesCommons struct {
 	genesis                      common.Hash
 	config                       *ethconfig.Config
 	chainConfig                  *params.ChainConfig
-	iConfig                      *light.IndexerConfig
-	chainDb, lesDb               ethdb.Database
-	chainReader                  chainReader
+	iConfig        *light.IndexerConfig
+	chainDb, lesDb zonddb.Database
+	chainReader    chainReader
 	chtIndexer, bloomTrieIndexer *core.ChainIndexer
 
 	closeCh chan struct{}

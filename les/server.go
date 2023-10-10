@@ -23,8 +23,8 @@ import (
 	"github.com/theQRL/go-zond/common/mclock"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/txpool"
-	"github.com/theQRL/go-zond/eth/ethconfig"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/les/flowcontrol"
 	vfs "github.com/theQRL/go-zond/les/vflux/server"
 	"github.com/theQRL/go-zond/light"
@@ -48,7 +48,7 @@ type ethBackend interface {
 	ArchiveMode() bool
 	BlockChain() *core.BlockChain
 	BloomIndexer() *core.ChainIndexer
-	ChainDb() ethdb.Database
+	ChainDb() zonddb.Database
 	Synced() bool
 	TxPool() *txpool.TxPool
 }
@@ -78,7 +78,7 @@ type LesServer struct {
 }
 
 func NewLesServer(node *node.Node, e ethBackend, config *ethconfig.Config) (*LesServer, error) {
-	lesDb, err := node.OpenDatabase("les.server", 0, 0, "eth/db/lesserver/", false)
+	lesDb, err := node.OpenDatabase("les.server", 0, 0, "zond/db/lesserver/", false)
 	if err != nil {
 		return nil, err
 	}

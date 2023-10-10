@@ -21,7 +21,7 @@ package rawdb
 import (
 	"errors"
 
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // Pebble is unsuported on 32bit architecture
@@ -29,6 +29,6 @@ const PebbleEnabled = false
 
 // NewPebbleDBDatabase creates a persistent key-value database without a freezer
 // moving immutable chain segments into cold storage.
-func NewPebbleDBDatabase(file string, cache int, handles int, namespace string, readonly bool) (ethdb.Database, error) {
+func NewPebbleDBDatabase(file string, cache int, handles int, namespace string, readonly bool) (zonddb.Database, error) {
 	return nil, errors.New("pebble is not supported on this platform")
 }

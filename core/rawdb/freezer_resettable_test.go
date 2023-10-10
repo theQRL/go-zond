@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 func TestResetFreezer(t *testing.T) {
@@ -36,7 +36,7 @@ func TestResetFreezer(t *testing.T) {
 	f, _ := NewResettableFreezer(t.TempDir(), "", false, 2048, freezerTestTableDef)
 	defer f.Close()
 
-	f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+	f.ModifyAncients(func(op zonddb.AncientWriteOp) error {
 		for _, item := range items {
 			op.AppendRaw("test", item.id, item.blob)
 		}
@@ -63,7 +63,7 @@ func TestResetFreezer(t *testing.T) {
 	}
 
 	// Fill the freezer
-	f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+	f.ModifyAncients(func(op zonddb.AncientWriteOp) error {
 		for _, item := range items {
 			op.AppendRaw("test", item.id, item.blob)
 		}
@@ -88,7 +88,7 @@ func TestFreezerCleanup(t *testing.T) {
 	}
 	datadir := t.TempDir()
 	f, _ := NewResettableFreezer(datadir, "", false, 2048, freezerTestTableDef)
-	f.ModifyAncients(func(op ethdb.AncientWriteOp) error {
+	f.ModifyAncients(func(op zonddb.AncientWriteOp) error {
 		for _, item := range items {
 			op.AppendRaw("test", item.id, item.blob)
 		}

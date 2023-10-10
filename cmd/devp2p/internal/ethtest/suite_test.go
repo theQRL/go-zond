@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/eth"
-	"github.com/theQRL/go-zond/eth/ethconfig"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/internal/utesting"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
@@ -108,7 +108,7 @@ func setupGeth(stack *node.Node) error {
 		return err
 	}
 
-	backend, err := eth.New(stack, &ethconfig.Config{
+	backend, err := zond.New(stack, &ethconfig.Config{
 		Genesis:                 &chain.genesis,
 		NetworkId:               chain.genesis.Config.ChainID.Uint64(), // 19763
 		DatabaseCache:           10,

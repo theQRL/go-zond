@@ -206,7 +206,7 @@ func (*HandlerT) Stacks(filter *string) string {
 		// it into a proper boolean expression that can be fed into a parser and
 		// interpreter:
 		//
-		// E.g. (eth || snap) && !p2p -> (eth in Value || snap in Value) && p2p not in Value
+		// E.g. (zond || snap) && !p2p -> (zond in Value || snap in Value) && p2p not in Value
 		expanded = regexp.MustCompile(`[:/\.A-Za-z0-9_-]+`).ReplaceAllString(expanded, "`$0` in Value")
 		expanded = regexp.MustCompile("!(`[:/\\.A-Za-z0-9_-]+`)").ReplaceAllString(expanded, "$1 not")
 		expanded = strings.ReplaceAll(expanded, "||", "or")

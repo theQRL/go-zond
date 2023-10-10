@@ -25,7 +25,7 @@ import (
 	"github.com/theQRL/go-zond/common/prque"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 )
 
@@ -157,7 +157,7 @@ func (batch *syncMemBatch) hasCode(hash common.Hash) bool {
 // and reconstructs the trie step by step until all is done.
 type Sync struct {
 	scheme   string                       // Node scheme descriptor used in database.
-	database ethdb.KeyValueReader         // Persistent database to check for existing entries
+	database zonddb.KeyValueReader        // Persistent database to check for existing entries
 	membatch *syncMemBatch                // Memory buffer to avoid frequent database writes
 	nodeReqs map[string]*nodeRequest      // Pending requests pertaining to a trie node path
 	codeReqs map[common.Hash]*codeRequest // Pending requests pertaining to a code hash
@@ -166,7 +166,7 @@ type Sync struct {
 }
 
 // NewSync creates a new trie data download scheduler.
-func NewSync(root common.Hash, database ethdb.KeyValueReader, callback LeafCallback, scheme string) *Sync {
+func NewSync(root common.Hash, database zonddb.KeyValueReader, callback LeafCallback, scheme string) *Sync {
 	ts := &Sync{
 		scheme:   scheme,
 		database: database,
@@ -250,7 +250,7 @@ func (s *Sync) AddCodeEntry(hash common.Hash, path []byte, parent common.Hash, p
 }
 
 // Missing retrieves the known missing nodes from the trie for retrieval. To aid
-// both eth/6x style fast sync and snap/1x style state sync, the paths of trie
+// both zond/6x style fast sync and snap/1x style state sync, the paths of trie
 // nodes are returned too, as well as separate hash list for codes.
 func (s *Sync) Missing(max int) ([]string, []common.Hash, []common.Hash) {
 	var (
@@ -346,7 +346,7 @@ func (s *Sync) ProcessNode(result NodeSyncResult) error {
 
 // Commit flushes the data stored in the internal membatch out to persistent
 // storage, returning any occurred error.
-func (s *Sync) Commit(dbw ethdb.Batch) error {
+func (s *Sync) Commit(dbw zonddb.Batch) error {
 	// Dump the membatch into a database dbw
 	for path, value := range s.membatch.nodes {
 		owner, inner := ResolvePath([]byte(path))

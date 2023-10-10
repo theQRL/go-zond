@@ -27,7 +27,7 @@ import (
 	"github.com/theQRL/go-zond/common/mclock"
 	"github.com/theQRL/go-zond/core/forkid"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/eth/protocols/eth"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/les/downloader"
 	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/log"
@@ -473,7 +473,7 @@ func (d *downloaderPeerNotify) registerPeer(p *serverPeer) {
 		handler: h,
 		peer:    p,
 	}
-	h.downloader.RegisterLightPeer(p.id, eth.ETH66, pc)
+	h.downloader.RegisterLightPeer(p.id, zond.ETH66, pc)
 }
 
 func (d *downloaderPeerNotify) unregisterPeer(p *serverPeer) {

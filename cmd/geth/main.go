@@ -30,8 +30,8 @@ import (
 	"github.com/theQRL/go-zond/cmd/utils"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/console/prompt"
-	"github.com/theQRL/go-zond/eth"
-	"github.com/theQRL/go-zond/eth/downloader"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/internal/debug"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
@@ -40,8 +40,8 @@ import (
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/zondclient"
 	// Force-load the tracer engines to trigger registration
-	_ "github.com/theQRL/go-zond/eth/tracers/js"
-	_ "github.com/theQRL/go-zond/eth/tracers/native"
+	_ "github.com/theQRL/go-zond/zond/tracers/js"
+	_ "github.com/theQRL/go-zond/zond/tracers/native"
 
 	"github.com/urfave/cli/v2"
 )
@@ -280,7 +280,7 @@ func prepare(ctx *cli.Context) {
      your computer or losing power will wipe your entire block data and chain state for
      your dev environment.
   3. A random, pre-allocated developer account will be available and unlocked as
-     eth.coinbase, which can be used for testing. The random dev account is temporary,
+     zond.coinbase, which can be used for testing. The random dev account is temporary,
      stored on a ramdisk, and will be lost if your machine is restarted.
   4. Mining is enabled by default. However, the client will only seal blocks if transactions
      are pending in the mempool. The miner's minimum accepted gas price is 1.
@@ -420,7 +420,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 		if ctx.String(utils.SyncModeFlag.Name) == "light" {
 			utils.Fatalf("Light clients do not support mining")
 		}
-		ethBackend, ok := backend.(*eth.EthAPIBackend)
+		ethBackend, ok := backend.(*zond.EthAPIBackend)
 		if !ok {
 			utils.Fatalf("Ethereum service not running")
 		}

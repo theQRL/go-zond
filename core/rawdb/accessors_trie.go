@@ -22,7 +22,7 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"golang.org/x/crypto/sha3"
 )
@@ -65,7 +65,7 @@ func (h *nodeHasher) hashData(data []byte) (n common.Hash) {
 
 // ReadAccountTrieNode retrieves the account trie node and the associated node
 // hash with the specified node path.
-func ReadAccountTrieNode(db ethdb.KeyValueReader, path []byte) ([]byte, common.Hash) {
+func ReadAccountTrieNode(db zonddb.KeyValueReader, path []byte) ([]byte, common.Hash) {
 	data, err := db.Get(accountTrieNodeKey(path))
 	if err != nil {
 		return nil, common.Hash{}
@@ -77,7 +77,7 @@ func ReadAccountTrieNode(db ethdb.KeyValueReader, path []byte) ([]byte, common.H
 
 // HasAccountTrieNode checks the account trie node presence with the specified
 // node path and the associated node hash.
-func HasAccountTrieNode(db ethdb.KeyValueReader, path []byte, hash common.Hash) bool {
+func HasAccountTrieNode(db zonddb.KeyValueReader, path []byte, hash common.Hash) bool {
 	data, err := db.Get(accountTrieNodeKey(path))
 	if err != nil {
 		return false
@@ -88,14 +88,14 @@ func HasAccountTrieNode(db ethdb.KeyValueReader, path []byte, hash common.Hash) 
 }
 
 // WriteAccountTrieNode writes the provided account trie node into database.
-func WriteAccountTrieNode(db ethdb.KeyValueWriter, path []byte, node []byte) {
+func WriteAccountTrieNode(db zonddb.KeyValueWriter, path []byte, node []byte) {
 	if err := db.Put(accountTrieNodeKey(path), node); err != nil {
 		log.Crit("Failed to store account trie node", "err", err)
 	}
 }
 
 // DeleteAccountTrieNode deletes the specified account trie node from the database.
-func DeleteAccountTrieNode(db ethdb.KeyValueWriter, path []byte) {
+func DeleteAccountTrieNode(db zonddb.KeyValueWriter, path []byte) {
 	if err := db.Delete(accountTrieNodeKey(path)); err != nil {
 		log.Crit("Failed to delete account trie node", "err", err)
 	}
@@ -103,7 +103,7 @@ func DeleteAccountTrieNode(db ethdb.KeyValueWriter, path []byte) {
 
 // ReadStorageTrieNode retrieves the storage trie node and the associated node
 // hash with the specified node path.
-func ReadStorageTrieNode(db ethdb.KeyValueReader, accountHash common.Hash, path []byte) ([]byte, common.Hash) {
+func ReadStorageTrieNode(db zonddb.KeyValueReader, accountHash common.Hash, path []byte) ([]byte, common.Hash) {
 	data, err := db.Get(storageTrieNodeKey(accountHash, path))
 	if err != nil {
 		return nil, common.Hash{}
@@ -115,7 +115,7 @@ func ReadStorageTrieNode(db ethdb.KeyValueReader, accountHash common.Hash, path 
 
 // HasStorageTrieNode checks the storage trie node presence with the provided
 // node path and the associated node hash.
-func HasStorageTrieNode(db ethdb.KeyValueReader, accountHash common.Hash, path []byte, hash common.Hash) bool {
+func HasStorageTrieNode(db zonddb.KeyValueReader, accountHash common.Hash, path []byte, hash common.Hash) bool {
 	data, err := db.Get(storageTrieNodeKey(accountHash, path))
 	if err != nil {
 		return false
@@ -126,14 +126,14 @@ func HasStorageTrieNode(db ethdb.KeyValueReader, accountHash common.Hash, path [
 }
 
 // WriteStorageTrieNode writes the provided storage trie node into database.
-func WriteStorageTrieNode(db ethdb.KeyValueWriter, accountHash common.Hash, path []byte, node []byte) {
+func WriteStorageTrieNode(db zonddb.KeyValueWriter, accountHash common.Hash, path []byte, node []byte) {
 	if err := db.Put(storageTrieNodeKey(accountHash, path), node); err != nil {
 		log.Crit("Failed to store storage trie node", "err", err)
 	}
 }
 
 // DeleteStorageTrieNode deletes the specified storage trie node from the database.
-func DeleteStorageTrieNode(db ethdb.KeyValueWriter, accountHash common.Hash, path []byte) {
+func DeleteStorageTrieNode(db zonddb.KeyValueWriter, accountHash common.Hash, path []byte) {
 	if err := db.Delete(storageTrieNodeKey(accountHash, path)); err != nil {
 		log.Crit("Failed to delete storage trie node", "err", err)
 	}
@@ -141,7 +141,7 @@ func DeleteStorageTrieNode(db ethdb.KeyValueWriter, accountHash common.Hash, pat
 
 // ReadLegacyTrieNode retrieves the legacy trie node with the given
 // associated node hash.
-func ReadLegacyTrieNode(db ethdb.KeyValueReader, hash common.Hash) []byte {
+func ReadLegacyTrieNode(db zonddb.KeyValueReader, hash common.Hash) []byte {
 	data, err := db.Get(hash.Bytes())
 	if err != nil {
 		return nil
@@ -150,20 +150,20 @@ func ReadLegacyTrieNode(db ethdb.KeyValueReader, hash common.Hash) []byte {
 }
 
 // HasLegacyTrieNode checks if the trie node with the provided hash is present in db.
-func HasLegacyTrieNode(db ethdb.KeyValueReader, hash common.Hash) bool {
+func HasLegacyTrieNode(db zonddb.KeyValueReader, hash common.Hash) bool {
 	ok, _ := db.Has(hash.Bytes())
 	return ok
 }
 
 // WriteLegacyTrieNode writes the provided legacy trie node to database.
-func WriteLegacyTrieNode(db ethdb.KeyValueWriter, hash common.Hash, node []byte) {
+func WriteLegacyTrieNode(db zonddb.KeyValueWriter, hash common.Hash, node []byte) {
 	if err := db.Put(hash.Bytes(), node); err != nil {
 		log.Crit("Failed to store legacy trie node", "err", err)
 	}
 }
 
 // DeleteLegacyTrieNode deletes the specified legacy trie node from database.
-func DeleteLegacyTrieNode(db ethdb.KeyValueWriter, hash common.Hash) {
+func DeleteLegacyTrieNode(db zonddb.KeyValueWriter, hash common.Hash) {
 	if err := db.Delete(hash.Bytes()); err != nil {
 		log.Crit("Failed to delete legacy trie node", "err", err)
 	}
@@ -171,7 +171,7 @@ func DeleteLegacyTrieNode(db ethdb.KeyValueWriter, hash common.Hash) {
 
 // HasTrieNode checks the trie node presence with the provided node info and
 // the associated node hash.
-func HasTrieNode(db ethdb.KeyValueReader, owner common.Hash, path []byte, hash common.Hash, scheme string) bool {
+func HasTrieNode(db zonddb.KeyValueReader, owner common.Hash, path []byte, hash common.Hash, scheme string) bool {
 	switch scheme {
 	case HashScheme:
 		return HasLegacyTrieNode(db, hash)
@@ -193,7 +193,7 @@ func HasTrieNode(db ethdb.KeyValueReader, owner common.Hash, path []byte, hash c
 // pathScheme-based lookup requires the following:
 //   - owner
 //   - path
-func ReadTrieNode(db ethdb.KeyValueReader, owner common.Hash, path []byte, hash common.Hash, scheme string) []byte {
+func ReadTrieNode(db zonddb.KeyValueReader, owner common.Hash, path []byte, hash common.Hash, scheme string) []byte {
 	switch scheme {
 	case HashScheme:
 		return ReadLegacyTrieNode(db, hash)
@@ -224,7 +224,7 @@ func ReadTrieNode(db ethdb.KeyValueReader, owner common.Hash, path []byte, hash 
 // pathScheme-based lookup requires the following:
 //   - owner
 //   - path
-func WriteTrieNode(db ethdb.KeyValueWriter, owner common.Hash, path []byte, hash common.Hash, node []byte, scheme string) {
+func WriteTrieNode(db zonddb.KeyValueWriter, owner common.Hash, path []byte, hash common.Hash, node []byte, scheme string) {
 	switch scheme {
 	case HashScheme:
 		WriteLegacyTrieNode(db, hash, node)
@@ -247,7 +247,7 @@ func WriteTrieNode(db ethdb.KeyValueWriter, owner common.Hash, path []byte, hash
 // pathScheme-based lookup requires the following:
 //   - owner
 //   - path
-func DeleteTrieNode(db ethdb.KeyValueWriter, owner common.Hash, path []byte, hash common.Hash, scheme string) {
+func DeleteTrieNode(db zonddb.KeyValueWriter, owner common.Hash, path []byte, hash common.Hash, scheme string) {
 	switch scheme {
 	case HashScheme:
 		DeleteLegacyTrieNode(db, hash)

@@ -29,7 +29,7 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/txpool"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/ethdb"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
@@ -59,9 +59,9 @@ type TxPool struct {
 	chainHeadSub event.Subscription
 	mu           sync.RWMutex
 	chain        *LightChain
-	odr          OdrBackend
-	chainDb      ethdb.Database
-	relay        TxRelayBackend
+	odr     OdrBackend
+	chainDb zonddb.Database
+	relay   TxRelayBackend
 	head         common.Hash
 	nonce        map[common.Address]uint64            // "pending" nonce
 	pending      map[common.Hash]*types.Transaction   // pending transactions by tx hash

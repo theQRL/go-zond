@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common/mclock"
-	"github.com/theQRL/go-zond/ethdb"
-	"github.com/theQRL/go-zond/ethdb/memorydb"
+	"github.com/theQRL/go-zond/zonddb"
+	"github.com/theQRL/go-zond/zonddb/memorydb"
 	"github.com/theQRL/go-zond/les/utils"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/enr"
@@ -44,13 +44,13 @@ func (client balanceTestClient) FreeClientId() string { return "" }
 
 type balanceTestSetup struct {
 	clock *mclock.Simulated
-	db    ethdb.KeyValueStore
+	db    zonddb.KeyValueStore
 	ns    *nodestate.NodeStateMachine
 	setup *serverSetup
 	bt    *balanceTracker
 }
 
-func newBalanceTestSetup(db ethdb.KeyValueStore, posExp, negExp utils.ValueExpirer) *balanceTestSetup {
+func newBalanceTestSetup(db zonddb.KeyValueStore, posExp, negExp utils.ValueExpirer) *balanceTestSetup {
 	// Initialize and customize the setup for the balance testing
 	clock := &mclock.Simulated{}
 	setup := newServerSetup()

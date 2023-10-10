@@ -32,15 +32,15 @@ type lesEntry struct {
 
 func (lesEntry) ENRKey() string { return "les" }
 
-// ethEntry is the "eth" ENR entry. This is redeclared here to avoid depending on package eth.
+// ethEntry is the "zond" ENR entry. This is redeclared here to avoid depending on package zond.
 type ethEntry struct {
 	ForkID forkid.ID
 	Tail   []rlp.RawValue `rlp:"tail"`
 }
 
-func (ethEntry) ENRKey() string { return "eth" }
+func (ethEntry) ENRKey() string { return "zond" }
 
-// setupDiscovery creates the node discovery source for the eth protocol.
+// setupDiscovery creates the node discovery source for the zond protocol.
 func (eth *LightEthereum) setupDiscovery() (enode.Iterator, error) {
 	it := enode.NewFairMix(0)
 

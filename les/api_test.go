@@ -31,9 +31,9 @@ import (
 	"github.com/mattn/go-colorable"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
-	"github.com/theQRL/go-zond/eth"
-	ethdownloader "github.com/theQRL/go-zond/eth/downloader"
-	"github.com/theQRL/go-zond/eth/ethconfig"
+	"github.com/theQRL/go-zond/zond"
+	ethdownloader "github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/les/downloader"
 	"github.com/theQRL/go-zond/les/flowcontrol"
 	"github.com/theQRL/go-zond/log"
@@ -502,7 +502,7 @@ func newLesServerService(ctx *adapters.ServiceContext, stack *node.Node) (node.L
 	config.SyncMode = (ethdownloader.SyncMode)(downloader.FullSync)
 	config.LightServ = testServerCapacity
 	config.LightPeers = testMaxClients
-	ethereum, err := eth.New(stack, &config)
+	ethereum, err := zond.New(stack, &config)
 	if err != nil {
 		return nil, err
 	}
