@@ -333,7 +333,7 @@ func (s eip2930Signer) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []by
 			return nil, nil, fmt.Errorf("%w: have %d want %d", ErrInvalidChainId, txdata.ChainID, s.chainId)
 		}
 		Signature = decodeSignature(sig)
-		PublicKey = decodePublicKey(sig)
+		PublicKey = decodePublicKey(pk)
 	default:
 		return nil, nil, ErrTxTypeNotSupported
 	}
