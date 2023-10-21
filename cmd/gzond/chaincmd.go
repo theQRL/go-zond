@@ -34,12 +34,12 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/urfave/cli/v2"
 )
 
@@ -129,7 +129,7 @@ be gzipped.`,
 		}, utils.DatabasePathFlags),
 		Description: `
 The import-preimages command imports hash preimages from an RLP encoded stream.
-It's deprecated, please use "geth db import" instead.
+It's deprecated, please use "gzond db import" instead.
 `,
 	}
 	exportPreimagesCommand = &cli.Command{
@@ -143,7 +143,7 @@ It's deprecated, please use "geth db import" instead.
 		}, utils.DatabasePathFlags),
 		Description: `
 The export-preimages command exports hash preimages to an RLP encoded stream.
-It's deprecated, please use "geth db export" instead.
+It's deprecated, please use "gzond db export" instead.
 `,
 	}
 	dumpCommand = &cli.Command{

@@ -60,19 +60,19 @@ import (
 )
 
 var (
-	// Files that end up in the geth*.zip archive.
-	gethArchiveFiles = []string{
+	// Files that end up in the gzond*.zip archive.
+	gzondArchiveFiles = []string{
 		"COPYING",
-		executablePath("geth"),
+		executablePath("gzond"),
 	}
 
-	// Files that end up in the geth-alltools*.zip archive.
+	// Files that end up in the gzond-alltools*.zip archive.
 	allToolsArchiveFiles = []string{
 		"COPYING",
 		executablePath("abigen"),
 		executablePath("bootnode"),
 		executablePath("evm"),
-		executablePath("geth"),
+		executablePath("gzond"),
 		executablePath("rlpdump"),
 		executablePath("clef"),
 	}
@@ -92,7 +92,7 @@ var (
 			Description: "Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
-			BinaryName:  "geth",
+			BinaryName:  "gzond",
 			Description: "Ethereum CLI client.",
 		},
 		{
@@ -371,7 +371,7 @@ func doArchive(cmdline []string) {
 		atype   = flag.String("type", "zip", "Type of archive to write (zip|tar)")
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
 		signify = flag.String("signify", "", `Environment variable holding the signify key (e.g. LINUX_SIGNIFY_KEY)`)
-		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gzondstore/builds")`)
 		ext     string
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -385,19 +385,19 @@ func doArchive(cmdline []string) {
 	}
 
 	var (
-		env      = build.Env()
-		basegeth = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
-		geth     = "geth-" + basegeth + ext
-		alltools = "geth-alltools-" + basegeth + ext
+		env       = build.Env()
+		basegzond = archiveBasename(*arch, params.ArchiveVersion(env.Commit))
+		gzond     = "gzond-" + basegzond + ext
+		alltools  = "gzond-alltools-" + basegzond + ext
 	)
 	maybeSkipArchive(env)
-	if err := build.WriteArchive(geth, gethArchiveFiles); err != nil {
+	if err := build.WriteArchive(gzond, gzondArchiveFiles); err != nil {
 		log.Fatal(err)
 	}
 	if err := build.WriteArchive(alltools, allToolsArchiveFiles); err != nil {
 		log.Fatal(err)
 	}
-	for _, archive := range []string{geth, alltools} {
+	for _, archive := range []string{gzond, alltools} {
 		if err := archiveUpload(archive, *upload, *signer, *signify); err != nil {
 			log.Fatal(err)
 		}
@@ -428,7 +428,7 @@ func archiveUpload(archive string, blobstore string, signer string, signifyVar s
 	}
 	if signifyVar != "" {
 		key := os.Getenv(signifyVar)
-		untrustedComment := "verify with geth-release.pub"
+		untrustedComment := "verify with gzond-release.pub"
 		trustedComment := fmt.Sprintf("%s (%s)", archive, time.Now().UTC().Format(time.RFC1123))
 		if err := signify.SignFile(archive, archive+".sig", key, untrustedComment, trustedComment); err != nil {
 			return err
@@ -493,14 +493,14 @@ func doDocker(cmdline []string) {
 		build.MustRun(auther)
 	}
 	// Retrieve the version infos to build and push to the following paths:
-	//  - ethereum/client-go:latest                            - Pushes to the master branch, Geth only
-	//  - ethereum/client-go:stable                            - Version tag publish on GitHub, Geth only
-	//  - ethereum/client-go:alltools-latest                   - Pushes to the master branch, Geth & tools
-	//  - ethereum/client-go:alltools-stable                   - Version tag publish on GitHub, Geth & tools
-	//  - ethereum/client-go:release-<major>.<minor>           - Version tag publish on GitHub, Geth only
-	//  - ethereum/client-go:alltools-release-<major>.<minor>  - Version tag publish on GitHub, Geth & tools
-	//  - ethereum/client-go:v<major>.<minor>.<patch>          - Version tag publish on GitHub, Geth only
-	//  - ethereum/client-go:alltools-v<major>.<minor>.<patch> - Version tag publish on GitHub, Geth & tools
+	//  - ethereum/client-go:latest                            - Pushes to the master branch, Gzond only
+	//  - ethereum/client-go:stable                            - Version tag publish on GitHub, Gzond only
+	//  - ethereum/client-go:alltools-latest                   - Pushes to the master branch, Gzond & tools
+	//  - ethereum/client-go:alltools-stable                   - Version tag publish on GitHub, Gzond & tools
+	//  - ethereum/client-go:release-<major>.<minor>           - Version tag publish on GitHub, Gzond only
+	//  - ethereum/client-go:alltools-release-<major>.<minor>  - Version tag publish on GitHub, Gzond & tools
+	//  - ethereum/client-go:v<major>.<minor>.<patch>          - Version tag publish on GitHub, Gzond only
+	//  - ethereum/client-go:alltools-v<major>.<minor>.<patch> - Version tag publish on GitHub, Gzond & tools
 	var tags []string
 
 	switch {
@@ -516,7 +516,7 @@ func doDocker(cmdline []string) {
 
 		// Tag and upload the images to Docker Hub
 		for _, tag := range tags {
-			gethImage := fmt.Sprintf("%s:%s-%s", *upload, tag, runtime.GOARCH)
+			gzondImage := fmt.Sprintf("%s:%s-%s", *upload, tag, runtime.GOARCH)
 			toolImage := fmt.Sprintf("%s:alltools-%s-%s", *upload, tag, runtime.GOARCH)
 
 			// If the image already exists (non version tag), check the build
@@ -524,7 +524,7 @@ func doDocker(cmdline []string) {
 			// are running. This is still a tiny bit racey if two published are
 			// done at the same time, but that's extremely unlikely even on the
 			// master branch.
-			for _, img := range []string{gethImage, toolImage} {
+			for _, img := range []string{gzondImage, toolImage} {
 				if exec.Command("docker", "pull", img).Run() != nil {
 					continue // Generally the only failure is a missing image, which is good
 				}
@@ -550,9 +550,9 @@ func doDocker(cmdline []string) {
 					}
 				}
 			}
-			build.MustRunCommand("docker", "image", "tag", fmt.Sprintf("%s:TAG", *upload), gethImage)
+			build.MustRunCommand("docker", "image", "tag", fmt.Sprintf("%s:TAG", *upload), gzondImage)
 			build.MustRunCommand("docker", "image", "tag", fmt.Sprintf("%s:alltools-TAG", *upload), toolImage)
-			build.MustRunCommand("docker", "push", gethImage)
+			build.MustRunCommand("docker", "push", gzondImage)
 			build.MustRunCommand("docker", "push", toolImage)
 		}
 	}
@@ -566,10 +566,10 @@ func doDocker(cmdline []string) {
 
 			for _, tag := range tags {
 				for _, arch := range strings.Split(*manifest, ",") {
-					gethImage := fmt.Sprintf("%s:%s-%s", *upload, tag, arch)
+					gzondImage := fmt.Sprintf("%s:%s-%s", *upload, tag, arch)
 					toolImage := fmt.Sprintf("%s:alltools-%s-%s", *upload, tag, arch)
 
-					for _, img := range []string{gethImage, toolImage} {
+					for _, img := range []string{gzondImage, toolImage} {
 						if out, err := exec.Command("docker", "pull", img).CombinedOutput(); err != nil {
 							log.Printf("Required image %s unavailable: %v\nOutput: %s", img, err, out)
 							mismatch = true
@@ -611,16 +611,16 @@ func doDocker(cmdline []string) {
 			log.Println("Relinquishing publish to other builder")
 			return
 		}
-		// Assemble and push the Geth manifest image
+		// Assemble and push the Gzond manifest image
 		for _, tag := range tags {
-			gethImage := fmt.Sprintf("%s:%s", *upload, tag)
+			gzondImage := fmt.Sprintf("%s:%s", *upload, tag)
 
-			var gethSubImages []string
+			var gzondSubImages []string
 			for _, arch := range strings.Split(*manifest, ",") {
-				gethSubImages = append(gethSubImages, gethImage+"-"+arch)
+				gzondSubImages = append(gzondSubImages, gzondImage+"-"+arch)
 			}
-			build.MustRunCommand("docker", append([]string{"manifest", "create", gethImage}, gethSubImages...)...)
-			build.MustRunCommand("docker", "manifest", "push", gethImage)
+			build.MustRunCommand("docker", append([]string{"manifest", "create", gzondImage}, gzondSubImages...)...)
+			build.MustRunCommand("docker", "manifest", "push", gzondImage)
 		}
 		// Assemble and push the alltools manifest image
 		for _, tag := range tags {
@@ -642,7 +642,7 @@ func doDebianSource(cmdline []string) {
 		cachedir = flag.String("cachedir", "./build/cache", `Filesystem path to cache the downloaded Go bundles at`)
 		signer   = flag.String("signer", "", `Signing key name, also used as package author`)
 		upload   = flag.String("upload", "", `Where to upload the source package (usually "ethereum/ethereum")`)
-		sshUser  = flag.String("sftp-user", "", `Username for SFTP upload (usually "geth-ci")`)
+		sshUser  = flag.String("sftp-user", "", `Username for SFTP upload (usually "gzond-ci")`)
 		workdir  = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 		now      = time.Now()
 	)
@@ -782,7 +782,7 @@ func makeWorkdir(wdflag string) string {
 	if wdflag != "" {
 		err = os.MkdirAll(wdflag, 0744)
 	} else {
-		wdflag, err = os.MkdirTemp("", "geth-build-")
+		wdflag, err = os.MkdirTemp("", "gzond-build-")
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -941,7 +941,7 @@ func doWindowsInstaller(cmdline []string) {
 		arch    = flag.String("arch", runtime.GOARCH, "Architecture for cross build packaging")
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. WINDOWS_SIGNING_KEY)`)
 		signify = flag.String("signify key", "", `Environment variable holding the signify signing key (e.g. WINDOWS_SIGNIFY_KEY)`)
-		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gzondstore/builds")`)
 		workdir = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -951,30 +951,30 @@ func doWindowsInstaller(cmdline []string) {
 
 	// Aggregate binaries that are included in the installer
 	var (
-		devTools []string
-		allTools []string
-		gethTool string
+		devTools  []string
+		allTools  []string
+		gzondTool string
 	)
 	for _, file := range allToolsArchiveFiles {
 		if file == "COPYING" { // license, copied later
 			continue
 		}
 		allTools = append(allTools, filepath.Base(file))
-		if filepath.Base(file) == "geth.exe" {
-			gethTool = file
+		if filepath.Base(file) == "gzond.exe" {
+			gzondTool = file
 		} else {
 			devTools = append(devTools, file)
 		}
 	}
 
 	// Render NSIS scripts: Installer NSIS contains two installer sections,
-	// first section contains the geth binary, second section holds the dev tools.
+	// first section contains the gzond binary, second section holds the dev tools.
 	templateData := map[string]interface{}{
 		"License":  "COPYING",
-		"Geth":     gethTool,
+		"Gzond":    gzondTool,
 		"DevTools": devTools,
 	}
-	build.Render("build/nsis.geth.nsi", filepath.Join(*workdir, "geth.nsi"), 0644, nil)
+	build.Render("build/nsis.gzond.nsi", filepath.Join(*workdir, "gzond.nsi"), 0644, nil)
 	build.Render("build/nsis.install.nsh", filepath.Join(*workdir, "install.nsh"), 0644, templateData)
 	build.Render("build/nsis.uninstall.nsh", filepath.Join(*workdir, "uninstall.nsh"), 0644, allTools)
 	build.Render("build/nsis.pathupdate.nsh", filepath.Join(*workdir, "PathUpdate.nsh"), 0644, nil)
@@ -992,7 +992,7 @@ func doWindowsInstaller(cmdline []string) {
 	if env.Commit != "" {
 		version[2] += "-" + env.Commit[:8]
 	}
-	installer, err := filepath.Abs("geth-" + archiveBasename(*arch, params.ArchiveVersion(env.Commit)) + ".exe")
+	installer, err := filepath.Abs("gzond-" + archiveBasename(*arch, params.ArchiveVersion(env.Commit)) + ".exe")
 	if err != nil {
 		log.Fatalf("Failed to convert installer file path: %v", err)
 	}
@@ -1002,7 +1002,7 @@ func doWindowsInstaller(cmdline []string) {
 		"/DMINORVERSION="+version[1],
 		"/DBUILDVERSION="+version[2],
 		"/DARCH="+*arch,
-		filepath.Join(*workdir, "geth.nsi"),
+		filepath.Join(*workdir, "gzond.nsi"),
 	)
 	// Sign and publish installer.
 	if err := archiveUpload(installer, *upload, *signer, *signify); err != nil {
@@ -1014,7 +1014,7 @@ func doWindowsInstaller(cmdline []string) {
 
 func doPurge(cmdline []string) {
 	var (
-		store = flag.String("store", "", `Destination from where to purge archives (usually "gethstore/builds")`)
+		store = flag.String("store", "", `Destination from where to purge archives (usually "gzondstore/builds")`)
 		limit = flag.Int("days", 30, `Age threshold above which to delete unstable archives`)
 	)
 	flag.CommandLine.Parse(cmdline)

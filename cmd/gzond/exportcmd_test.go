@@ -25,7 +25,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 )
 
-// TestExport does a basic test of "geth export", exporting the test-genesis.
+// TestExport does a basic test of "gzond export", exporting the test-genesis.
 func TestExport(t *testing.T) {
 	outfile := fmt.Sprintf("%v/testExport.out", os.TempDir())
 	defer os.Remove(outfile)

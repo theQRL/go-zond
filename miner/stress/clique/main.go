@@ -32,9 +32,6 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/txpool"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
@@ -42,6 +39,9 @@ import (
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
 )
 
 func main() {
@@ -185,7 +185,7 @@ func makeSealer(genesis *core.Genesis) (*node.Node, *zond.Ethereum, error) {
 	datadir, _ := os.MkdirTemp("", "")
 
 	config := &node.Config{
-		Name:    "geth",
+		Name:    "gzond",
 		Version: params.Version,
 		DataDir: datadir,
 		P2P: p2p.Config{

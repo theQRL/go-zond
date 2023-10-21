@@ -31,10 +31,10 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state/snapshot"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 const (
@@ -500,7 +500,7 @@ The clean trie cache is not found. Please delete it by yourself after the
 pruning. Remember don't start the Geth without deleting the clean trie cache
 otherwise the entire database may be damaged!
 
-Check the command description "geth snapshot prune-state --help" for more details.
+Check the command description "gzond snapshot prune-state --help" for more details.
 `
 
 func deleteCleanTrieCache(path string) {

@@ -35,12 +35,12 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zond/ethconfig"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/internal/debug"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/zonddb"
 	"github.com/urfave/cli/v2"
 )
 
@@ -386,7 +386,7 @@ type exportHeader struct {
 	UnixTime uint64
 }
 
-const exportMagic = "gethdbdump"
+const exportMagic = "gzonddbdump"
 const (
 	OpBatchAdd = 0
 	OpBatchDel = 1

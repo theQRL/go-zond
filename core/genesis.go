@@ -32,11 +32,11 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -575,7 +575,7 @@ func DefaultBetaNetGenesisBlock() *Genesis {
 		ExtraData:  []byte("BetaNet, Zond, XMSS, Dilithium!!"),
 		GasLimit:   0x1c9c380,
 		Difficulty: big.NewInt(0x1),
-		Timestamp:  1691355800,
+		Timestamp:  1697698958,
 		Alloc:      decodePreallocWithContractCode(betaNetAllocData),
 	}
 }

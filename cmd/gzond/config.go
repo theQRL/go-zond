@@ -31,8 +31,6 @@ import (
 	"github.com/theQRL/go-zond/accounts/scwallet"
 	"github.com/theQRL/go-zond/accounts/usbwallet"
 	"github.com/theQRL/go-zond/cmd/utils"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/theQRL/go-zond/internal/version"
@@ -40,6 +38,8 @@ import (
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/urfave/cli/v2"
 )
 
@@ -115,7 +115,7 @@ func defaultNodeConfig() node.Config {
 	cfg.Version = params.VersionWithCommit(git.Commit, git.Date)
 	cfg.HTTPModules = append(cfg.HTTPModules, "zond")
 	cfg.WSModules = append(cfg.WSModules, "zond")
-	cfg.IPCPath = "geth.ipc"
+	cfg.IPCPath = "gzond.ipc"
 	return cfg
 }
 
