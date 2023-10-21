@@ -575,7 +575,7 @@ func DefaultBetaNetGenesisBlock() *Genesis {
 		ExtraData:  []byte("BetaNet, Zond, XMSS, Dilithium!!"),
 		GasLimit:   0x1c9c380,
 		Difficulty: big.NewInt(0x1),
-		Timestamp:  1697698958,
+		Timestamp:  1697921722,
 		Alloc:      decodePreallocWithContractCode(betaNetAllocData),
 	}
 }
