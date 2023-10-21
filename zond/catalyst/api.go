@@ -29,12 +29,12 @@ import (
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
 )
 
 // Register adds the engine API to the full node.
@@ -375,7 +375,7 @@ func (api *ConsensusAPI) ExchangeTransitionConfigurationV1(config engine.Transit
 
 	ttd := api.eth.BlockChain().Config().TerminalTotalDifficulty
 	if ttd == nil || ttd.Cmp(config.TerminalTotalDifficulty.ToInt()) != 0 {
-		log.Warn("Invalid TTD configured", "geth", ttd, "beacon", config.TerminalTotalDifficulty)
+		log.Warn("Invalid TTD configured", "gzond", ttd, "beacon", config.TerminalTotalDifficulty)
 		return nil, fmt.Errorf("invalid ttd: execution %v consensus %v", ttd, config.TerminalTotalDifficulty)
 	}
 	if config.TerminalBlockHash != (common.Hash{}) {

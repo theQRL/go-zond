@@ -238,7 +238,7 @@ func Setup(ctx *cli.Context) error {
 		if len(logFile) > 0 {
 			context = append(context, "location", logFile)
 		} else {
-			context = append(context, "location", filepath.Join(os.TempDir(), "geth-lumberjack.log"))
+			context = append(context, "location", filepath.Join(os.TempDir(), "gzond-lumberjack.log"))
 		}
 		ostream = log.MultiHandler(log.StreamHandler(&lumberjack.Logger{
 			Filename:   logFile,

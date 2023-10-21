@@ -46,9 +46,6 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
-	"github.com/theQRL/go-zond/zondstats"
 	"github.com/theQRL/go-zond/internal/version"
 	"github.com/theQRL/go-zond/les"
 	"github.com/theQRL/go-zond/log"
@@ -57,7 +54,10 @@ import (
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/nat"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/zondclient"
+	"github.com/theQRL/go-zond/zondstats"
 )
 
 var (
@@ -224,7 +224,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*enode.Node, network ui
 	// Assemble the raw devp2p protocol stack
 	git, _ := version.VCS()
 	stack, err := node.New(&node.Config{
-		Name:    "geth",
+		Name:    "gzond",
 		Version: params.VersionWithCommit(git.Commit, git.Date),
 		DataDir: filepath.Join(os.Getenv("HOME"), ".faucet"),
 		P2P: p2p.Config{

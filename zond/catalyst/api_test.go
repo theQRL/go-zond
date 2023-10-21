@@ -37,23 +37,24 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/pqcrypto"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
 )
 
 var (
 	// testKey is a private key to use for funding a tester account.
-	testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testKey, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 	// testAddr is the Ethereum address of the tester account.
-	testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
+	testAddr = common.Address(testKey.GetAddress())
 
 	testBalance = big.NewInt(2e18)
 )

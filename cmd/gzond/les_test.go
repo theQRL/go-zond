@@ -110,7 +110,7 @@ func ipcEndpoint(ipcPath, datadir string) string {
 var nextIPC = uint32(0)
 
 func startGethWithIpc(t *testing.T, name string, args ...string) *gethrpc {
-	ipcName := fmt.Sprintf("geth-%d.ipc", atomic.AddUint32(&nextIPC, 1))
+	ipcName := fmt.Sprintf("gzond-%d.ipc", atomic.AddUint32(&nextIPC, 1))
 	args = append([]string{"--networkid=42", "--port=0", "--authrpc.port", "0", "--ipcpath", ipcName}, args...)
 	t.Logf("Starting %v with rpc: %v", name, args)
 

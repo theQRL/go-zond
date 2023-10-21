@@ -48,16 +48,6 @@ import (
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/crypto/kzg4844"
-	"github.com/theQRL/go-zond/zond"
-	ethcatalyst "github.com/theQRL/go-zond/zond/catalyst"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
-	"github.com/theQRL/go-zond/zond/filters"
-	"github.com/theQRL/go-zond/zond/gasprice"
-	"github.com/theQRL/go-zond/zond/tracers"
-	"github.com/theQRL/go-zond/zonddb"
-	"github.com/theQRL/go-zond/zonddb/remotedb"
-	"github.com/theQRL/go-zond/zondstats"
 	"github.com/theQRL/go-zond/graphql"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
@@ -76,6 +66,16 @@ import (
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond"
+	ethcatalyst "github.com/theQRL/go-zond/zond/catalyst"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/zond/filters"
+	"github.com/theQRL/go-zond/zond/gasprice"
+	"github.com/theQRL/go-zond/zond/tracers"
+	"github.com/theQRL/go-zond/zonddb"
+	"github.com/theQRL/go-zond/zonddb/remotedb"
+	"github.com/theQRL/go-zond/zondstats"
 	"github.com/urfave/cli/v2"
 )
 
@@ -2028,13 +2028,13 @@ func SetupMetrics(ctx *cli.Context) {
 
 			log.Info("Enabling metrics export to InfluxDB")
 
-			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "geth.", tagsMap)
+			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "gzond.", tagsMap)
 		} else if enableExportV2 {
 			tagsMap := SplitTagsFlag(ctx.String(MetricsInfluxDBTagsFlag.Name))
 
 			log.Info("Enabling metrics export to InfluxDB (v2)")
 
-			go influxdb.InfluxDBV2WithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, token, bucket, organization, "geth.", tagsMap)
+			go influxdb.InfluxDBV2WithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, token, bucket, organization, "gzond.", tagsMap)
 		}
 
 		if ctx.IsSet(MetricsHTTPFlag.Name) {

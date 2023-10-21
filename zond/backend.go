@@ -37,12 +37,6 @@ import (
 	"github.com/theQRL/go-zond/core/txpool"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
-	"github.com/theQRL/go-zond/zond/gasprice"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
-	"github.com/theQRL/go-zond/zond/protocols/snap"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/shutdowncheck"
@@ -55,6 +49,12 @@ import (
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/zond/gasprice"
+	"github.com/theQRL/go-zond/zond/protocols/snap"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // Config contains the configuration options of the ETH protocol.
@@ -267,7 +267,7 @@ func makeExtraData(extra []byte) []byte {
 		// create default extradata
 		extra, _ = rlp.EncodeToBytes([]interface{}{
 			uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-			"geth",
+			"gzond",
 			runtime.Version(),
 			runtime.GOOS,
 		})
@@ -453,9 +453,9 @@ func (s *Ethereum) AccountManager() *accounts.Manager  { return s.accountManager
 func (s *Ethereum) BlockChain() *core.BlockChain       { return s.blockchain }
 func (s *Ethereum) TxPool() *txpool.TxPool             { return s.txPool }
 func (s *Ethereum) EventMux() *event.TypeMux           { return s.eventMux }
-func (s *Ethereum) Engine() consensus.Engine { return s.engine }
-func (s *Ethereum) ChainDb() zonddb.Database { return s.chainDb }
-func (s *Ethereum) IsListening() bool        { return true } // Always listening
+func (s *Ethereum) Engine() consensus.Engine           { return s.engine }
+func (s *Ethereum) ChainDb() zonddb.Database           { return s.chainDb }
+func (s *Ethereum) IsListening() bool                  { return true } // Always listening
 func (s *Ethereum) Downloader() *downloader.Downloader { return s.handler.downloader }
 func (s *Ethereum) Synced() bool                       { return s.handler.acceptTxs.Load() }
 func (s *Ethereum) SetSynced()                         { s.handler.acceptTxs.Store(true) }

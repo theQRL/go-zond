@@ -59,7 +59,7 @@ func TestConsoleWelcome(t *testing.T) {
 	geth.SetTemplateFunc("goos", func() string { return runtime.GOOS })
 	geth.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	geth.SetTemplateFunc("gover", runtime.Version)
-	geth.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
+	geth.SetTemplateFunc("gzondver", func() string { return params.VersionWithCommit("", "") })
 	geth.SetTemplateFunc("niltime", func() string {
 		return time.Unix(1548854791, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 	})
@@ -92,7 +92,7 @@ func TestAttachWelcome(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		ipc = `\\.\pipe\gzond` + strconv.Itoa(trulyRandInt(100000, 999999))
 	} else {
-		ipc = filepath.Join(t.TempDir(), "geth.ipc")
+		ipc = filepath.Join(t.TempDir(), "gzond.ipc")
 	}
 	// And HTTP + WS attachment
 	p := trulyRandInt(1024, 65533) // Yeah, sometimes this will fail, sorry :P

@@ -58,7 +58,7 @@ type TestCmd struct {
 var id int32
 
 // Run exec's the current binary using name as argv[0] which will trigger the
-// reexec init function for that name (e.g. "geth-test" in cmd/geth/run_test.go)
+// reexec init function for that name (e.g. "gzond-test" in cmd/gzond/run_test.go)
 func (tt *TestCmd) Run(name string, args ...string) {
 	id := atomic.AddInt32(&id, 1)
 	tt.stderr = &testlogger{t: tt.T, name: fmt.Sprintf("%d", id)}

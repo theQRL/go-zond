@@ -37,8 +37,8 @@ type testgeth struct {
 }
 
 func init() {
-	// Run the app if we've been exec'd as "geth-test" in runGeth.
-	reexec.Register("geth-test", func() {
+	// Run the app if we've been exec'd as "gzond-test" in runGeth.
+	reexec.Register("gzond-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -78,9 +78,9 @@ func runGeth(t *testing.T, args ...string) *testgeth {
 		args = append([]string{"--datadir", tt.Datadir}, args...)
 	}
 
-	// Boot "geth". This actually runs the test binary but the TestMain
+	// Boot "gzond". This actually runs the test binary but the TestMain
 	// function will prevent any tests from running.
-	tt.Run("geth-test", args...)
+	tt.Run("gzond-test", args...)
 
 	return tt
 }
