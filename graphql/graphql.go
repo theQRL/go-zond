@@ -34,10 +34,10 @@ import (
 	"github.com/theQRL/go-zond/consensus/misc"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond/filters"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond/filters"
 )
 
 var (
@@ -529,22 +529,20 @@ func (t *Transaction) AccessList(ctx context.Context) (*[]*AccessTuple, error) {
 	return &ret, nil
 }
 
-func (t *Transaction) PublicKey(ctx context.Context) (hexutil.Big, error) {
+func (t *Transaction) PublicKey(ctx context.Context) (hexutil.Bytes, error) {
 	tx, _, err := t.resolve(ctx)
 	if err != nil || tx == nil {
-		return hexutil.Big{}, err
+		return hexutil.Bytes{}, err
 	}
-	publicKey := tx.RawPublicKeyValue()
-	return hexutil.Big(*publicKey), nil
+	return tx.RawPublicKeyValue(), nil
 }
 
-func (t *Transaction) Signature(ctx context.Context) (hexutil.Big, error) {
+func (t *Transaction) Signature(ctx context.Context) (hexutil.Bytes, error) {
 	tx, _, err := t.resolve(ctx)
 	if err != nil || tx == nil {
-		return hexutil.Big{}, err
+		return hexutil.Bytes{}, err
 	}
-	signature := tx.RawSignatureValue()
-	return hexutil.Big(*signature), nil
+	return tx.RawSignatureValue(), nil
 }
 
 func (t *Transaction) Raw(ctx context.Context) (hexutil.Bytes, error) {
