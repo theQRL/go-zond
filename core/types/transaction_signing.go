@@ -166,7 +166,7 @@ type Signer interface {
 
 	// SignatureAndPublicKeyValues returns the raw signature, publicKey values corresponding to the
 	// given signature.
-	SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (signature, publicKey *big.Int, err error)
+	SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (signature, publicKey []byte, err error)
 	ChainID() *big.Int
 
 	// Hash returns 'signature hash', i.e. the transaction hash that is signed by the
@@ -193,7 +193,7 @@ func (s cancunSigner) Sender(tx *Transaction) (common.Address, error) {
 	if tx.Type() != BlobTxType {
 		return s.londonSigner.Sender(tx)
 	}
-	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue().Bytes()), nil
+	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue()), nil
 }
 
 func (s cancunSigner) Equal(s2 Signer) bool {
@@ -201,7 +201,7 @@ func (s cancunSigner) Equal(s2 Signer) bool {
 	return ok && x.chainId.Cmp(s.chainId) == 0
 }
 
-func (s cancunSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey *big.Int, err error) {
+func (s cancunSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey []byte, err error) {
 	txdata, ok := tx.inner.(*BlobTx)
 	if !ok {
 		return s.londonSigner.SignatureAndPublicKeyValues(tx, sig, pk)
@@ -254,7 +254,7 @@ func (s londonSigner) Sender(tx *Transaction) (common.Address, error) {
 	if tx.Type() != DynamicFeeTxType {
 		return s.eip2930Signer.Sender(tx)
 	}
-	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue().Bytes()), nil
+	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue()), nil
 }
 
 func (s londonSigner) Equal(s2 Signer) bool {
@@ -262,7 +262,7 @@ func (s londonSigner) Equal(s2 Signer) bool {
 	return ok && x.chainId.Cmp(s.chainId) == 0
 }
 
-func (s londonSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey *big.Int, err error) {
+func (s londonSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey []byte, err error) {
 	txdata, ok := tx.inner.(*DynamicFeeTx)
 	if !ok {
 		return s.eip2930Signer.SignatureAndPublicKeyValues(tx, sig, pk)
@@ -319,10 +319,10 @@ func (s eip2930Signer) Sender(tx *Transaction) (common.Address, error) {
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, fmt.Errorf("%w: have %d want %d", ErrInvalidChainId, tx.ChainId(), s.chainId)
 	}
-	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue().Bytes()), nil
+	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue()), nil
 }
 
-func (s eip2930Signer) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey *big.Int, err error) {
+func (s eip2930Signer) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey []byte, err error) {
 	switch txdata := tx.inner.(type) {
 	case *LegacyTx:
 		return s.EIP155Signer.SignatureAndPublicKeyValues(tx, sig, pk)
@@ -413,12 +413,12 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, fmt.Errorf("%w: have %d want %d", ErrInvalidChainId, tx.ChainId(), s.chainId)
 	}
-	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue().Bytes()), nil
+	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue()), nil
 }
 
 // SignatureAndPublicKeyValues returns signature values. This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
-func (s EIP155Signer) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey *big.Int, err error) {
+func (s EIP155Signer) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (Signature, PublicKey []byte, err error) {
 	if tx.Type() != LegacyTxType {
 		return nil, nil, ErrTxTypeNotSupported
 	}
@@ -456,7 +456,7 @@ func (s HomesteadSigner) Equal(s2 Signer) bool {
 
 // SignatureAndPublicKeyValues returns signature values. This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
-func (hs HomesteadSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (signature, publicKey *big.Int, err error) {
+func (hs HomesteadSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (signature, publicKey []byte, err error) {
 	return hs.FrontierSigner.SignatureAndPublicKeyValues(tx, sig, pk)
 }
 
@@ -464,7 +464,7 @@ func (hs HomesteadSigner) Sender(tx *Transaction) (common.Address, error) {
 	if tx.Type() != LegacyTxType {
 		return common.Address{}, ErrTxTypeNotSupported
 	}
-	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue().Bytes()), nil
+	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue()), nil
 }
 
 // FrontierSigner implements Signer interface using the
@@ -484,12 +484,12 @@ func (fs FrontierSigner) Sender(tx *Transaction) (common.Address, error) {
 	if tx.Type() != LegacyTxType {
 		return common.Address{}, ErrTxTypeNotSupported
 	}
-	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue().Bytes()), nil
+	return pqcrypto.DilithiumPKToAddress(tx.RawPublicKeyValue()), nil
 }
 
 // SignatureAndPublicKeyValues returns signature values. This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
-func (fs FrontierSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (signature, publicKey *big.Int, err error) {
+func (fs FrontierSigner) SignatureAndPublicKeyValues(tx *Transaction, sig, pk []byte) (signature, publicKey []byte, err error) {
 	if tx.Type() != LegacyTxType {
 		return nil, nil, ErrTxTypeNotSupported
 	}
@@ -511,19 +511,21 @@ func (fs FrontierSigner) Hash(tx *Transaction) common.Hash {
 	})
 }
 
-func decodeSignature(sig []byte) (signature *big.Int) {
+func decodeSignature(sig []byte) (signature []byte) {
 	if len(sig) != pqcrypto.DilithiumSignatureLength {
 		panic(fmt.Sprintf("wrong size for signature: got %d, want %d", len(sig), pqcrypto.DilithiumSignatureLength))
 	}
-	signature = new(big.Int).SetBytes(sig)
+	signature = make([]byte, pqcrypto.DilithiumSignatureLength)
+	copy(signature, sig)
 	return signature
 }
 
-func decodePublicKey(pk []byte) (publicKey *big.Int) {
+func decodePublicKey(pk []byte) (publicKey []byte) {
 	if len(pk) != pqcrypto.DilithiumPublicKeyLength {
 		panic(fmt.Sprintf("wrong size for dilithium publickey: got %d, want %d", len(pk), pqcrypto.DilithiumPublicKeyLength))
 	}
-	publicKey = new(big.Int).SetBytes(pk)
+	publicKey = make([]byte, pqcrypto.DilithiumPublicKeyLength)
+	copy(publicKey, pk)
 	return publicKey
 }
 

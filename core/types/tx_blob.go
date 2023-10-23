@@ -22,6 +22,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/pqcrypto"
 )
 
 // BlobTx represents an EIP-4844 transaction.
@@ -39,8 +40,8 @@ type BlobTx struct {
 	BlobHashes []common.Hash
 
 	// Signature values
-	PublicKey *uint256.Int `json:"publicKey" gencodec:"required"`
-	Signature *uint256.Int `json:"signature" gencodec:"required"`
+	PublicKey []byte `json:"publicKey" gencodec:"required"`
+	Signature []byte `json:"signature" gencodec:"required"`
 }
 
 // copy creates a deep copy of the transaction data and initializes all fields.
@@ -58,8 +59,8 @@ func (tx *BlobTx) copy() TxData {
 		GasTipCap:  new(uint256.Int),
 		GasFeeCap:  new(uint256.Int),
 		BlobFeeCap: new(uint256.Int),
-		PublicKey:  new(uint256.Int),
-		Signature:  new(uint256.Int),
+		PublicKey:  make([]byte, pqcrypto.DilithiumPublicKeyLength),
+		Signature:  make([]byte, pqcrypto.DilithiumSignatureLength),
 	}
 	copy(cpy.AccessList, tx.AccessList)
 	copy(cpy.BlobHashes, tx.BlobHashes)
@@ -80,10 +81,10 @@ func (tx *BlobTx) copy() TxData {
 		cpy.BlobFeeCap.Set(tx.BlobFeeCap)
 	}
 	if tx.PublicKey != nil {
-		cpy.PublicKey.Set(tx.PublicKey)
+		copy(cpy.PublicKey[:pqcrypto.DilithiumPublicKeyLength], tx.PublicKey)
 	}
 	if tx.Signature != nil {
-		cpy.Signature.Set(tx.Signature)
+		copy(cpy.PublicKey[:pqcrypto.DilithiumSignatureLength], tx.Signature)
 	}
 	return cpy
 }
@@ -115,16 +116,16 @@ func (tx *BlobTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	return tip.Add(tip, baseFee)
 }
 
-func (tx *BlobTx) rawSignatureValue() (signature *big.Int) {
-	return tx.Signature.ToBig()
+func (tx *BlobTx) rawSignatureValue() (signature []byte) {
+	return tx.Signature
 }
 
-func (tx *BlobTx) rawPublicKeyValue() (publicKey *big.Int) {
-	return tx.PublicKey.ToBig()
+func (tx *BlobTx) rawPublicKeyValue() (publicKey []byte) {
+	return tx.PublicKey
 }
 
-func (tx *BlobTx) setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int) {
+func (tx *BlobTx) setSignatureAndPublicKeyValues(chainID *big.Int, signature, publicKey []byte) {
 	tx.ChainID.SetFromBig(chainID)
-	tx.Signature.SetFromBig(signature)
-	tx.PublicKey.SetFromBig(publicKey)
+	copy(tx.Signature[:pqcrypto.DilithiumPublicKeyLength], publicKey)
+	copy(tx.Signature[:pqcrypto.DilithiumSignatureLength], signature)
 }

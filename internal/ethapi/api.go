@@ -40,13 +40,13 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zond/tracers/logger"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond/tracers/logger"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -1331,8 +1331,8 @@ type RPCTransaction struct {
 	Type             hexutil.Uint64    `json:"type"`
 	Accesses         *types.AccessList `json:"accessList,omitempty"`
 	ChainID          *hexutil.Big      `json:"chainId,omitempty"`
-	PublicKey        *hexutil.Big      `json:"publicKey"`
-	Signature        *hexutil.Big      `json:"signature"`
+	PublicKey        hexutil.Bytes     `json:"publicKey"`
+	Signature        hexutil.Bytes     `json:"signature"`
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -1352,8 +1352,8 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 		Nonce:     hexutil.Uint64(tx.Nonce()),
 		To:        tx.To(),
 		Value:     (*hexutil.Big)(tx.Value()),
-		PublicKey: (*hexutil.Big)(publicKey),
-		Signature: (*hexutil.Big)(signature),
+		PublicKey: hexutil.Bytes(publicKey),
+		Signature: hexutil.Bytes(signature),
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = &blockHash

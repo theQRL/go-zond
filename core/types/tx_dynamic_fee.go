@@ -17,6 +17,7 @@
 package types
 
 import (
+	"github.com/theQRL/go-zond/pqcrypto"
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
@@ -34,9 +35,9 @@ type DynamicFeeTx struct {
 	Data       []byte
 	AccessList AccessList
 
-	// Signature values
-	PublicKey *big.Int `json:"publicKey" gencodec:"required"`
-	Signature *big.Int `json:"signature" gencodec:"required"`
+	// Public Key & Signature values
+	PublicKey []byte
+	Signature []byte
 }
 
 // copy creates a deep copy of the transaction data and initializes all fields.
@@ -52,8 +53,8 @@ func (tx *DynamicFeeTx) copy() TxData {
 		ChainID:    new(big.Int),
 		GasTipCap:  new(big.Int),
 		GasFeeCap:  new(big.Int),
-		PublicKey:  new(big.Int),
-		Signature:  new(big.Int),
+		PublicKey:  make([]byte, pqcrypto.DilithiumPublicKeyLength),
+		Signature:  make([]byte, pqcrypto.DilithiumSignatureLength),
 	}
 	copy(cpy.AccessList, tx.AccessList)
 	if tx.Value != nil {
@@ -69,10 +70,10 @@ func (tx *DynamicFeeTx) copy() TxData {
 		cpy.GasFeeCap.Set(tx.GasFeeCap)
 	}
 	if tx.PublicKey != nil {
-		cpy.PublicKey.Set(tx.PublicKey)
+		copy(cpy.PublicKey[:pqcrypto.DilithiumPublicKeyLength], tx.PublicKey)
 	}
 	if tx.Signature != nil {
-		cpy.Signature.Set(tx.Signature)
+		copy(cpy.Signature[:pqcrypto.DilithiumSignatureLength], tx.Signature)
 	}
 	return cpy
 }
@@ -104,14 +105,14 @@ func (tx *DynamicFeeTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.I
 	return tip.Add(tip, baseFee)
 }
 
-func (tx *DynamicFeeTx) rawSignatureValue() (signature *big.Int) {
+func (tx *DynamicFeeTx) rawSignatureValue() (signature []byte) {
 	return tx.Signature
 }
 
-func (tx *DynamicFeeTx) rawPublicKeyValue() (publicKey *big.Int) {
+func (tx *DynamicFeeTx) rawPublicKeyValue() (publicKey []byte) {
 	return tx.PublicKey
 }
 
-func (tx *DynamicFeeTx) setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int) {
+func (tx *DynamicFeeTx) setSignatureAndPublicKeyValues(chainID *big.Int, signature, publicKey []byte) {
 	tx.ChainID, tx.PublicKey, tx.Signature = chainID, publicKey, signature
 }

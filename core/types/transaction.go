@@ -87,9 +87,9 @@ type TxData interface {
 	blobGasFeeCap() *big.Int
 	blobHashes() []common.Hash
 
-	rawSignatureValue() (signature *big.Int)
-	rawPublicKeyValue() (publicKey *big.Int)
-	setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int)
+	rawSignatureValue() (signature []byte)
+	rawPublicKeyValue() (publicKey []byte)
+	setSignatureAndPublicKeyValues(chainID *big.Int, signature, publicKey []byte)
 
 	// effectiveGasPrice computes the gas price paid by the transaction, given
 	// the inclusion block baseFee.
@@ -325,13 +325,13 @@ func (tx *Transaction) Cost() *big.Int {
 
 // RawSignatureValue returns the signature value of the transaction.
 // The return values should not be modified by the caller.
-func (tx *Transaction) RawSignatureValue() (signature *big.Int) {
+func (tx *Transaction) RawSignatureValue() (signature []byte) {
 	return tx.inner.rawSignatureValue()
 }
 
 // RawPublicKeyValue returns the public key value of the transaction.
 // The return values should not be modified by the caller.
-func (tx *Transaction) RawPublicKeyValue() (publicKey *big.Int) {
+func (tx *Transaction) RawPublicKeyValue() (publicKey []byte) {
 	return tx.inner.rawPublicKeyValue()
 }
 

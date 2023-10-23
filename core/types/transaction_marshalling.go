@@ -42,8 +42,8 @@ type txJSON struct {
 	Input                *hexutil.Bytes  `json:"input"`
 	AccessList           *AccessList     `json:"accessList,omitempty"`
 	BlobVersionedHashes  []common.Hash   `json:"blobVersionedHashes,omitempty"`
-	PublicKey            *hexutil.Big    `json:"publicKey"`
-	Signature            *hexutil.Big    `json:"signature"`
+	PublicKey            *hexutil.Bytes  `json:"publicKey"`
+	Signature            *hexutil.Bytes  `json:"signature"`
 
 	// Only used for encoding:
 	Hash common.Hash `json:"hash"`
@@ -65,8 +65,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.GasPrice = (*hexutil.Big)(itx.GasPrice)
 		enc.Value = (*hexutil.Big)(itx.Value)
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
-		enc.Signature = (*hexutil.Big)(itx.PublicKey)
-		enc.PublicKey = (*hexutil.Big)(itx.Signature)
+		enc.Signature = (*hexutil.Bytes)(&itx.PublicKey)
+		enc.PublicKey = (*hexutil.Bytes)(&itx.Signature)
 
 	case *AccessListTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID)
@@ -77,8 +77,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Value = (*hexutil.Big)(itx.Value)
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
-		enc.PublicKey = (*hexutil.Big)(itx.PublicKey)
-		enc.Signature = (*hexutil.Big)(itx.Signature)
+		enc.PublicKey = (*hexutil.Bytes)(&itx.PublicKey)
+		enc.Signature = (*hexutil.Bytes)(&itx.Signature)
 
 	case *DynamicFeeTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID)
@@ -90,8 +90,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Value = (*hexutil.Big)(itx.Value)
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
-		enc.PublicKey = (*hexutil.Big)(itx.PublicKey)
-		enc.Signature = (*hexutil.Big)(itx.Signature)
+		enc.PublicKey = (*hexutil.Bytes)(&itx.PublicKey)
+		enc.Signature = (*hexutil.Bytes)(&itx.Signature)
 
 	case *BlobTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID.ToBig())
@@ -105,8 +105,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.AccessList = &itx.AccessList
 		enc.BlobVersionedHashes = itx.BlobHashes
 		enc.To = tx.To()
-		enc.PublicKey = (*hexutil.Big)(itx.PublicKey.ToBig())
-		enc.Signature = (*hexutil.Big)(itx.Signature.ToBig())
+		enc.PublicKey = (*hexutil.Bytes)(&itx.PublicKey)
+		enc.Signature = (*hexutil.Bytes)(&itx.Signature)
 	}
 	return json.Marshal(&enc)
 }
@@ -150,11 +150,11 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.PublicKey == nil {
 			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.PublicKey = (*big.Int)(dec.PublicKey)
+		itx.PublicKey = *dec.PublicKey
 		if dec.Signature == nil {
 			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.Signature = (*big.Int)(dec.Signature)
+		itx.Signature = *dec.Signature
 		// TODO (cyyber): add sanity check later
 		//withSignature := itx.Signature.Sign() != 0
 		//if withSignature {
@@ -199,11 +199,11 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.PublicKey == nil {
 			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.PublicKey = (*big.Int)(dec.PublicKey)
+		itx.PublicKey = *dec.PublicKey
 		if dec.Signature == nil {
 			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.Signature = (*big.Int)(dec.Signature)
+		itx.Signature = *dec.Signature
 		// TODO (cyyber): add sanity check later
 		//withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
 		//if withSignature {
@@ -252,11 +252,11 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.PublicKey == nil {
 			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.PublicKey = (*big.Int)(dec.PublicKey)
+		itx.PublicKey = *dec.PublicKey
 		if dec.Signature == nil {
 			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.Signature = (*big.Int)(dec.Signature)
+		itx.Signature = *dec.Signature
 		// TODO (cyyber): add sanity check later
 		//withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
 		//if withSignature {
@@ -313,11 +313,11 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 		if dec.PublicKey == nil {
 			return errors.New("missing required field 'publicKey' in transaction")
 		}
-		itx.PublicKey = uint256.MustFromBig((*big.Int)(dec.PublicKey))
+		itx.PublicKey = *dec.PublicKey
 		if dec.Signature == nil {
 			return errors.New("missing required field 'signature' in transaction")
 		}
-		itx.Signature = uint256.MustFromBig((*big.Int)(dec.Signature))
+		itx.Signature = *dec.Signature
 		// TODO (cyyber): add sanity check later
 		//withSignature := itx.V.Sign() != 0 || itx.R.Sign() != 0 || itx.S.Sign() != 0
 		//if withSignature {

@@ -20,6 +20,7 @@ import (
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/pqcrypto"
 )
 
 // LegacyTx is the transaction data of the original Ethereum transactions.
@@ -30,8 +31,8 @@ type LegacyTx struct {
 	To        *common.Address `rlp:"nil"` // nil means contract creation
 	Value     *big.Int        // wei amount
 	Data      []byte          // contract invocation input data
-	PublicKey *big.Int        // public key of signer
-	Signature *big.Int        // signature values
+	PublicKey []byte          // public key of signer
+	Signature []byte          // signature values
 }
 
 // NewTransaction creates an unsigned legacy transaction.
@@ -69,8 +70,8 @@ func (tx *LegacyTx) copy() TxData {
 		// These are initialized below.
 		Value:     new(big.Int),
 		GasPrice:  new(big.Int),
-		PublicKey: new(big.Int),
-		Signature: new(big.Int),
+		PublicKey: make([]byte, pqcrypto.DilithiumPublicKeyLength),
+		Signature: make([]byte, pqcrypto.DilithiumSignatureLength),
 	}
 	if tx.Value != nil {
 		cpy.Value.Set(tx.Value)
@@ -79,10 +80,10 @@ func (tx *LegacyTx) copy() TxData {
 		cpy.GasPrice.Set(tx.GasPrice)
 	}
 	if tx.PublicKey != nil {
-		cpy.PublicKey.Set(tx.PublicKey)
+		copy(cpy.PublicKey[:pqcrypto.DilithiumPublicKeyLength], tx.PublicKey)
 	}
 	if tx.Signature != nil {
-		cpy.Signature.Set(tx.Signature)
+		copy(cpy.Signature[:pqcrypto.DilithiumSignatureLength], tx.Signature)
 	}
 	return cpy
 }
@@ -107,15 +108,15 @@ func (tx *LegacyTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	return dst.Set(tx.GasPrice)
 }
 
-func (tx *LegacyTx) rawSignatureValue() (signature *big.Int) {
+func (tx *LegacyTx) rawSignatureValue() (signature []byte) {
 	return tx.Signature
 }
 
-func (tx *LegacyTx) rawPublicKeyValue() (publicKey *big.Int) {
+func (tx *LegacyTx) rawPublicKeyValue() (publicKey []byte) {
 	return tx.PublicKey
 }
 
-func (tx *LegacyTx) setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int) {
+func (tx *LegacyTx) setSignatureAndPublicKeyValues(chainID *big.Int, signature, publicKey []byte) {
 	tx.PublicKey = publicKey
 	tx.Signature = signature
 }

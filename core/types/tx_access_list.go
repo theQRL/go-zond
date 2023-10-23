@@ -20,6 +20,7 @@ import (
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/pqcrypto"
 )
 
 //go:generate go run github.com/fjl/gencodec -type AccessTuple -out gen_access_tuple.go
@@ -52,7 +53,7 @@ type AccessListTx struct {
 	Value                *big.Int        // wei amount
 	Data                 []byte          // contract invocation input data
 	AccessList           AccessList      // EIP-2930 access list
-	PublicKey, Signature *big.Int        // signature values
+	PublicKey, Signature []byte          // public key & signature values
 }
 
 // copy creates a deep copy of the transaction data and initializes all fields.
@@ -67,8 +68,8 @@ func (tx *AccessListTx) copy() TxData {
 		Value:      new(big.Int),
 		ChainID:    new(big.Int),
 		GasPrice:   new(big.Int),
-		PublicKey:  new(big.Int),
-		Signature:  new(big.Int),
+		PublicKey:  make([]byte, pqcrypto.DilithiumPublicKeyLength),
+		Signature:  make([]byte, pqcrypto.DilithiumSignatureLength),
 	}
 	copy(cpy.AccessList, tx.AccessList)
 	if tx.Value != nil {
@@ -81,10 +82,10 @@ func (tx *AccessListTx) copy() TxData {
 		cpy.GasPrice.Set(tx.GasPrice)
 	}
 	if tx.PublicKey != nil {
-		cpy.PublicKey.Set(tx.PublicKey)
+		copy(cpy.PublicKey[:pqcrypto.DilithiumPublicKeyLength], tx.PublicKey)
 	}
 	if tx.Signature != nil {
-		cpy.Signature.Set(tx.Signature)
+		copy(cpy.Signature[:pqcrypto.DilithiumSignatureLength], tx.Signature)
 	}
 	return cpy
 }
@@ -109,14 +110,14 @@ func (tx *AccessListTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.I
 	return dst.Set(tx.GasPrice)
 }
 
-func (tx *AccessListTx) rawSignatureValue() (signature *big.Int) {
+func (tx *AccessListTx) rawSignatureValue() (signature []byte) {
 	return tx.Signature
 }
 
-func (tx *AccessListTx) rawPublicKeyValue() (publicKey *big.Int) {
+func (tx *AccessListTx) rawPublicKeyValue() (publicKey []byte) {
 	return tx.PublicKey
 }
 
-func (tx *AccessListTx) setSignatureAndPublicKeyValues(chainID, signature, publicKey *big.Int) {
+func (tx *AccessListTx) setSignatureAndPublicKeyValues(chainID *big.Int, signature, publicKey []byte) {
 	tx.ChainID, tx.Signature, tx.PublicKey = chainID, signature, publicKey
 }
