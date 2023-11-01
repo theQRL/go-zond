@@ -32,13 +32,13 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zond/gasprice"
-	"github.com/theQRL/go-zond/zond/tracers"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond/gasprice"
+	"github.com/theQRL/go-zond/zond/tracers"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 type LesApiBackend struct {
@@ -263,7 +263,7 @@ func (b *LesApiBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEven
 	return b.eth.blockchain.SubscribeRemovedLogsEvent(ch)
 }
 
-func (b *LesApiBackend) SyncProgress() ethereum.SyncProgress {
+func (b *LesApiBackend) SyncProgress() zond.SyncProgress {
 	return b.eth.Downloader().Progress()
 }
 

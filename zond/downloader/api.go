@@ -121,8 +121,8 @@ func (api *DownloaderAPI) Syncing(ctx context.Context) (*rpc.Subscription, error
 
 // SyncingResult provides information about the current synchronisation status for this node.
 type SyncingResult struct {
-	Syncing bool                  `json:"syncing"`
-	Status  ethereum.SyncProgress `json:"status"`
+	Syncing bool              `json:"syncing"`
+	Status  zond.SyncProgress `json:"status"`
 }
 
 // uninstallSyncSubscriptionRequest uninstalls a syncing subscription in the API event loop.
