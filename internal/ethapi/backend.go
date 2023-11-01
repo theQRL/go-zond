@@ -31,17 +31,17 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // Backend interface provides the common API services (that are provided by
 // both full and light clients) with access to necessary functions.
 type Backend interface {
-	// General Ethereum API
-	SyncProgress() ethereum.SyncProgress
+	// General Zond API
+	SyncProgress() zond.SyncProgress
 
 	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 	FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error)

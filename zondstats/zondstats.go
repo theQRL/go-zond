@@ -37,7 +37,6 @@ import (
 	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	ethproto "github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/les"
 	"github.com/theQRL/go-zond/log"
@@ -45,6 +44,7 @@ import (
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/rpc"
+	ethproto "github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 const (
@@ -69,7 +69,7 @@ type backend interface {
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error)
 	GetTd(ctx context.Context, hash common.Hash) *big.Int
 	Stats() (pending int, queued int)
-	SyncProgress() ethereum.SyncProgress
+	SyncProgress() zond.SyncProgress
 }
 
 // fullNodeBackend encompasses the functionality necessary for a full node
