@@ -31,10 +31,10 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state/snapshot"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // Reduce some of the parameters to make the tester faster.
@@ -799,9 +799,11 @@ func testCancel(t *testing.T, protocol uint, mode SyncMode) {
 }
 
 // Tests that synchronisation from multiple peers works as intended (multi thread sanity test).
-func TestMultiSynchronisation66Full(t *testing.T)  { testMultiSynchronisation(t, zond.ETH66, FullSync) }
-func TestMultiSynchronisation66Fast(t *testing.T)  { testMultiSynchronisation(t, zond.ETH66, FastSync) }
-func TestMultiSynchronisation66Light(t *testing.T) { testMultiSynchronisation(t, zond.ETH66, LightSync) }
+func TestMultiSynchronisation66Full(t *testing.T) { testMultiSynchronisation(t, zond.ETH66, FullSync) }
+func TestMultiSynchronisation66Fast(t *testing.T) { testMultiSynchronisation(t, zond.ETH66, FastSync) }
+func TestMultiSynchronisation66Light(t *testing.T) {
+	testMultiSynchronisation(t, zond.ETH66, LightSync)
+}
 
 func testMultiSynchronisation(t *testing.T, protocol uint, mode SyncMode) {
 	t.Parallel()
@@ -970,7 +972,9 @@ func testShiftedHeaderAttack(t *testing.T, protocol uint, mode SyncMode) {
 // Tests that upon detecting an invalid header, the recent ones are rolled back
 // for various failure scenarios. Afterwards a full sync is attempted to make
 // sure no state was corrupted.
-func TestInvalidHeaderRollback66Fast(t *testing.T) { testInvalidHeaderRollback(t, zond.ETH66, FastSync) }
+func TestInvalidHeaderRollback66Fast(t *testing.T) {
+	testInvalidHeaderRollback(t, zond.ETH66, FastSync)
+}
 
 func testInvalidHeaderRollback(t *testing.T, protocol uint, mode SyncMode) {
 	t.Parallel()
@@ -1155,7 +1159,7 @@ func testSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		starting <- struct{}{}
 		<-progress
 	}
-	checkProgress(t, tester.downloader, "pristine", ethereum.SyncProgress{})
+	checkProgress(t, tester.downloader, "pristine", zond.SyncProgress{})
 
 	// Synchronise half the blocks and check initial progress
 	tester.newPeer("peer-half", protocol, chain.shorten(chain.len()/2))
@@ -1169,7 +1173,7 @@ func testSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		}
 	}()
 	<-starting
-	checkProgress(t, tester.downloader, "initial", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "initial", zond.SyncProgress{
 		HighestBlock: uint64(chain.len()/2 - 1),
 	})
 	progress <- struct{}{}
@@ -1185,7 +1189,7 @@ func testSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		}
 	}()
 	<-starting
-	checkProgress(t, tester.downloader, "completing", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "completing", zond.SyncProgress{
 		StartingBlock: uint64(chain.len()/2 - 1),
 		CurrentBlock:  uint64(chain.len()/2 - 1),
 		HighestBlock:  uint64(chain.len() - 1),
@@ -1194,14 +1198,14 @@ func testSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 	// Check final progress after successful sync
 	progress <- struct{}{}
 	pending.Wait()
-	checkProgress(t, tester.downloader, "final", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "final", zond.SyncProgress{
 		StartingBlock: uint64(chain.len()/2 - 1),
 		CurrentBlock:  uint64(chain.len() - 1),
 		HighestBlock:  uint64(chain.len() - 1),
 	})
 }
 
-func checkProgress(t *testing.T, d *Downloader, stage string, want ethereum.SyncProgress) {
+func checkProgress(t *testing.T, d *Downloader, stage string, want zond.SyncProgress) {
 	// Mark this method as a helper to report errors at callsite, not in here
 	t.Helper()
 
@@ -1236,7 +1240,7 @@ func testForkedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		starting <- struct{}{}
 		<-progress
 	}
-	checkProgress(t, tester.downloader, "pristine", ethereum.SyncProgress{})
+	checkProgress(t, tester.downloader, "pristine", zond.SyncProgress{})
 
 	// Synchronise with one of the forks and check progress
 	tester.newPeer("fork A", protocol, chainA)
@@ -1250,7 +1254,7 @@ func testForkedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 	}()
 	<-starting
 
-	checkProgress(t, tester.downloader, "initial", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "initial", zond.SyncProgress{
 		HighestBlock: uint64(chainA.len() - 1),
 	})
 	progress <- struct{}{}
@@ -1269,7 +1273,7 @@ func testForkedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		}
 	}()
 	<-starting
-	checkProgress(t, tester.downloader, "forking", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "forking", zond.SyncProgress{
 		StartingBlock: uint64(testChainBase.len()) - 1,
 		CurrentBlock:  uint64(chainA.len() - 1),
 		HighestBlock:  uint64(chainB.len() - 1),
@@ -1278,7 +1282,7 @@ func testForkedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 	// Check final progress after successful sync
 	progress <- struct{}{}
 	pending.Wait()
-	checkProgress(t, tester.downloader, "final", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "final", zond.SyncProgress{
 		StartingBlock: uint64(testChainBase.len()) - 1,
 		CurrentBlock:  uint64(chainB.len() - 1),
 		HighestBlock:  uint64(chainB.len() - 1),
@@ -1307,7 +1311,7 @@ func testFailedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		starting <- struct{}{}
 		<-progress
 	}
-	checkProgress(t, tester.downloader, "pristine", ethereum.SyncProgress{})
+	checkProgress(t, tester.downloader, "pristine", zond.SyncProgress{})
 
 	// Attempt a full sync with a faulty peer
 	brokenChain := chain.shorten(chain.len())
@@ -1326,7 +1330,7 @@ func testFailedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		}
 	}()
 	<-starting
-	checkProgress(t, tester.downloader, "initial", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "initial", zond.SyncProgress{
 		HighestBlock: uint64(brokenChain.len() - 1),
 	})
 	progress <- struct{}{}
@@ -1349,7 +1353,7 @@ func testFailedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 	// Check final progress after successful sync
 	progress <- struct{}{}
 	pending.Wait()
-	checkProgress(t, tester.downloader, "final", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "final", zond.SyncProgress{
 		CurrentBlock: uint64(chain.len() - 1),
 		HighestBlock: uint64(chain.len() - 1),
 	})
@@ -1375,7 +1379,7 @@ func testFakedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		starting <- struct{}{}
 		<-progress
 	}
-	checkProgress(t, tester.downloader, "pristine", ethereum.SyncProgress{})
+	checkProgress(t, tester.downloader, "pristine", zond.SyncProgress{})
 
 	// Create and sync with an attacker that promises a higher chain than available.
 	brokenChain := chain.shorten(chain.len())
@@ -1394,7 +1398,7 @@ func testFakedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		}
 	}()
 	<-starting
-	checkProgress(t, tester.downloader, "initial", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "initial", zond.SyncProgress{
 		HighestBlock: uint64(brokenChain.len() - 1),
 	})
 	progress <- struct{}{}
@@ -1414,7 +1418,7 @@ func testFakedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 		}
 	}()
 	<-starting
-	checkProgress(t, tester.downloader, "completing", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "completing", zond.SyncProgress{
 		CurrentBlock: afterFailedSync.CurrentBlock,
 		HighestBlock: uint64(validChain.len() - 1),
 	})
@@ -1422,7 +1426,7 @@ func testFakedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 	// Check final progress after successful sync.
 	progress <- struct{}{}
 	pending.Wait()
-	checkProgress(t, tester.downloader, "final", ethereum.SyncProgress{
+	checkProgress(t, tester.downloader, "final", zond.SyncProgress{
 		CurrentBlock: uint64(validChain.len() - 1),
 		HighestBlock: uint64(validChain.len() - 1),
 	})
@@ -1587,8 +1591,12 @@ func TestRemoteHeaderRequestSpan(t *testing.T) {
 
 // Tests that peers below a pre-configured checkpoint block are prevented from
 // being fast-synced from, avoiding potential cheap eclipse attacks.
-func TestCheckpointEnforcement66Full(t *testing.T) { testCheckpointEnforcement(t, zond.ETH66, FullSync) }
-func TestCheckpointEnforcement66Fast(t *testing.T) { testCheckpointEnforcement(t, zond.ETH66, FastSync) }
+func TestCheckpointEnforcement66Full(t *testing.T) {
+	testCheckpointEnforcement(t, zond.ETH66, FullSync)
+}
+func TestCheckpointEnforcement66Fast(t *testing.T) {
+	testCheckpointEnforcement(t, zond.ETH66, FastSync)
+}
 func TestCheckpointEnforcement66Light(t *testing.T) {
 	testCheckpointEnforcement(t, zond.ETH66, LightSync)
 }
