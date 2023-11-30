@@ -39,9 +39,11 @@ import (
 	"github.com/theQRL/go-zond/zond"
 	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/zondclient"
+
 	// Force-load the tracer engines to trigger registration
 	_ "github.com/theQRL/go-zond/zond/tracers/js"
 	_ "github.com/theQRL/go-zond/zond/tracers/native"
+	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/urfave/cli/v2"
 )
@@ -280,6 +282,9 @@ func prepare(ctx *cli.Context) {
 
 	case ctx.IsSet(utils.HoleskyFlag.Name):
 		log.Info("Starting Geth on Holesky testnet...")
+
+	case ctx.IsSet(utils.BetaNetFlag.Name):
+		log.Info("Starting Geth on BetaNet testnet...")
 
 	case ctx.IsSet(utils.DeveloperFlag.Name):
 		log.Info("Starting Geth in ephemeral dev mode...")

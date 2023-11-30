@@ -17,6 +17,7 @@
 package zond
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"time"

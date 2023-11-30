@@ -39,8 +39,8 @@ import (
 	"github.com/theQRL/go-zond/trie/triedb/pathdb"
 	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/zond/fetcher"
-	"github.com/theQRL/go-zond/zond/protocols/eth"
 	"github.com/theQRL/go-zond/zond/protocols/snap"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/zonddb"
 )
 
@@ -333,7 +333,7 @@ func (h *handler) decHandlers() {
 
 // runEthPeer registers an eth peer into the joint eth/snap peerset, adds it to
 // various subsystems and starts handling messages.
-func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
+func (h *handler) runEthPeer(peer *zond.Peer, handler zond.Handler) error {
 	if !h.incHandlers() {
 		return p2p.DiscQuitting
 	}

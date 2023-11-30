@@ -586,44 +586,21 @@ func (t *Transaction) AccessList(ctx context.Context) *[]*AccessTuple {
 	}
 	return &ret
 }
-
-func (t *Transaction) R(ctx context.Context) hexutil.Big {
+func (t *Transaction) PublicKey(ctx context.Context) (hexutil.Bytes, error) {
 	tx, _ := t.resolve(ctx)
 	if tx == nil {
-		return hexutil.Big{}
+		return hexutil.Bytes{}, nil
 	}
-	_, r, _ := tx.RawSignatureValues()
-	return hexutil.Big(*r)
+	return tx.RawPublicKeyValue(), nil
 }
 
-func (t *Transaction) S(ctx context.Context) hexutil.Big {
-	tx, _ := t.resolve(ctx)
-	if tx == nil {
-		return hexutil.Big{}
+func (t *Transaction) Signature(ctx context.Context) (hexutil.Bytes, error) {
+	tx, err := t.resolve(ctx)
+	if err != nil || tx == nil {
+		return hexutil.Bytes{}, nil
 	}
-	_, _, s := tx.RawSignatureValues()
-	return hexutil.Big(*s)
+	return tx.RawSignatureValue(), nil
 }
-
-func (t *Transaction) V(ctx context.Context) hexutil.Big {
-	tx, _ := t.resolve(ctx)
-	if tx == nil {
-		return hexutil.Big{}
-	}
-	v, _, _ := tx.RawSignatureValues()
-	return hexutil.Big(*v)
-}
-
-func (t *Transaction) YParity(ctx context.Context) (*hexutil.Uint64, error) {
-	tx, _ := t.resolve(ctx)
-	if tx == nil || tx.Type() == types.LegacyTxType {
-		return nil, nil
-	}
-	v, _, _ := tx.RawSignatureValues()
-	ret := hexutil.Uint64(v.Int64())
-	return &ret, nil
-}
-
 func (t *Transaction) Raw(ctx context.Context) (hexutil.Bytes, error) {
 	tx, _ := t.resolve(ctx)
 	if tx == nil {

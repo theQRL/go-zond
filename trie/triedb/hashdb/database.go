@@ -31,9 +31,8 @@ import (
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/trie/trienode"
-	"github.com/theQRL/go-zond/zonddb"
-<<<<<<< HEAD
 	"github.com/theQRL/go-zond/trie/triestate"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 var (
@@ -90,7 +89,7 @@ var Defaults = &Config{
 // servers even while the trie is executing expensive garbage collection.
 type Database struct {
 	diskdb   zonddb.Database // Persistent storage for matured trie nodes
-	resolver ChildResolver  // The handler to resolve children of nodes
+	resolver ChildResolver   // The handler to resolve children of nodes
 
 	cleans  *fastcache.Cache            // GC friendly memory cache of clean node RLPs
 	dirties map[common.Hash]*cachedNode // Data and references relationships of dirty trie nodes

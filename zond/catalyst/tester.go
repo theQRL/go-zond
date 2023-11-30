@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/node"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
 )
 
 // FullSyncTester is an auxiliary service that allows Geth to perform full sync
@@ -40,7 +40,7 @@ type FullSyncTester struct {
 
 // RegisterFullSyncTester registers the full-sync tester service into the node
 // stack for launching and stopping the service controlled by node.
-func RegisterFullSyncTester(stack *node.Node, backend *eth.Ethereum, block *types.Block) (*FullSyncTester, error) {
+func RegisterFullSyncTester(stack *node.Node, backend *zond.Ethereum, block *types.Block) (*FullSyncTester, error) {
 	cl := &FullSyncTester{
 		api:    newConsensusAPIWithoutHeartbeat(backend),
 		block:  block,

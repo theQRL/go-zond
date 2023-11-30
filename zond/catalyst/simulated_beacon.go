@@ -26,10 +26,10 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond"
 )
 
 const devEpochLength = 32
@@ -69,7 +69,7 @@ func (w *withdrawalQueue) gatherPending(maxCount int) []*types.Withdrawal {
 
 type SimulatedBeacon struct {
 	shutdownCh  chan struct{}
-	eth         *eth.Ethereum
+	eth         *zond.Ethereum
 	period      uint64
 	withdrawals withdrawalQueue
 
@@ -81,7 +81,7 @@ type SimulatedBeacon struct {
 	lastBlockTime      uint64
 }
 
-func NewSimulatedBeacon(period uint64, eth *eth.Ethereum) (*SimulatedBeacon, error) {
+func NewSimulatedBeacon(period uint64, eth *zond.Ethereum) (*SimulatedBeacon, error) {
 	chainConfig := eth.APIBackend.ChainConfig()
 	if !chainConfig.IsDevMode {
 		return nil, errors.New("incompatible pre-existing chain configuration")

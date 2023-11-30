@@ -35,8 +35,8 @@ import (
 func TestGenerateWithdrawalChain(t *testing.T) {
 	var (
 		keyHex  = "9c647b8b7c4e7c3490668fb6c11473619db80c93704c70893d3813af4090c39c"
-		d, _    = pqcrypto.HexToDilithium(keyHex)
-		address = d.GetAddress() // 658bdf435d810c91414ec09147daa6db62406379
+		key, _  = pqcrypto.HexToDilithium(keyHex)
+		address = key.GetAddress() // 658bdf435d810c91414ec09147daa6db62406379
 		aa      = common.Address{0xaa}
 		bb      = common.Address{0xbb}
 		funds   = big.NewInt(0).Mul(big.NewInt(1337), big.NewInt(params.Ether))
@@ -139,14 +139,14 @@ func TestGenerateWithdrawalChain(t *testing.T) {
 
 func ExampleGenerateChain() {
 	var (
-		d1, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		d2, _ = pqcrypto.HexToDilithium("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-		d3, _ = pqcrypto.HexToDilithium("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
-		addr1 = d1.GetAddress()
-		addr2 = d2.GetAddress()
-		addr3 = d3.GetAddress()
-		db    = rawdb.NewMemoryDatabase()
-		genDb = rawdb.NewMemoryDatabase()
+		key1, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _ = pqcrypto.HexToDilithium("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		key3, _ = pqcrypto.HexToDilithium("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
+		addr1   = key1.GetAddress()
+		addr2   = key2.GetAddress()
+		addr3   = key3.GetAddress()
+		db      = rawdb.NewMemoryDatabase()
+		genDb   = rawdb.NewMemoryDatabase()
 	)
 
 	// Ensure that key1 has some funds in the genesis block.

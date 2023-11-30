@@ -23,15 +23,15 @@ import (
 )
 
 var (
-	minDataGasPrice            = big.NewInt(params.BlobTxMinDataGasprice)
-	dataGaspriceUpdateFraction = big.NewInt(params.BlobTxDataGaspriceUpdateFraction)
+	minDataGasPrice            = big.NewInt(params.BlobTxMinBlobGasprice)
+	dataGaspriceUpdateFraction = big.NewInt(params.BlobTxBlobGaspriceUpdateFraction)
 )
 
 // CalcBlobFee calculates the blobfee from the header's excess data gas field.
 func CalcBlobFee(excessDataGas *big.Int) *big.Int {
 	// If this block does not yet have EIP-4844 enabled, return the starting fee
 	if excessDataGas == nil {
-		return big.NewInt(params.BlobTxMinDataGasprice)
+		return big.NewInt(params.BlobTxMinBlobGasprice)
 	}
 	return fakeExponential(minDataGasPrice, excessDataGas, dataGaspriceUpdateFraction)
 }

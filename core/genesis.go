@@ -202,6 +202,8 @@ func CommitGenesisState(db zonddb.Database, triedb *trie.Database, blockhash com
 			genesis = DefaultGoerliGenesisBlock()
 		case params.SepoliaGenesisHash:
 			genesis = DefaultSepoliaGenesisBlock()
+		case params.BetaNetGenesisHash:
+			genesis = DefaultBetaNetGenesisBlock()
 		}
 		if genesis != nil {
 			alloc = genesis.Alloc
@@ -595,6 +597,19 @@ func DefaultHoleskyGenesisBlock() *Genesis {
 	}
 }
 
+// DefaultBetaNetGenesisBlock returns the BetaNet network genesis block.
+func DefaultBetaNetGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.BetaNetChainConfig,
+		Nonce:      0,
+		ExtraData:  []byte("BetaNet, Zond, XMSS, Dilithium!!"),
+		GasLimit:   0x1c9c380,
+		Difficulty: big.NewInt(0x1),
+		Timestamp:  1698414943,
+		Alloc:      decodePreallocWithContractCode(betaNetAllocData),
+	}
+}
+
 // DeveloperGenesisBlock returns the 'geth --dev' genesis block.
 func DeveloperGenesisBlock(gasLimit uint64, faucet common.Address) *Genesis {
 	// Override the default period to the user requested one
@@ -650,6 +665,21 @@ func decodePrealloc(data string) GenesisAlloc {
 			}
 		}
 		ga[common.BigToAddress(account.Addr)] = acc
+	}
+	return ga
+}
+
+func decodePreallocWithContractCode(data string) GenesisAlloc {
+	var p []struct {
+		Addr, Balance *big.Int
+		Code          []byte
+	}
+	if err := rlp.NewStream(strings.NewReader(data), 0).Decode(&p); err != nil {
+		panic(err)
+	}
+	ga := make(GenesisAlloc, len(p))
+	for _, account := range p {
+		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance, Code: account.Code}
 	}
 	return ga
 }

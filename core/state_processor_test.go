@@ -65,12 +65,12 @@ func TestStateProcessorErrors(t *testing.T) {
 			ShanghaiTime:                  new(uint64),
 			CancunTime:                    new(uint64),
 		}
-		signer  = types.LatestSigner(config)
+		signer = types.LatestSigner(config)
 		d1, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		d2, _  = pqcrypto.HexToDilithium("0202020202020202020202020202020202020202020202020202002020202020")
 	)
 	var makeTx = func(d *dilithium.Dilithium, nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
-		tx, _ := types.SignTx(types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, data), signer, key)
+		tx, _ := types.SignTx(types.NewTransaction(nonce, to, amount, gasLimit, gasPrice, data), signer, d)
 		return tx
 	}
 	var mkDynamicTx = func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {
@@ -81,7 +81,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			Gas:       gasLimit,
 			To:        &to,
 			Value:     big.NewInt(0),
-		}), signer, key1)
+		}), signer, d1)
 		return tx
 	}
 	var mkDynamicCreationTx = func(nonce uint64, gasLimit uint64, gasTipCap, gasFeeCap *big.Int, data []byte) *types.Transaction {
@@ -92,7 +92,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			Gas:       gasLimit,
 			Value:     big.NewInt(0),
 			Data:      data,
-		}), signer, key1)
+		}), signer, d1)
 		return tx
 	}
 	var mkBlobTx = func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int, hashes []common.Hash) *types.Transaction {
@@ -104,7 +104,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			To:         to,
 			BlobHashes: hashes,
 			Value:      new(uint256.Int),
-		}), signer, key1)
+		}), signer, d1)
 		if err != nil {
 			t.Fatal(err)
 		}
