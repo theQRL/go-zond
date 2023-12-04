@@ -17,8 +17,6 @@
 package state
 
 import (
-	"bytes"
-
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/zonddb"
@@ -45,7 +43,7 @@ func NewStateSync(root common.Hash, database zonddb.KeyValueReader, onLeaf func(
 			}
 		}
 		var obj types.StateAccount
-		if err := rlp.Decode(bytes.NewReader(leaf), &obj); err != nil {
+		if err := rlp.DecodeBytes(leaf, &obj); err != nil {
 			return err
 		}
 		syncer.AddSubTrie(obj.Root, path, parent, parentPath, onSlot)

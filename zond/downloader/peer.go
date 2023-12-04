@@ -26,10 +26,10 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p/msgrate"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 const (

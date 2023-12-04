@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/internal/utesting"
 	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 // Suite represents a structure used to test a node's conformance

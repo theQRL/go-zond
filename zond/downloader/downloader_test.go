@@ -708,16 +708,12 @@ func testCancel(t *testing.T, protocol uint, mode SyncMode) {
 }
 
 // Tests that synchronisation from multiple peers works as intended (multi thread sanity test).
-func TestMultiSynchronisation66Full(t *testing.T) { testMultiSynchronisation(t, zond.ETH66, FullSync) }
-func TestMultiSynchronisation66Snap(t *testing.T) { testMultiSynchronisation(t, zond.ETH66, SnapSync) }
-func TestMultiSynchronisation66Light(t *testing.T) {
-	testMultiSynchronisation(t, zond.ETH66, LightSync)
-}
-func TestMultiSynchronisation67Full(t *testing.T) { testMultiSynchronisation(t, zond.ETH67, FullSync) }
-func TestMultiSynchronisation67Snap(t *testing.T) { testMultiSynchronisation(t, zond.ETH67, SnapSync) }
-func TestMultiSynchronisation67Light(t *testing.T) {
-	testMultiSynchronisation(t, zond.ETH67, LightSync)
-}
+func TestMultiSynchronisation66Full(t *testing.T)  { testMultiSynchronisation(t, zond.ETH66, FullSync) }
+func TestMultiSynchronisation66Snap(t *testing.T)  { testMultiSynchronisation(t, zond.ETH66, SnapSync) }
+func TestMultiSynchronisation66Light(t *testing.T) { testMultiSynchronisation(t, zond.ETH66, LightSync) }
+func TestMultiSynchronisation67Full(t *testing.T)  { testMultiSynchronisation(t, zond.ETH67, FullSync) }
+func TestMultiSynchronisation67Snap(t *testing.T)  { testMultiSynchronisation(t, zond.ETH67, SnapSync) }
+func TestMultiSynchronisation67Light(t *testing.T) { testMultiSynchronisation(t, zond.ETH67, LightSync) }
 
 func testMultiSynchronisation(t *testing.T, protocol uint, mode SyncMode) {
 	tester := newTester(t)
@@ -885,12 +881,8 @@ func testShiftedHeaderAttack(t *testing.T, protocol uint, mode SyncMode) {
 // Tests that upon detecting an invalid header, the recent ones are rolled back
 // for various failure scenarios. Afterwards a full sync is attempted to make
 // sure no state was corrupted.
-func TestInvalidHeaderRollback66Snap(t *testing.T) {
-	testInvalidHeaderRollback(t, zond.ETH66, SnapSync)
-}
-func TestInvalidHeaderRollback67Snap(t *testing.T) {
-	testInvalidHeaderRollback(t, zond.ETH67, SnapSync)
-}
+func TestInvalidHeaderRollback66Snap(t *testing.T) { testInvalidHeaderRollback(t, zond.ETH66, SnapSync) }
+func TestInvalidHeaderRollback67Snap(t *testing.T) { testInvalidHeaderRollback(t, zond.ETH67, SnapSync) }
 
 func testInvalidHeaderRollback(t *testing.T, protocol uint, mode SyncMode) {
 	tester := newTester(t)

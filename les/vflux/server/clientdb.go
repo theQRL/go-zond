@@ -56,8 +56,8 @@ var (
 )
 
 type nodeDB struct {
-	db    zonddb.KeyValueStore
-	cache *lru.Cache[string, utils.ExpiredValue]
+	db            zonddb.KeyValueStore
+	cache         *lru.Cache[string, utils.ExpiredValue]
 	auxbuf        []byte                                              // 37-byte auxiliary buffer for key encoding
 	verbuf        [2]byte                                             // 2-byte auxiliary buffer for db version
 	evictCallBack func(mclock.AbsTime, bool, utils.ExpiredValue) bool // Callback to determine whether the balance can be evicted.

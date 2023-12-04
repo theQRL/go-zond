@@ -17,10 +17,12 @@
 package types
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/rlp"
 )
 
 //go:generate go run github.com/fjl/gencodec -type AccessTuple -out gen_access_tuple.go
@@ -102,9 +104,6 @@ func (tx *AccessListTx) gasFeeCap() *big.Int       { return tx.GasPrice }
 func (tx *AccessListTx) value() *big.Int           { return tx.Value }
 func (tx *AccessListTx) nonce() uint64             { return tx.Nonce }
 func (tx *AccessListTx) to() *common.Address       { return tx.To }
-func (tx *AccessListTx) blobGas() uint64           { return 0 }
-func (tx *AccessListTx) blobGasFeeCap() *big.Int   { return nil }
-func (tx *AccessListTx) blobHashes() []common.Hash { return nil }
 
 func (tx *AccessListTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	return dst.Set(tx.GasPrice)
@@ -120,4 +119,12 @@ func (tx *AccessListTx) rawPublicKeyValue() (publicKey []byte) {
 
 func (tx *AccessListTx) setSignatureAndPublicKeyValues(chainID *big.Int, signature, publicKey []byte) {
 	tx.ChainID, tx.Signature, tx.PublicKey = chainID, signature, publicKey
+}
+
+func (tx *AccessListTx) encode(b *bytes.Buffer) error {
+	return rlp.Encode(b, tx)
+}
+
+func (tx *AccessListTx) decode(input []byte) error {
+	return rlp.DecodeBytes(input, tx)
 }

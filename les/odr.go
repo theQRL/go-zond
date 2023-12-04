@@ -25,14 +25,14 @@ import (
 	"github.com/theQRL/go-zond/common/mclock"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/txpool"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/light"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // LesOdr implements light.OdrBackend
 type LesOdr struct {
-	db            zonddb.Database
-	indexerConfig *light.IndexerConfig
+	db                                         zonddb.Database
+	indexerConfig                              *light.IndexerConfig
 	chtIndexer, bloomTrieIndexer, bloomIndexer *core.ChainIndexer
 	peers                                      *serverPeerSet
 	retriever                                  *retrieveManager

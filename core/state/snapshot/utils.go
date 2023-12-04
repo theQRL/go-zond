@@ -23,9 +23,9 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/zonddb"
+	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
-	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // CheckDanglingStorage iterates the snap storage data, and verifies that all
@@ -98,8 +98,8 @@ func CheckJournalAccount(db zonddb.KeyValueStore, hash common.Hash) error {
 	baseRoot := rawdb.ReadSnapshotRoot(db)
 	fmt.Printf("Disklayer: Root: %x\n", baseRoot)
 	if data := rawdb.ReadAccountSnapshot(db, hash); data != nil {
-		account := new(Account)
-		if err := rlp.DecodeBytes(data, account); err != nil {
+		account, err := types.FullAccount(data)
+		if err != nil {
 			panic(err)
 		}
 		fmt.Printf("\taccount.nonce: %d\n", account.Nonce)
@@ -129,8 +129,8 @@ func CheckJournalAccount(db zonddb.KeyValueStore, hash common.Hash) error {
 		}
 		fmt.Printf("Disklayer+%d: Root: %x, parent %x\n", depth, root, pRoot)
 		if data, ok := accounts[hash]; ok {
-			account := new(Account)
-			if err := rlp.DecodeBytes(data, account); err != nil {
+			account, err := types.FullAccount(data)
+			if err != nil {
 				panic(err)
 			}
 			fmt.Printf("\taccount.nonce: %d\n", account.Nonce)

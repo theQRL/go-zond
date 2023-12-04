@@ -25,8 +25,8 @@ import (
 // the basic iterator interface by adding Hold which can hold the element
 // locally where the iterator is currently located and serve it up next time.
 type holdableIterator struct {
-	it  zonddb.Iterator
-	key []byte
+	it     zonddb.Iterator
+	key    []byte
 	val    []byte
 	atHeld bool
 }

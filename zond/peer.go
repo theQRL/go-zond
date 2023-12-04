@@ -17,8 +17,8 @@
 package zond
 
 import (
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/zond/protocols/snap"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 // ethPeerInfo represents a short summary of the `zond` sub-protocol metadata known

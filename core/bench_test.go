@@ -27,9 +27,9 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {

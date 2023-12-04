@@ -130,9 +130,9 @@ func (nv *NodeValueTracker) RtStats() ResponseTimeStats {
 type ValueTracker struct {
 	clock        mclock.Clock
 	lock         sync.Mutex
-	quit      chan chan struct{}
-	db        zonddb.KeyValueStore
-	connected map[enode.ID]*NodeValueTracker
+	quit         chan chan struct{}
+	db           zonddb.KeyValueStore
+	connected    map[enode.ID]*NodeValueTracker
 	reqTypeCount int
 
 	refBasket      referenceBasket

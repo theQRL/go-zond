@@ -22,9 +22,9 @@ import (
 	"sync"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
-	"github.com/theQRL/go-zond/zond/protocols/snap"
 	"github.com/theQRL/go-zond/p2p"
+	"github.com/theQRL/go-zond/zond/protocols/snap"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 var (

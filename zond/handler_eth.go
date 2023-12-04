@@ -24,8 +24,8 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 // ethHandler implements the zond.Backend interface to handle the various network
@@ -40,7 +40,7 @@ func (h *ethHandler) RunPeer(peer *zond.Peer, hand zond.Handler) error {
 	return (*handler)(h).runEthPeer(peer, hand)
 }
 
-// PeerInfo retrieves all known `zond` information about a peer.
+// PeerInfo retrieves all known `eth` information about a peer.
 func (h *ethHandler) PeerInfo(id enode.ID) interface{} {
 	if p := h.peers.peer(id.String()); p != nil {
 		return p.info()
@@ -79,7 +79,7 @@ func (h *ethHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
 		return h.txFetcher.Enqueue(peer.ID(), *packet, true)
 
 	default:
-		return fmt.Errorf("unexpected zond packet type: %T", packet)
+		return fmt.Errorf("unexpected eth packet type: %T", packet)
 	}
 }
 
@@ -134,7 +134,7 @@ func (h *ethHandler) handleBlockBroadcast(peer *zond.Peer, block *types.Block, t
 	// Update the peer's total difficulty if better than the previous
 	if _, td := peer.Head(); trueTD.Cmp(td) > 0 {
 		peer.SetHead(trueHead, trueTD)
-		h.chainSync.handlePeerEvent(peer)
+		h.chainSync.handlePeerEvent()
 	}
 	return nil
 }

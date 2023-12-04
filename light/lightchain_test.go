@@ -27,8 +27,9 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // So we can deterministically seed different blockchains
@@ -55,7 +56,7 @@ func makeHeaderChain(parent *types.Header, n int, db zonddb.Database, seed int) 
 func newCanonical(n int) (zonddb.Database, *LightChain, error) {
 	db := rawdb.NewMemoryDatabase()
 	gspec := core.Genesis{Config: params.TestChainConfig}
-	genesis := gspec.MustCommit(db)
+	genesis := gspec.MustCommit(db, trie.NewDatabase(db, trie.HashDefaults))
 	blockchain, _ := NewLightChain(&dummyOdr{db: db, indexerConfig: TestClientIndexerConfig}, gspec.Config, ethash.NewFaker())
 
 	// Create and inject the requested chain
@@ -75,7 +76,7 @@ func newTestLightChain() *LightChain {
 		Difficulty: big.NewInt(1),
 		Config:     params.TestChainConfig,
 	}
-	gspec.MustCommit(db)
+	gspec.MustCommit(db, trie.NewDatabase(db, trie.HashDefaults))
 	lc, err := NewLightChain(&dummyOdr{db: db}, gspec.Config, ethash.NewFullFaker())
 	if err != nil {
 		panic(err)

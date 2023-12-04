@@ -30,13 +30,14 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/txpool"
+	"github.com/theQRL/go-zond/core/txpool/legacypool"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 var (
@@ -53,8 +54,8 @@ func u64(val uint64) *uint64 { return &val }
 // purpose is to allow testing the request/reply workflows and wire serialization
 // in the `zond` protocol without actually doing any data processing.
 type testBackend struct {
-	db    zonddb.Database
-	chain *core.BlockChain
+	db     zonddb.Database
+	chain  *core.BlockChain
 	txpool *txpool.TxPool
 }
 
@@ -111,21 +112,24 @@ func newTestBackendWithGenerator(blocks int, shanghai bool, generator func(int, 
 		panic(err)
 	}
 	for _, block := range bs {
-		chain.StateCache().TrieDB().Commit(block.Root(), false)
+		chain.TrieDB().Commit(block.Root(), false)
 	}
-	txconfig := txpool.DefaultConfig
+	txconfig := legacypool.DefaultConfig
 	txconfig.Journal = "" // Don't litter the disk with test journals
+
+	pool := legacypool.New(txconfig, chain)
+	txpool, _ := txpool.New(new(big.Int).SetUint64(txconfig.PriceLimit), chain, []txpool.SubPool{pool})
 
 	return &testBackend{
 		db:     db,
 		chain:  chain,
-		txpool: txpool.NewTxPool(txconfig, params.TestChainConfig, chain),
+		txpool: txpool,
 	}
 }
 
 // close tears down the transaction pool and chain behind the mock backend.
 func (b *testBackend) close() {
-	b.txpool.Stop()
+	b.txpool.Close()
 	b.chain.Stop()
 }
 

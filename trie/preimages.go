@@ -26,9 +26,9 @@ import (
 
 // preimageStore is the store for caching preimages of node key.
 type preimageStore struct {
-	lock      sync.RWMutex
-	disk      zonddb.KeyValueStore
-	preimages map[common.Hash][]byte // Preimages of nodes from the secure trie
+	lock          sync.RWMutex
+	disk          zonddb.KeyValueStore
+	preimages     map[common.Hash][]byte // Preimages of nodes from the secure trie
 	preimagesSize common.StorageSize     // Storage size of the preimages cache
 }
 
