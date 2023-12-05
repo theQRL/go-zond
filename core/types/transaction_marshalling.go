@@ -37,13 +37,14 @@ type txJSON struct {
 	GasPrice             *hexutil.Big    `json:"gasPrice"`
 	MaxPriorityFeePerGas *hexutil.Big    `json:"maxPriorityFeePerGas"`
 	MaxFeePerGas         *hexutil.Big    `json:"maxFeePerGas"`
-	MaxFeePerDataGas     *hexutil.Big    `json:"maxFeePerDataGas,omitempty"`
+	MaxFeePerBlobGas     *hexutil.Big    `json:"maxFeePerBlobGas,omitempty"`
 	Value                *hexutil.Big    `json:"value"`
 	Input                *hexutil.Bytes  `json:"input"`
 	AccessList           *AccessList     `json:"accessList,omitempty"`
 	BlobVersionedHashes  []common.Hash   `json:"blobVersionedHashes,omitempty"`
 	PublicKey            *hexutil.Bytes  `json:"publicKey"`
 	Signature            *hexutil.Bytes  `json:"signature"`
+	YParity              *hexutil.Uint64 `json:"yParity,omitempty"`
 
 	// Only used for encoding:
 	Hash common.Hash `json:"hash"`
@@ -67,6 +68,9 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.Signature = (*hexutil.Bytes)(&itx.PublicKey)
 		enc.PublicKey = (*hexutil.Bytes)(&itx.Signature)
+		if tx.Protected() {
+			enc.ChainID = (*hexutil.Big)(tx.ChainId())
+		}
 
 	case *AccessListTx:
 		enc.ChainID = (*hexutil.Big)(itx.ChainID)
@@ -99,7 +103,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
 		enc.MaxFeePerGas = (*hexutil.Big)(itx.GasFeeCap.ToBig())
 		enc.MaxPriorityFeePerGas = (*hexutil.Big)(itx.GasTipCap.ToBig())
-		enc.MaxFeePerDataGas = (*hexutil.Big)(itx.BlobFeeCap.ToBig())
+		enc.MaxFeePerBlobGas = (*hexutil.Big)(itx.BlobFeeCap.ToBig())
 		enc.Value = (*hexutil.Big)(itx.Value.ToBig())
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.AccessList = &itx.AccessList
@@ -114,7 +118,8 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	var dec txJSON
-	if err := json.Unmarshal(input, &dec); err != nil {
+	err := json.Unmarshal(input, &dec)
+	if err != nil {
 		return err
 	}
 
@@ -276,9 +281,10 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'nonce' in transaction")
 		}
 		itx.Nonce = uint64(*dec.Nonce)
-		if dec.To != nil {
-			itx.To = dec.To
+		if dec.To == nil {
+			return errors.New("missing required field 'to' in transaction")
 		}
+		itx.To = *dec.To
 		if dec.Gas == nil {
 			return errors.New("missing required field 'gas' for txdata")
 		}
@@ -291,10 +297,10 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'maxFeePerGas' for txdata")
 		}
 		itx.GasFeeCap = uint256.MustFromBig((*big.Int)(dec.MaxFeePerGas))
-		if dec.MaxFeePerDataGas == nil {
-			return errors.New("missing required field 'maxFeePerDataGas' for txdata")
+		if dec.MaxFeePerBlobGas == nil {
+			return errors.New("missing required field 'maxFeePerBlobGas' for txdata")
 		}
-		itx.BlobFeeCap = uint256.MustFromBig((*big.Int)(dec.MaxFeePerDataGas))
+		itx.BlobFeeCap = uint256.MustFromBig((*big.Int)(dec.MaxFeePerBlobGas))
 		if dec.Value == nil {
 			return errors.New("missing required field 'value' in transaction")
 		}

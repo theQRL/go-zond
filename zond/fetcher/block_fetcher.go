@@ -26,10 +26,10 @@ import (
 	"github.com/theQRL/go-zond/common/prque"
 	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 const (

@@ -52,18 +52,6 @@ func parseURL(url string) (URL, error) {
 	}, nil
 }
 
-// ParseURL TODO: (cyyber) temporarily added to give access to this function to pqaccounts
-func ParseURL(url string) (URL, error) {
-	parts := strings.Split(url, "://")
-	if len(parts) != 2 || parts[0] == "" {
-		return URL{}, errors.New("protocol scheme missing")
-	}
-	return URL{
-		Scheme: parts[0],
-		Path:   parts[1],
-	}, nil
-}
-
 // String implements the stringer interface.
 func (u URL) String() string {
 	if u.Scheme != "" {

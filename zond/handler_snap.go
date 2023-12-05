@@ -18,8 +18,8 @@ package zond
 
 import (
 	"github.com/theQRL/go-zond/core"
-	"github.com/theQRL/go-zond/zond/protocols/snap"
 	"github.com/theQRL/go-zond/p2p/enode"
+	"github.com/theQRL/go-zond/zond/protocols/snap"
 )
 
 // snapHandler implements the snap.Backend interface to handle the various network

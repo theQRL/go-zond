@@ -29,11 +29,11 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zond/protocols/snap"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zond/protocols/snap"
 )
 
 var trieRoot common.Hash
@@ -71,7 +71,6 @@ func getChain() *core.BlockChain {
 		TrieDirtyLimit:      0,
 		TrieTimeLimit:       5 * time.Minute,
 		TrieCleanNoPrefetch: true,
-		TrieCleanRejournal:  0,
 		SnapshotLimit:       100,
 		SnapshotWait:        true,
 	}

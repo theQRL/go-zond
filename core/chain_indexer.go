@@ -19,6 +19,7 @@ package core
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -27,9 +28,9 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // ChainIndexerBackend defines the methods needed to process chain segments in
@@ -403,7 +404,7 @@ func (c *ChainIndexer) processSection(section uint64, lastHead common.Hash) (com
 		if header == nil {
 			return common.Hash{}, fmt.Errorf("block #%d [%x..] not found", number, hash[:4])
 		} else if header.ParentHash != lastHead {
-			return common.Hash{}, fmt.Errorf("chain reorged during section processing")
+			return common.Hash{}, errors.New("chain reorged during section processing")
 		}
 		if err := c.backend.Process(c.ctx, header); err != nil {
 			return common.Hash{}, err

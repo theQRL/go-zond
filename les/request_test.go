@@ -16,6 +16,10 @@
 
 package les
 
+// Note: these tests are disabled now because they cannot work with the old sync
+// mechanism removed but will be useful again once the PoS ultralight mode is implemented
+
+/*
 import (
 	"context"
 	"testing"
@@ -23,6 +27,7 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
+	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/light"
@@ -77,7 +82,7 @@ func tfCodeAccess(db zonddb.Database, bhash common.Hash, num uint64) light.OdrRe
 		return nil
 	}
 	sti := light.StateTrieID(header)
-	ci := light.StorageTrieID(sti, crypto.Keccak256Hash(testContractAddr[:]), common.Hash{})
+	ci := light.StorageTrieID(sti, testContractAddr, types.EmptyRootHash)
 	return &light.CodeRequest{Id: ci, Hash: crypto.Keccak256Hash(testContractCodeDeployed)}
 }
 
@@ -121,3 +126,4 @@ func testAccess(t *testing.T, protocol int, fn accessTestFn) {
 	}
 	test(5)
 }
+*/

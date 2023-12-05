@@ -17,12 +17,10 @@
 package rawdb
 
 import (
-	"bytes"
-
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // ReadSkeletonSyncStatus retrieves the serialized sync status saved at shutdown.
@@ -53,7 +51,7 @@ func ReadSkeletonHeader(db zonddb.KeyValueReader, number uint64) *types.Header {
 		return nil
 	}
 	header := new(types.Header)
-	if err := rlp.Decode(bytes.NewReader(data), header); err != nil {
+	if err := rlp.DecodeBytes(data, header); err != nil {
 		log.Error("Invalid skeleton header RLP", "number", number, "err", err)
 		return nil
 	}

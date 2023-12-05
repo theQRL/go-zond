@@ -28,8 +28,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 var freezerTestTableDef = map[string]bool{"test": true}
@@ -192,7 +192,7 @@ func TestFreezerConcurrentModifyTruncate(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		// First reset and write 100 items.
-		if err := f.TruncateHead(0); err != nil {
+		if _, err := f.TruncateHead(0); err != nil {
 			t.Fatal("truncate failed:", err)
 		}
 		_, err := f.ModifyAncients(func(op zonddb.AncientWriteOp) error {
@@ -227,7 +227,7 @@ func TestFreezerConcurrentModifyTruncate(t *testing.T) {
 			wg.Done()
 		}()
 		go func() {
-			truncateErr = f.TruncateHead(10)
+			_, truncateErr = f.TruncateHead(10)
 			wg.Done()
 		}()
 		go func() {

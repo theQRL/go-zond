@@ -26,10 +26,10 @@ import (
 
 	"github.com/graph-gophers/graphql-go"
 	gqlErrors "github.com/graph-gophers/graphql-go/errors"
-	"github.com/theQRL/go-zond/zond/filters"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond/filters"
 )
 
 type handler struct {
@@ -88,7 +88,9 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := h.Schema.Exec(ctx, params.Query, params.OperationName, params.Variables)
-	timer.Stop()
+	if timer != nil {
+		timer.Stop()
+	}
 	responded.Do(func() {
 		responseJSON, err := json.Marshal(response)
 		if err != nil {

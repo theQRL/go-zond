@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/rlpx"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 type Message interface {

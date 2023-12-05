@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/node"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
 )
 
 // FullSyncTester is an auxiliary service that allows Geth to perform full sync
@@ -42,7 +42,7 @@ type FullSyncTester struct {
 // stack for launching and stopping the service controlled by node.
 func RegisterFullSyncTester(stack *node.Node, backend *zond.Ethereum, block *types.Block) (*FullSyncTester, error) {
 	cl := &FullSyncTester{
-		api:    NewConsensusAPI(backend),
+		api:    newConsensusAPIWithoutHeartbeat(backend),
 		block:  block,
 		closed: make(chan struct{}),
 	}
@@ -75,7 +75,7 @@ func (tester *FullSyncTester) Start() error {
 				}
 				// Trigger beacon sync with the provided block header as
 				// trusted chain head.
-				err := tester.api.eth.Downloader().BeaconSync(downloader.FullSync, tester.block.Header(), nil)
+				err := tester.api.eth.Downloader().BeaconSync(downloader.FullSync, tester.block.Header(), tester.block.Header())
 				if err != nil {
 					log.Info("Failed to beacon sync", "err", err)
 				}

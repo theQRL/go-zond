@@ -87,12 +87,12 @@ func (gs *generatorStats) Log(msg string, root common.Hash, marker []byte) {
 
 // generatorContext carries a few global values to be shared by all generation functions.
 type generatorContext struct {
-	stats   *generatorStats      // Generation statistic collection
+	stats   *generatorStats     // Generation statistic collection
 	db      zonddb.KeyValueStore // Key-value store containing the snapshot data
-	account *holdableIterator    // Iterator of account snapshot data
-	storage *holdableIterator    // Iterator of storage snapshot data
+	account *holdableIterator   // Iterator of account snapshot data
+	storage *holdableIterator   // Iterator of storage snapshot data
 	batch   zonddb.Batch         // Database batch for writing batch data atomically
-	logged  time.Time            // The timestamp when last generation progress was displayed
+	logged  time.Time           // The timestamp when last generation progress was displayed
 }
 
 // newGeneratorContext initializes the context for generation.

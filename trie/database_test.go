@@ -18,18 +18,23 @@ package trie
 
 import (
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/trie/triedb/hashdb"
+	"github.com/theQRL/go-zond/trie/triedb/pathdb"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // newTestDatabase initializes the trie database with specified scheme.
 func newTestDatabase(diskdb zonddb.Database, scheme string) *Database {
-	db := prepare(diskdb, nil)
+	config := &Config{Preimages: false}
 	if scheme == rawdb.HashScheme {
-		db.backend = hashdb.New(diskdb, db.cleans, mptResolver{})
+		config.HashDB = &hashdb.Config{
+			CleanCacheSize: 0,
+		} // disable clean cache
+	} else {
+		config.PathDB = &pathdb.Config{
+			CleanCacheSize: 0,
+			DirtyCacheSize: 0,
+		} // disable clean/dirty cache
 	}
-	//} else {
-	//	db.backend = snap.New(diskdb, db.cleans, nil)
-	//}
-	return db
+	return NewDatabase(diskdb, config)
 }

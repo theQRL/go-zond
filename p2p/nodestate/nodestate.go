@@ -64,9 +64,9 @@ type (
 	NodeStateMachine struct {
 		started, closed     bool
 		lock                sync.Mutex
-		clock     mclock.Clock
-		db        zonddb.KeyValueStore
-		dbNodeKey []byte
+		clock               mclock.Clock
+		db                  zonddb.KeyValueStore
+		dbNodeKey           []byte
 		nodes               map[enode.ID]*nodeInfo
 		offlineCallbackList []offlineCallback
 		opFlag              bool       // an operation has started

@@ -26,6 +26,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/zond/tracers"
 )
 
@@ -183,6 +184,7 @@ func (t *callTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, sco
 		data, err := tracers.GetMemoryCopyPadded(scope.Memory, int64(mStart.Uint64()), int64(mSize.Uint64()))
 		if err != nil {
 			// mSize was unrealistically large
+			log.Warn("failed to copy CREATE2 input", "err", err, "tracer", "callTracer", "offset", mStart, "size", mSize)
 			return
 		}
 

@@ -17,10 +17,12 @@
 package types
 
 import (
-	"github.com/theQRL/go-zond/pqcrypto"
+	"bytes"
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/rlp"
 )
 
 // DynamicFeeTx represents an EIP-1559 transaction.
@@ -79,20 +81,17 @@ func (tx *DynamicFeeTx) copy() TxData {
 }
 
 // accessors for innerTx.
-func (tx *DynamicFeeTx) txType() byte              { return DynamicFeeTxType }
-func (tx *DynamicFeeTx) chainID() *big.Int         { return tx.ChainID }
-func (tx *DynamicFeeTx) accessList() AccessList    { return tx.AccessList }
-func (tx *DynamicFeeTx) data() []byte              { return tx.Data }
-func (tx *DynamicFeeTx) gas() uint64               { return tx.Gas }
-func (tx *DynamicFeeTx) gasFeeCap() *big.Int       { return tx.GasFeeCap }
-func (tx *DynamicFeeTx) gasTipCap() *big.Int       { return tx.GasTipCap }
-func (tx *DynamicFeeTx) gasPrice() *big.Int        { return tx.GasFeeCap }
-func (tx *DynamicFeeTx) value() *big.Int           { return tx.Value }
-func (tx *DynamicFeeTx) nonce() uint64             { return tx.Nonce }
-func (tx *DynamicFeeTx) to() *common.Address       { return tx.To }
-func (tx *DynamicFeeTx) blobGas() uint64           { return 0 }
-func (tx *DynamicFeeTx) blobGasFeeCap() *big.Int   { return nil }
-func (tx *DynamicFeeTx) blobHashes() []common.Hash { return nil }
+func (tx *DynamicFeeTx) txType() byte           { return DynamicFeeTxType }
+func (tx *DynamicFeeTx) chainID() *big.Int      { return tx.ChainID }
+func (tx *DynamicFeeTx) accessList() AccessList { return tx.AccessList }
+func (tx *DynamicFeeTx) data() []byte           { return tx.Data }
+func (tx *DynamicFeeTx) gas() uint64            { return tx.Gas }
+func (tx *DynamicFeeTx) gasFeeCap() *big.Int    { return tx.GasFeeCap }
+func (tx *DynamicFeeTx) gasTipCap() *big.Int    { return tx.GasTipCap }
+func (tx *DynamicFeeTx) gasPrice() *big.Int     { return tx.GasFeeCap }
+func (tx *DynamicFeeTx) value() *big.Int        { return tx.Value }
+func (tx *DynamicFeeTx) nonce() uint64          { return tx.Nonce }
+func (tx *DynamicFeeTx) to() *common.Address    { return tx.To }
 
 func (tx *DynamicFeeTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	if baseFee == nil {
@@ -115,4 +114,12 @@ func (tx *DynamicFeeTx) rawPublicKeyValue() (publicKey []byte) {
 
 func (tx *DynamicFeeTx) setSignatureAndPublicKeyValues(chainID *big.Int, signature, publicKey []byte) {
 	tx.ChainID, tx.PublicKey, tx.Signature = chainID, publicKey, signature
+}
+
+func (tx *DynamicFeeTx) encode(b *bytes.Buffer) error {
+	return rlp.Encode(b, tx)
+}
+
+func (tx *DynamicFeeTx) decode(input []byte) error {
+	return rlp.DecodeBytes(input, tx)
 }

@@ -28,8 +28,8 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 // hookedBackfiller is a tester backfiller with all interface methods mocked and

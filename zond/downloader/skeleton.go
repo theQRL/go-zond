@@ -27,9 +27,9 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/zonddb"
-	"github.com/theQRL/go-zond/log"
 )
 
 // scratchHeaders is the number of headers to store in a scratch space to allow
@@ -367,13 +367,31 @@ func (s *skeleton) sync(head *types.Header) (*types.Header, error) {
 		s.filler.resume()
 	}
 	defer func() {
-		if filled := s.filler.suspend(); filled != nil {
-			// If something was filled, try to delete stale sync helpers. If
-			// unsuccessful, warn the user, but not much else we can do (it's
-			// a programming error, just let users report an issue and don't
-			// choke in the meantime).
-			if err := s.cleanStales(filled); err != nil {
-				log.Error("Failed to clean stale beacon headers", "err", err)
+		// The filler needs to be suspended, but since it can block for a while
+		// when there are many blocks queued up for full-sync importing, run it
+		// on a separate goroutine and consume head messages that need instant
+		// replies.
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			if filled := s.filler.suspend(); filled != nil {
+				// If something was filled, try to delete stale sync helpers. If
+				// unsuccessful, warn the user, but not much else we can do (it's
+				// a programming error, just let users report an issue and don't
+				// choke in the meantime).
+				if err := s.cleanStales(filled); err != nil {
+					log.Error("Failed to clean stale beacon headers", "err", err)
+				}
+			}
+		}()
+		// Wait for the suspend to finish, consuming head events in the meantime
+		// and dropping them on the floor.
+		for {
+			select {
+			case <-done:
+				return
+			case event := <-s.headEvents:
+				event.errc <- errors.New("beacon syncer reorging")
 			}
 		}
 	}()
@@ -630,7 +648,7 @@ func (s *skeleton) processNewHead(head *types.Header, final *types.Header, force
 	}
 	if parent := rawdb.ReadSkeletonHeader(s.db, number-1); parent.Hash() != head.ParentHash {
 		if force {
-			log.Warn("Beacon chain forked", "ancestor", parent.Number, "hash", parent.Hash(), "want", head.ParentHash)
+			log.Warn("Beacon chain forked", "ancestor", number-1, "hash", parent.Hash(), "want", head.ParentHash)
 		}
 		return true
 	}

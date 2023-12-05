@@ -54,8 +54,8 @@ func (g *GoToolchain) Go(command string, args ...string) *exec.Cmd {
 		tool.Env = append(tool.Env, "CC="+os.Getenv("CC"))
 	}
 	// CKZG by default is not portable, append the necessary build flags to make
-	// it not rely on modern CPU instructions and enable linking against
-	tool.Env = append(tool.Env, "CGO_CFLAGS=-D__BLST_PORTABLE__")
+	// it not rely on modern CPU instructions and enable linking against.
+	tool.Env = append(tool.Env, "CGO_CFLAGS=-O2 -g -D__BLST_PORTABLE__")
 
 	return tool
 }
@@ -116,7 +116,7 @@ func DownloadGo(csdb *ChecksumDB, version string) string {
 		log.Fatal(err)
 	}
 
-	godir := filepath.Join(ucache, fmt.Sprintf("gzond-go-%s-%s-%s", version, os, arch))
+	godir := filepath.Join(ucache, fmt.Sprintf("geth-go-%s-%s-%s", version, os, arch))
 	if err := ExtractArchive(dst, godir); err != nil {
 		log.Fatal(err)
 	}
