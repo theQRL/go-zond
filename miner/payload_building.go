@@ -208,7 +208,8 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		// Setup the timer for terminating the process if SECONDS_PER_SLOT (12s in
 		// the Mainnet configuration) have passed since the point in time identified
 		// by the timestamp parameter.
-		endTimer := time.NewTimer(time.Second * 12)
+		// TODO: (cyyber) Move hard coded 12 to config
+		endTimer := time.NewTimer(time.Second * 60)
 
 		fullParams := &generateParams{
 			timestamp:   args.Timestamp,
