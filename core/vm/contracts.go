@@ -17,15 +17,17 @@
 package vm
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
 
+	pkgerrors "github.com/pkg/errors"
+	ssz "github.com/prysmaticlabs/fastssz"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/crypto/blake2b"
 	"github.com/theQRL/go-zond/crypto/bls12381"
 	"github.com/theQRL/go-zond/crypto/bn256"
@@ -45,7 +47,8 @@ type PrecompiledContract interface {
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
 // contracts used in the Frontier and Homestead releases.
 var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
+	// common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{1}): &depositroot{},
 	common.BytesToAddress([]byte{2}): &sha256hash{},
 	common.BytesToAddress([]byte{3}): &ripemd160hash{},
 	common.BytesToAddress([]byte{4}): &dataCopy{},
@@ -54,7 +57,8 @@ var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
 // PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
 // contracts used in the Byzantium release.
 var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
+	// common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{1}): &depositroot{},
 	common.BytesToAddress([]byte{2}): &sha256hash{},
 	common.BytesToAddress([]byte{3}): &ripemd160hash{},
 	common.BytesToAddress([]byte{4}): &dataCopy{},
@@ -67,7 +71,8 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 // PrecompiledContractsIstanbul contains the default set of pre-compiled Ethereum
 // contracts used in the Istanbul release.
 var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
+	// common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{1}): &depositroot{},
 	common.BytesToAddress([]byte{2}): &sha256hash{},
 	common.BytesToAddress([]byte{3}): &ripemd160hash{},
 	common.BytesToAddress([]byte{4}): &dataCopy{},
@@ -81,7 +86,8 @@ var PrecompiledContractsIstanbul = map[common.Address]PrecompiledContract{
 // PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
 // contracts used in the Berlin release.
 var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}): &ecrecover{},
+	// common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{1}): &depositroot{},
 	common.BytesToAddress([]byte{2}): &sha256hash{},
 	common.BytesToAddress([]byte{3}): &ripemd160hash{},
 	common.BytesToAddress([]byte{4}): &dataCopy{},
@@ -95,7 +101,7 @@ var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
 // PrecompiledContractsCancun contains the default set of pre-compiled Ethereum
 // contracts used in the Cancun release.
 var PrecompiledContractsCancun = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}):    &ecrecover{},
+	common.BytesToAddress([]byte{1}):    &depositroot{},
 	common.BytesToAddress([]byte{2}):    &sha256hash{},
 	common.BytesToAddress([]byte{3}):    &ripemd160hash{},
 	common.BytesToAddress([]byte{4}):    &dataCopy{},
@@ -178,6 +184,7 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uin
 	return output, suppliedGas, err
 }
 
+/*
 // ECRECOVER implemented as a native contract.
 type ecrecover struct{}
 
@@ -214,6 +221,94 @@ func (c *ecrecover) Run(input []byte) ([]byte, error) {
 
 	// the first byte of pubkey is bitcoin heritage
 	return common.LeftPadBytes(crypto.Keccak256(pubKey[1:])[12:], 32), nil
+}
+*/
+
+type depositroot struct{}
+
+// TODO(rgeraldes24): review
+func (c *depositroot) RequiredGas(input []byte) uint64 {
+	return params.DepositrootGas
+}
+
+// TODO(rgeraldes24): assess why extra bytes are being added
+func (c *depositroot) Run(input []byte) ([]byte, error) {
+	// const depositRootInputLength = 7251
+	const depositRootInputLength = 7508
+	input = common.RightPadBytes(input, depositRootInputLength)
+	// "input" is (pubkey, withdrawal_credentials, amount, signature)
+	// pubkey is 2592 bytes
+	// withdrawal_credentials is 32 bytes
+	// signature is 4595 bytes
+
+	var amount uint64
+
+	buf := bytes.NewReader(input[2848:2880])
+	err := binary.Read(buf, binary.LittleEndian, &amount)
+	if err != nil {
+		return nil, err
+	}
+
+	data := &depositdata{
+		PublicKey:             input[160:2752],  // 2592 bytes
+		WithdrawalCredentials: input[2784:2816], // 32 bytes
+		Amount:                amount,           // 32 bytes
+		Signature:             input[2912:7507], // 4595 bytes
+	}
+	h, err := data.HashTreeRoot()
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "could not hash tree root deposit data item")
+	}
+
+	return h[:], nil
+}
+
+type depositdata struct {
+	PublicKey             []byte
+	WithdrawalCredentials []byte
+	Amount                uint64
+	Signature             []byte
+}
+
+// HashTreeRoot ssz hashes the Deposit_Data object
+func (d *depositdata) HashTreeRoot() ([32]byte, error) {
+	return ssz.HashWithDefaultHasher(d)
+}
+
+// HashTreeRootWith ssz hashes the Deposit_Data object with a hasher
+func (d *depositdata) HashTreeRootWith(hh *ssz.Hasher) (err error) {
+	indx := hh.Index()
+
+	// Field (0) 'Pubkey'
+	if size := len(d.PublicKey); size != 2592 {
+		err = ssz.ErrBytesLengthFn("--.Pubkey", size, 2592)
+		return
+	}
+	hh.PutBytes(d.PublicKey)
+
+	// Field (1) 'WithdrawalCredentials'
+	if size := len(d.WithdrawalCredentials); size != 32 {
+		err = ssz.ErrBytesLengthFn("--.WithdrawalCredentials", size, 32)
+		return
+	}
+	hh.PutBytes(d.WithdrawalCredentials)
+
+	// Field (2) 'Amount'
+	hh.PutUint64(d.Amount)
+
+	// Field (3) 'Signature'
+	if size := len(d.Signature); size != 4595 {
+		err = ssz.ErrBytesLengthFn("--.Signature", size, 4595)
+		return
+	}
+	hh.PutBytes(d.Signature)
+
+	if ssz.EnableVectorizedHTR {
+		hh.MerkleizeVectorizedHTR(indx)
+	} else {
+		hh.Merkleize(indx)
+	}
+	return
 }
 
 // SHA256 implemented as a native contract.
