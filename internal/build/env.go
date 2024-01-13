@@ -58,7 +58,7 @@ func (env Environment) String() string {
 // if not running on CI.
 func Env() Environment {
 	switch {
-	case os.Getenv("CI") == "true" && os.Getenv("TRAVIS") == "true":
+	case os.Getenv("CI") == "true" && os.Getenv("CIRCLECI") == "true":
 		commit := os.Getenv("CIRCLE_SHA1")
 		return Environment{
 			CI:            true,
