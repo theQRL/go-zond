@@ -59,6 +59,22 @@ func (env Environment) String() string {
 func Env() Environment {
 	switch {
 	case os.Getenv("CI") == "true" && os.Getenv("TRAVIS") == "true":
+		commit := os.Getenv("CIRCLE_SHA1")
+		return Environment{
+			CI:            true,
+			Name:          "circleci",
+			Repo:          os.Getenv("CIRCLE_PROJECT_REPONAME"),
+			Commit:        os.Getenv("CIRCLE_SHA1"),
+			Date:          getDate(commit),
+			Branch:        os.Getenv("CIRCLE_BRANCH"),
+			Tag:           os.Getenv("CIRCLE_TAG"),
+			Buildnum:      os.Getenv("CIRCLE_BUILD_NUM"),
+			IsPullRequest: os.Getenv("CIRCLE_PR_NUMBER") != "",
+			IsCronJob:     false,
+			// IsCronJob:     os.Getenv("APPVEYOR_SCHEDULED_BUILD") == "True",
+		}
+
+	case os.Getenv("CI") == "true" && os.Getenv("TRAVIS") == "true":
 		commit := os.Getenv("TRAVIS_PULL_REQUEST_SHA")
 		if commit == "" {
 			commit = os.Getenv("TRAVIS_COMMIT")

@@ -1,0 +1,110 @@
+version: 2.1
+
+filters-release: &filters-release
+  tags:
+    only: 
+      - /^v.*/
+  branches:
+    ignore: /.*/
+
+restore_go_cache: &restore_go_cache
+  restore_cache:
+    keys:
+      - go-mod-{{ checksum "go.sum" }}-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+      - go-mod-{{ checksum "go.sum" }}-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}
+      - go-mod-{{ checksum "go.sum" }}-{{ .Environment.CIRCLE_JOB }}-main
+
+save_go_cache: &save_go_cache
+  save_cache:
+    when: always
+    key: go-mod-{{ checksum "go.sum" }}-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+    paths:
+      - /home/circleci/go/pkg/mod
+
+commands:
+  prepare-publish-artifacts:
+    parameters:
+      platform:
+        type: string
+        default: "linux-amd64"
+      file_extension:
+        type: string
+        default: ""
+    steps:
+      - run: |
+          cp build/bin/gzond<< parameters.file_extension >> /tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>
+
+          (cd /tmp && sha256sum gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >> > gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sha256)
+
+          # TODO(rgeraldes24): replace default key with the new one
+          echo -n "$GPG_KEY" | base64 --decode | gpg --import
+          gpg -o /tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sig --default-key 48DEF40BDA94D5F361B0CBCEEC1ACE3DEFECD129 --sign --detach-sig /tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>
+
+          ./hack/upload-github-release-asset.sh github_api_token=$GITHUB_TOKEN owner=theQRL repo=go-zond tag=${CIRCLE_TAG} filename=/tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>
+          ./hack/upload-github-release-asset.sh github_api_token=$GITHUB_TOKEN owner=theQRL repo=go-zond tag=${CIRCLE_TAG} filename=/tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sha256
+          ./hack/upload-github-release-asset.sh github_api_token=$GITHUB_TOKEN owner=theQRL repo=go-zond tag=${CIRCLE_TAG} filename=/tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sig
+
+jobs:
+  publish-linux-amd64-gzond-binary:
+    docker:
+      - image: cimg/go:1.20
+    steps:
+      - checkout
+      - *restore_go_cache
+      - run:
+          command: go mod download
+      - *save_go_cache
+      - run: |
+          go run build/ci.go install ./cmd/gzond
+      - prepare-publish-artifacts:
+          platform: "linux-amd64"
+  
+  publish-linux-arm64-gzond-binary:
+    machine:
+      image: ubuntu-2204:2023.07.1
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - *restore_go_cache
+      - run:
+          command: go mod download
+      - *save_go_cache
+      - run: |
+          go run build/ci.go install ./cmd/gzond
+      - prepare-publish-artifacts:
+          platform: "linux-arm64"
+
+  publish-darwin-amd64-gzond-binary:
+    macos:
+      xcode: 14.2.0
+    resource_class: macos.x86.medium.gen2
+    steps:
+      - checkout
+      - run: |
+          # NOTE(rgeraldes24): currently relying on brew auto update to have the latest
+          # versions of golang available but this can be achieved in other ways!
+          brew install go@1.20
+          echo 'export PATH="/usr/local/opt/go@1.20/bin:$PATH"' >> /Users/distiller/.bash_profile
+          brew install coreutils
+          brew install gpg
+      - *restore_go_cache
+      - run:
+          command: go mod download
+      - *save_go_cache
+      - run: 
+          command: go run build/ci.go install ./cmd/gzond
+      - prepare-publish-artifacts:
+          platform: "darwin-amd64"
+          
+workflows:
+  release:
+    jobs:
+      - publish-linux-amd64-gzond-binary:
+          filters:
+            <<: *filters-release
+      - publish-linux-arm64-gzond-binary:
+          filters:
+            <<: *filters-release
+      - publish-darwin-amd64-gzond-binary:
+          filters:
+            <<: *filters-release
