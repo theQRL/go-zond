@@ -36,9 +36,8 @@ commands:
 
           (cd /tmp && sha256sum gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >> > gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sha256)
 
-          # TODO(rgeraldes24): replace default key with the new one
           echo -n "$GPG_KEY" | base64 --decode | gpg --import
-          gpg -o /tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sig --default-key 48DEF40BDA94D5F361B0CBCEEC1ACE3DEFECD129 --sign --detach-sig /tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>
+          gpg -o /tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sig --default-key 28580FDD99DA68203ABCE4205EA04E4E0FAC11B6 --sign --detach-sig /tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>
 
           ./hack/upload-github-release-asset.sh github_api_token=$GITHUB_TOKEN owner=theQRL repo=go-zond tag=${CIRCLE_TAG} filename=/tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>
           ./hack/upload-github-release-asset.sh github_api_token=$GITHUB_TOKEN owner=theQRL repo=go-zond tag=${CIRCLE_TAG} filename=/tmp/gzond-${CIRCLE_TAG}-<< parameters.platform >><< parameters.file_extension >>.sha256
