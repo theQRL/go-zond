@@ -2,18 +2,16 @@
 
 Official Golang execution layer implementation of the Zond protocol.
 
-[![API Reference](
-https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/68747470733a2f2f676f646f632e6f72672f6769746875622e636f6d2f676f6c616e672f6764646f3f7374617475732e737667
-)](https://pkg.go.dev/github.com/theQRL/go-zond?tab=doc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/theQRL/go-zond)](https://goreportcard.com/report/github.com/theQRL/go-zond)
 [![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://www.theqrl.org/discord)
 
+**This code is a test release. All code, features and documentation are subject to change and may represent a work in progress**
 
 ## Building the source
 
-For prerequisites and detailed build instructions please read the [Installation Instructions](https://geth.ethereum.org/docs/getting-started/installing-geth).
+For prerequisites and detailed build instructions please read the [Installation Instructions](https://test-zond.theqrl.org/install).
 
-Building `gzond` requires both a Go (version 1.19 or later) and a C compiler. You can install
+Building `gzond` requires both a Go (version 1.21 or later) and a C compiler. You can install
 them using your favourite package manager. Once the dependencies are installed, run
 
 ```shell
@@ -33,18 +31,18 @@ directory.
 
 |  Command    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | :--------:  | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`gzond`** | Our main Zond CLI client. It is the entry point into the Zond network (main-, test- or private net), capable of running as a full node (default), archive node (retaining all historical state) or a light node (retrieving data live). It can be used by other processes as a gateway into the Zond network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. `gzond --help` and the [CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) for command line options. |
+| **`gzond`** | Our main Zond CLI client. It is the entry point into the Zond network (main-, test- or private net), capable of running as a full node (default), archive node (retaining all historical state) or a light node (retrieving data live). It can be used by other processes as a gateway into the Zond network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. Based on geth, `gzond --help` and the [geth CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) show command line options. |
 |   `clef`    | Stand-alone signing tool, which can be used as a backend signer for `gzond`.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |  `devp2p`   | Utilities to interact with nodes on the networking layer, without running a full blockchain.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-|  `abigen`   | Source code generator to convert Zond contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Zond contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see our [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
+|  `abigen`   | Source code generator to convert Zond contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Zond contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see the [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
 | `bootnode`  | Stripped down version of our Zond client implementation that only takes part in the network node discovery protocol, but does not run any of the higher level application protocols. It can be used as a lightweight bootstrap node to aid in finding peers in private networks.                                                                                                                                                                                                                                               |
 |   `evm`     | Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                               |
 | `rlpdump`   | Developer utility tool to convert binary RLP ([Recursive Length Prefix](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp)) dumps (data encoding used by the Zond protocol both network as well as consensus wise) to user-friendlier hierarchical representation (e.g. `rlpdump --hex CE0183FFFFFFC4C304050583616263`).                                                                                                                                                                                |
 
 ## Running `gzond`
 
-Going through all the possible command line flags is out of scope here (please consult our
-[CLI Wiki page](https://geth.ethereum.org/docs/fundamentals/command-line-options)),
+Going through all the possible command line flags is out of scope here (please see our nascent [Zond Testnet docs](https://test-zond.theqrl.org) or consult the
+[geth CLI Wiki page](https://geth.ethereum.org/docs/fundamentals/command-line-options)),
 but we've enumerated a few common parameter combos to get you up to speed quickly
 on how you can run your own `gzond` instance.
 
@@ -86,40 +84,6 @@ This command will:
    This tool is optional and if you leave it out you can always attach it to an already running
    `gzond` instance with `gzond attach`.
 
-### A Full node on the Görli test network
-
-Transitioning towards developers, if you'd like to play around with creating Zond
-contracts, you almost certainly would like to do that without any real money involved until
-you get the hang of the entire system. In other words, instead of attaching to the main
-network, you want to join the **test** network with your node, which is fully equivalent to
-the main network, but with play-Ether only.
-
-```shell
-$ gzond --goerli console
-```
-
-The `console` subcommand has the same meaning as above and is equally
-useful on the testnet too.
-
-Specifying the `--goerli` flag, however, will reconfigure your `gzond` instance a bit:
-
- * Instead of connecting to the main Zond network, the client will connect to the Görli
-   test network, which uses different P2P bootnodes, different network IDs and genesis
-   states.
- * Instead of using the default data directory (`~/.zond` on Linux for example), `gzond`
-   will nest itself one level deeper into a `goerli` subfolder (`~/.zond/goerli` on
-   Linux). Note, on OSX and Linux this also means that attaching to a running testnet node
-   requires the use of a custom endpoint since `gzond attach` will try to attach to a
-   production node endpoint by default, e.g.,
-   `gzond attach <datadir>/goerli/gzond.ipc`. Windows users are not affected by
-   this.
-
-*Note: Although some internal protective measures prevent transactions from
-crossing over between the main network and test network, you should always
-use separate accounts for play and real money. Unless you manually move
-accounts, `gzond` will by default correctly separate the two networks and will not make any
-accounts available between them.*
-
 ### Configuration
 
 As an alternative to passing the numerous flags to the `gzond` binary, you can also pass a
@@ -136,9 +100,9 @@ export your existing configuration:
 $ gzond --your-favourite-flags dumpconfig
 ```
 
-*Note: This works only with `gzond` v1.6.0 and above.*
-
 #### Docker quick start
+
+_Docker deployment in development_
 
 One of the quickest ways to get Zond up and running on your machine is by using
 Docker:
@@ -162,7 +126,7 @@ accessible from the outside.
 
 As a developer, sooner rather than later you'll want to start interacting with `gzond` and the
 Zond network via your own programs and not manually through the console. To aid
-this, `gzond` has built-in support for a JSON-RPC based APIs ([standard APIs](https://ethereum.github.io/execution-apis/api-documentation/)
+this, `gzond` has built-in support for Ethereum-compatible, JSON-RPC based APIs ([standard APIs](https://ethereum.github.io/execution-apis/api-documentation/)
 and [`gzond` specific APIs](https://geth.ethereum.org/docs/interacting-with-geth/rpc)).
 These can be exposed via HTTP, WebSockets and IPC (UNIX sockets on UNIX based
 platforms, and named pipes on Windows).
@@ -319,30 +283,20 @@ from anyone on the internet, and are grateful for even the smallest of fixes!
 
 If you'd like to contribute to go-zond, please fork, fix, commit and send a pull request
 for the maintainers to review and merge into the main code base. If you wish to submit
-more complex changes though, please check up with the core devs first on [our Discord Server](https://discord.gg/invite/nthXNEv)
+more complex changes though, please check up with the core devs first on [our Discord Server](https://theqrl.org/discord)
 to ensure those changes are in line with the general philosophy of the project and/or get
 some early feedback which can make both your efforts much lighter as well as our review
 and merge procedures quick and simple.
 
 Please make sure your contributions adhere to our coding guidelines:
 
- * Code must adhere to the official Go [formatting](https://golang.org/doc/effective_go.html#formatting)
+* Code must adhere to the official Go [formatting](https://golang.org/doc/effective_go.html#formatting)
    guidelines (i.e. uses [gofmt](https://golang.org/cmd/gofmt/)).
- * Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary)
+* Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary)
    guidelines.
- * Pull requests need to be based on and opened against the `master` branch.
- * Commit messages should be prefixed with the package(s) they modify.
-   * E.g. "zond, rpc: make trace configs optional"
-
-Please see the [Developers' Guide](https://geth.ethereum.org/docs/developers/geth-developer/dev-guide)
-for more details on configuring your environment, managing project dependencies, and
-testing procedures.
-
-### Contributing to Zond
-
-For contributions to the [go-zond website](https://www.theqrl.org), please checkout and raise pull requests against the `website` branch.
-For more detailed instructions please see the `website` branch [README](https://github.com/theQRL/go-zond/tree/website#readme) or the 
-[contributing](https://geth.ethereum.org/docs/developers/geth-developer/contributing) page of the website.
+* Pull requests need to be based on and opened against the `main` branch.
+* Commit messages should be prefixed with the package(s) they modify.
+* E.g. "zond, rpc: make trace configs optional"
 
 ## License
 
