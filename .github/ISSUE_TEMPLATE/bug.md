@@ -1,6 +1,6 @@
 ---
 name: Report a bug
-about: Something with go-ethereum is not working as expected
+about: Something with go-zond is not working as expected
 title: ''
 labels: 'type:bug'
 assignees: ''
@@ -8,10 +8,10 @@ assignees: ''
 
 #### System information
 
-Geth version: `geth version`
-CL client & version: e.g. lighthouse/nimbus/prysm@v1.0.0
+gzond version: `gzond version`
+CL client & version: e.g. qrysm@v1.0.0
 OS & Version: Windows/Linux/OSX
-Commit hash : (if `develop`)
+Commit hash : (if applicable)
 
 #### Expected behaviour
 
@@ -28,4 +28,4 @@ Commit hash : (if `develop`)
 [backtrace]
 ````
 
-When submitting logs: please submit them as text and not screenshots.
+When submitting logs: please submit them as text and not screenshots. Consider using pastebin if logs are long.
