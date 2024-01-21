@@ -26,7 +26,7 @@ import (
 // Genesis hashes to enforce below configs on.
 var (
 	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
-	BetaNetGenesisHash = common.HexToHash("0xbd2bba5b311fa3234b1c58e6063bcc6ddbe33367f18e70b639f9b1fa2b3bd2d6")
+	BetaNetGenesisHash = common.HexToHash("0xdbad833547c0da0aa80a33f575833fb6a5931e6d14060c96de96a681eefc669c")
 	HoleskyGenesisHash = common.HexToHash("0xff9006519a8ce843ac9c28549d24211420b546e12ce2d170c77a8cca7964f23d")
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
@@ -80,7 +80,7 @@ var (
 		GrayGlacierBlock:              big.NewInt(0),
 		TerminalTotalDifficulty:       big.NewInt(0),
 		TerminalTotalDifficultyPassed: true,
-		ShanghaiTime:                  newUint64(1705240575),
+		ShanghaiTime:                  newUint64(1705841668),
 		Ethash:                        new(EthashConfig),
 	}
 	// HoleskyChainConfig contains the chain parameters to run a node on the Holesky test network.
