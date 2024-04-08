@@ -30,8 +30,6 @@ func TestUndefinedAsParam(t *testing.T) {
 	call := jsre.Call{}
 	call.Arguments = []goja.Value{goja.Undefined()}
 
-	b.UnlockAccount(call)
-	b.Sign(call)
 	b.Sleep(call)
 }
 
@@ -42,7 +40,5 @@ func TestNullAsParam(t *testing.T) {
 	call := jsre.Call{}
 	call.Arguments = []goja.Value{goja.Null()}
 
-	b.UnlockAccount(call)
-	b.Sign(call)
 	b.Sleep(call)
 }

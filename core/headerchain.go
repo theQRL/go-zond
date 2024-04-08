@@ -31,10 +31,10 @@ import (
 	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 const (
@@ -43,8 +43,7 @@ const (
 	numberCacheLimit = 2048
 )
 
-// HeaderChain implements the basic block header chain logic that is shared by
-// core.BlockChain and light.LightChain. It is not usable in itself, only as
+// HeaderChain implements the basic block header chain logic. It is not usable in itself, only as
 // a part of either structure.
 //
 // HeaderChain is responsible for maintaining the header chain including the

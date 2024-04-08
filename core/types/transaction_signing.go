@@ -23,8 +23,8 @@ import (
 
 	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/pqcrypto"
 )
 
 var ErrInvalidChainId = errors.New("invalid chain id for signer")

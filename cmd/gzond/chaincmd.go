@@ -95,7 +95,6 @@ if one is set.  Otherwise it prints the genesis from the datadir.`,
 			utils.MetricsInfluxDBTokenFlag,
 			utils.MetricsInfluxDBBucketFlag,
 			utils.MetricsInfluxDBOrganizationFlag,
-			utils.TxLookupLimitFlag,
 			utils.TransactionHistoryFlag,
 			utils.StateSchemeFlag,
 			utils.StateHistoryFlag,
@@ -123,34 +122,6 @@ Optional second and third arguments control the first and
 last block to write. In this mode, the file will be appended
 if already existing. If the file ends with .gz, the output will
 be gzipped.`,
-	}
-	importPreimagesCommand = &cli.Command{
-		Action:    importPreimages,
-		Name:      "import-preimages",
-		Usage:     "Import the preimage database from an RLP stream",
-		ArgsUsage: "<datafile>",
-		Flags: flags.Merge([]cli.Flag{
-			utils.CacheFlag,
-			utils.SyncModeFlag,
-		}, utils.DatabasePathFlags),
-		Description: `
-The import-preimages command imports hash preimages from an RLP encoded stream.
-It's deprecated, please use "gzond db import" instead.
-`,
-	}
-	exportPreimagesCommand = &cli.Command{
-		Action:    exportPreimages,
-		Name:      "export-preimages",
-		Usage:     "Export the preimage database into an RLP stream",
-		ArgsUsage: "<dumpfile>",
-		Flags: flags.Merge([]cli.Flag{
-			utils.CacheFlag,
-			utils.SyncModeFlag,
-		}, utils.DatabasePathFlags),
-		Description: `
-The export-preimages command exports hash preimages to an RLP encoded stream.
-It's deprecated, please use "gzond db export" instead.
-`,
 	}
 	dumpCommand = &cli.Command{
 		Action:    dump,
@@ -193,11 +164,11 @@ func initGenesis(ctx *cli.Context) error {
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
-	// Open and initialise both full and light databases
+	// Open and initialise both full node database
 	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
 
-	for _, name := range []string{"chaindata", "lightchaindata"} {
+	for _, name := range []string{"chaindata"} {
 		chaindb, err := stack.OpenDatabaseWithFreezer(name, 0, 0, ctx.String(utils.AncientFlag.Name), "", false)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
@@ -227,7 +198,7 @@ func dumpGenesis(ctx *cli.Context) error {
 	}
 	// dump whatever already exists in the datadir
 	stack, _ := makeConfigNode(ctx)
-	for _, name := range []string{"chaindata", "lightchaindata"} {
+	for _, name := range []string{"chaindata"} {
 		db, err := stack.OpenDatabase(name, 0, 0, "", true)
 		if err != nil {
 			if !os.IsNotExist(err) {
@@ -364,43 +335,6 @@ func exportChain(ctx *cli.Context) error {
 	}
 
 	if err != nil {
-		utils.Fatalf("Export error: %v\n", err)
-	}
-	fmt.Printf("Export done in %v\n", time.Since(start))
-	return nil
-}
-
-// importPreimages imports preimage data from the specified file.
-func importPreimages(ctx *cli.Context) error {
-	if ctx.Args().Len() < 1 {
-		utils.Fatalf("This command requires an argument.")
-	}
-
-	stack, _ := makeConfigNode(ctx)
-	defer stack.Close()
-
-	db := utils.MakeChainDatabase(ctx, stack, false)
-	start := time.Now()
-
-	if err := utils.ImportPreimages(db, ctx.Args().First()); err != nil {
-		utils.Fatalf("Import error: %v\n", err)
-	}
-	fmt.Printf("Import done in %v\n", time.Since(start))
-	return nil
-}
-
-// exportPreimages dumps the preimage data to specified json file in streaming way.
-func exportPreimages(ctx *cli.Context) error {
-	if ctx.Args().Len() < 1 {
-		utils.Fatalf("This command requires an argument.")
-	}
-	stack, _ := makeConfigNode(ctx)
-	defer stack.Close()
-
-	db := utils.MakeChainDatabase(ctx, stack, true)
-	start := time.Now()
-
-	if err := utils.ExportPreimages(db, ctx.Args().First()); err != nil {
 		utils.Fatalf("Export error: %v\n", err)
 	}
 	fmt.Printf("Export done in %v\n", time.Since(start))

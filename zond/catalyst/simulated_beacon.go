@@ -270,7 +270,6 @@ func RegisterSimulatedBeaconAPIs(stack *node.Node, sim *SimulatedBeacon) {
 		{
 			Namespace: "dev",
 			Service:   &api{sim},
-			Version:   "1.0",
 		},
 	})
 }

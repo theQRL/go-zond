@@ -51,7 +51,6 @@ import (
 	"github.com/theQRL/go-zond/graphql"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
-	"github.com/theQRL/go-zond/les"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/metrics/exp"
@@ -135,28 +134,13 @@ var (
 	}
 	NetworkIdFlag = &cli.Uint64Flag{
 		Name:     "networkid",
-		Usage:    "Explicitly set network id (integer)(For testnets: use --goerli, --sepolia, --holesky instead)",
+		Usage:    "Explicitly set network id (integer)(For testnets: use --betanet instead)",
 		Value:    ethconfig.Defaults.NetworkId,
 		Category: flags.EthCategory,
 	}
 	MainnetFlag = &cli.BoolFlag{
 		Name:     "mainnet",
 		Usage:    "Ethereum mainnet",
-		Category: flags.EthCategory,
-	}
-	GoerliFlag = &cli.BoolFlag{
-		Name:     "goerli",
-		Usage:    "Görli network: pre-configured proof-of-authority test network",
-		Category: flags.EthCategory,
-	}
-	SepoliaFlag = &cli.BoolFlag{
-		Name:     "sepolia",
-		Usage:    "Sepolia network: pre-configured proof-of-work test network",
-		Category: flags.EthCategory,
-	}
-	HoleskyFlag = &cli.BoolFlag{
-		Name:     "holesky",
-		Usage:    "Holesky network: pre-configured proof-of-stake test network",
 		Category: flags.EthCategory,
 	}
 	BetaNetFlag = &cli.BoolFlag{
@@ -240,7 +224,7 @@ var (
 		Usage:    "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
 		Category: flags.AccountCategory,
 	}
-	EthRequiredBlocksFlag = &cli.StringFlag{
+	ZondRequiredBlocksFlag = &cli.StringFlag{
 		Name:     "zond.requiredblocks",
 		Usage:    "Comma separated block number-to-hash mappings to require for peering (<number>=<hash>)",
 		Category: flags.EthCategory,
@@ -251,19 +235,9 @@ var (
 		Value:    2048,
 		Category: flags.EthCategory,
 	}
-	OverrideCancun = &cli.Uint64Flag{
-		Name:     "override.cancun",
-		Usage:    "Manually specify the Cancun fork timestamp, overriding the bundled setting",
-		Category: flags.EthCategory,
-	}
-	OverrideVerkle = &cli.Uint64Flag{
-		Name:     "override.verkle",
-		Usage:    "Manually specify the Verkle fork timestamp, overriding the bundled setting",
-		Category: flags.EthCategory,
-	}
 	SyncModeFlag = &flags.TextMarshalerFlag{
 		Name:     "syncmode",
-		Usage:    `Blockchain sync mode ("snap", "full" or "light")`,
+		Usage:    `Blockchain sync mode ("snap" or "full")`,
 		Value:    &defaultSyncMode,
 		Category: flags.StateCategory,
 	}
@@ -290,41 +264,6 @@ var (
 		Usage:    "Number of recent blocks to maintain transactions index for (default = about one year, 0 = entire chain)",
 		Value:    ethconfig.Defaults.TransactionHistory,
 		Category: flags.StateCategory,
-	}
-	// Light server and client settings
-	LightServeFlag = &cli.IntFlag{
-		Name:     "light.serve",
-		Usage:    "Maximum percentage of time allowed for serving LES requests (multi-threaded processing allows values over 100)",
-		Value:    ethconfig.Defaults.LightServ,
-		Category: flags.LightCategory,
-	}
-	LightIngressFlag = &cli.IntFlag{
-		Name:     "light.ingress",
-		Usage:    "Incoming bandwidth limit for serving light clients (kilobytes/sec, 0 = unlimited)",
-		Value:    ethconfig.Defaults.LightIngress,
-		Category: flags.LightCategory,
-	}
-	LightEgressFlag = &cli.IntFlag{
-		Name:     "light.egress",
-		Usage:    "Outgoing bandwidth limit for serving light clients (kilobytes/sec, 0 = unlimited)",
-		Value:    ethconfig.Defaults.LightEgress,
-		Category: flags.LightCategory,
-	}
-	LightMaxPeersFlag = &cli.IntFlag{
-		Name:     "light.maxpeers",
-		Usage:    "Maximum number of light clients to serve, or light servers to attach to",
-		Value:    ethconfig.Defaults.LightPeers,
-		Category: flags.LightCategory,
-	}
-	LightNoPruneFlag = &cli.BoolFlag{
-		Name:     "light.nopruning",
-		Usage:    "Disable ancient light chain data pruning",
-		Category: flags.LightCategory,
-	}
-	LightNoSyncServeFlag = &cli.BoolFlag{
-		Name:     "light.nosyncserve",
-		Usage:    "Enables serving light clients before syncing",
-		Category: flags.LightCategory,
 	}
 	// Transaction pool settings
 	TxPoolLocalsFlag = &cli.StringFlag{
@@ -587,7 +526,7 @@ var (
 	}
 
 	// Logging and debug settings
-	EthStatsURLFlag = &cli.StringFlag{
+	ZondStatsURLFlag = &cli.StringFlag{
 		Name:     "zondstats",
 		Usage:    "Reporting URL of a zondstats service (nodename:secret@host:port)",
 		Category: flags.MetricsCategory,
@@ -735,11 +674,6 @@ var (
 		Name:     "rpc.batch-response-max-size",
 		Usage:    "Maximum number of bytes returned from a batched call",
 		Value:    node.DefaultConfig.BatchResponseMaxSize,
-		Category: flags.APICategory,
-	}
-	EnablePersonal = &cli.BoolFlag{
-		Name:     "rpc.enabledeprecatedpersonal",
-		Usage:    "Enables the (deprecated) personal namespace",
 		Category: flags.APICategory,
 	}
 
@@ -958,9 +892,6 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 var (
 	// TestnetFlags is the flag group of all built-in supported testnets.
 	TestnetFlags = []cli.Flag{
-		GoerliFlag,
-		SepoliaFlag,
-		HoleskyFlag,
 		BetaNetFlag,
 	}
 	// NetworkFlags is the flag group of all built-in supported networks.
@@ -986,15 +917,6 @@ func init() {
 // then a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.String(DataDirFlag.Name); path != "" {
-		if ctx.Bool(GoerliFlag.Name) {
-			return filepath.Join(path, "goerli")
-		}
-		if ctx.Bool(SepoliaFlag.Name) {
-			return filepath.Join(path, "sepolia")
-		}
-		if ctx.Bool(HoleskyFlag.Name) {
-			return filepath.Join(path, "holesky")
-		}
 		if ctx.Bool(BetaNetFlag.Name) {
 			return filepath.Join(path, "betanet")
 		}
@@ -1046,12 +968,6 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = SplitAndTrim(ctx.String(BootnodesFlag.Name))
 	case ctx.Bool(BetaNetFlag.Name):
 		urls = params.BetaNetBootnodes
-	case ctx.Bool(HoleskyFlag.Name):
-		urls = params.HoleskyBootnodes
-	case ctx.Bool(SepoliaFlag.Name):
-		urls = params.SepoliaBootnodes
-	case ctx.Bool(GoerliFlag.Name):
-		urls = params.GoerliBootnodes
 	}
 
 	// don't apply defaults if BootstrapNodes is already set
@@ -1233,28 +1149,6 @@ func setIPC(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
-// setLes configures the les server and ultra light client settings from the command line flags.
-func setLes(ctx *cli.Context, cfg *ethconfig.Config) {
-	if ctx.IsSet(LightServeFlag.Name) {
-		cfg.LightServ = ctx.Int(LightServeFlag.Name)
-	}
-	if ctx.IsSet(LightIngressFlag.Name) {
-		cfg.LightIngress = ctx.Int(LightIngressFlag.Name)
-	}
-	if ctx.IsSet(LightEgressFlag.Name) {
-		cfg.LightEgress = ctx.Int(LightEgressFlag.Name)
-	}
-	if ctx.IsSet(LightMaxPeersFlag.Name) {
-		cfg.LightPeers = ctx.Int(LightMaxPeersFlag.Name)
-	}
-	if ctx.IsSet(LightNoPruneFlag.Name) {
-		cfg.LightNoPrune = ctx.Bool(LightNoPruneFlag.Name)
-	}
-	if ctx.IsSet(LightNoSyncServeFlag.Name) {
-		cfg.LightNoSyncServe = ctx.Bool(LightNoSyncServeFlag.Name)
-	}
-}
-
 // MakeDatabaseHandles raises out the number of allowed file handles per process
 // for Geth and returns half of the allowance to assign to the database.
 func MakeDatabaseHandles(max int) int {
@@ -1349,57 +1243,24 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setBootstrapNodes(ctx, cfg)
 	setBootstrapNodesV5(ctx, cfg)
 
-	lightClient := ctx.String(SyncModeFlag.Name) == "light"
-	lightServer := (ctx.Int(LightServeFlag.Name) != 0)
-
-	lightPeers := ctx.Int(LightMaxPeersFlag.Name)
-	if lightClient && !ctx.IsSet(LightMaxPeersFlag.Name) {
-		// dynamic default - for clients we use 1/10th of the default for servers
-		lightPeers /= 10
-	}
-
 	if ctx.IsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.Int(MaxPeersFlag.Name)
-		if lightServer && !ctx.IsSet(LightMaxPeersFlag.Name) {
-			cfg.MaxPeers += lightPeers
-		}
-	} else {
-		if lightServer {
-			cfg.MaxPeers += lightPeers
-		}
-		if lightClient && ctx.IsSet(LightMaxPeersFlag.Name) && cfg.MaxPeers < lightPeers {
-			cfg.MaxPeers = lightPeers
-		}
+
 	}
-	if !(lightClient || lightServer) {
-		lightPeers = 0
-	}
-	ethPeers := cfg.MaxPeers - lightPeers
-	if lightClient {
-		ethPeers = 0
-	}
-	log.Info("Maximum peer count", "ETH", ethPeers, "LES", lightPeers, "total", cfg.MaxPeers)
+	zondPeers := cfg.MaxPeers
+	log.Info("Maximum peer count", "ZOND", zondPeers, "total", cfg.MaxPeers)
 
 	if ctx.IsSet(MaxPendingPeersFlag.Name) {
 		cfg.MaxPendingPeers = ctx.Int(MaxPendingPeersFlag.Name)
 	}
-	if ctx.IsSet(NoDiscoverFlag.Name) || lightClient {
+	if ctx.IsSet(NoDiscoverFlag.Name) {
 		cfg.NoDiscovery = true
 	}
 
-	// Disallow --nodiscover when used in conjunction with light mode.
-	if (lightClient || lightServer) && ctx.Bool(NoDiscoverFlag.Name) {
-		Fatalf("Cannot use --" + NoDiscoverFlag.Name + " in light client or light server mode")
-	}
 	CheckExclusive(ctx, DiscoveryV4Flag, NoDiscoverFlag)
 	CheckExclusive(ctx, DiscoveryV5Flag, NoDiscoverFlag)
 	cfg.DiscoveryV4 = ctx.Bool(DiscoveryV4Flag.Name)
 	cfg.DiscoveryV5 = ctx.Bool(DiscoveryV5Flag.Name)
-
-	// If we're running a light client or server, force enable the v5 peer discovery.
-	if lightClient || lightServer {
-		cfg.DiscoveryV5 = true
-	}
 
 	if netrestrict := ctx.String(NetrestrictFlag.Name); netrestrict != "" {
 		list, err := netutil.ParseNetlist(netrestrict)
@@ -1434,10 +1295,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.JWTSecret = ctx.String(JWTSecretFlag.Name)
 	}
 
-	if ctx.IsSet(EnablePersonal.Name) {
-		cfg.EnablePersonal = true
-	}
-
 	if ctx.IsSet(ExternalSignerFlag.Name) {
 		cfg.ExternalSigner = ctx.String(ExternalSignerFlag.Name)
 	}
@@ -1450,9 +1307,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.IsSet(LightKDFFlag.Name) {
 		cfg.UseLightweightKDF = ctx.Bool(LightKDFFlag.Name)
-	}
-	if ctx.IsSet(NoUSBFlag.Name) || cfg.NoUSB {
-		log.Warn("Option nousb is deprecated and USB is deactivated by default. Use --usb to enable")
 	}
 	if ctx.IsSet(USBFlag.Name) {
 		cfg.USB = ctx.Bool(USBFlag.Name)
@@ -1496,23 +1350,12 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = ctx.String(DataDirFlag.Name)
 	case ctx.Bool(DeveloperFlag.Name):
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
-	case ctx.Bool(GoerliFlag.Name) && cfg.DataDir == node.DefaultDataDir():
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
-	case ctx.Bool(SepoliaFlag.Name) && cfg.DataDir == node.DefaultDataDir():
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "sepolia")
-	case ctx.Bool(HoleskyFlag.Name) && cfg.DataDir == node.DefaultDataDir():
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "holesky")
 	case ctx.Bool(BetaNetFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "betanet")
 	}
 }
 
-func setGPO(ctx *cli.Context, cfg *gasprice.Config, light bool) {
-	// If we are running the light client, apply another group
-	// settings for gas oracle.
-	if light {
-		*cfg = ethconfig.LightClientGPO
-	}
+func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
 	if ctx.IsSet(GpoBlocksFlag.Name) {
 		cfg.Blocks = ctx.Int(GpoBlocksFlag.Name)
 	}
@@ -1589,14 +1432,9 @@ func setMiner(ctx *cli.Context, cfg *miner.Config) {
 }
 
 func setRequiredBlocks(ctx *cli.Context, cfg *ethconfig.Config) {
-	requiredBlocks := ctx.String(EthRequiredBlocksFlag.Name)
+	requiredBlocks := ctx.String(ZondRequiredBlocksFlag.Name)
 	if requiredBlocks == "" {
-		if ctx.IsSet(LegacyWhitelistFlag.Name) {
-			log.Warn("The flag --whitelist is deprecated and will be removed, please use --zond.requiredblocks")
-			requiredBlocks = ctx.String(LegacyWhitelistFlag.Name)
-		} else {
-			return
-		}
+		return
 	}
 	cfg.RequiredBlocks = make(map[uint64]common.Hash)
 	for _, entry := range strings.Split(requiredBlocks, ",") {
@@ -1660,17 +1498,15 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, GoerliFlag, SepoliaFlag, HoleskyFlag, BetaNetFlag)
-	CheckExclusive(ctx, LightServeFlag, SyncModeFlag, "light")
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, BetaNetFlag)
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 
 	// Set configurations from CLI flags
 	setEtherbase(ctx, cfg)
-	setGPO(ctx, &cfg.GPO, ctx.String(SyncModeFlag.Name) == "light")
+	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	setMiner(ctx, &cfg.Miner)
 	setRequiredBlocks(ctx, cfg)
-	setLes(ctx, cfg)
 
 	// Cap the cache allowance and tune the garbage collector
 	mem, err := gopsutil.VirtualMemory()
@@ -1733,24 +1569,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	}
 	cfg.StateScheme = scheme
 
-	// Parse transaction history flag, if user is still using legacy config
-	// file with 'TxLookupLimit' configured, copy the value to 'TransactionHistory'.
-	if cfg.TransactionHistory == ethconfig.Defaults.TransactionHistory && cfg.TxLookupLimit != ethconfig.Defaults.TxLookupLimit {
-		log.Warn("The config option 'TxLookupLimit' is deprecated and will be removed, please use 'TransactionHistory'")
-		cfg.TransactionHistory = cfg.TxLookupLimit
-	}
 	if ctx.IsSet(TransactionHistoryFlag.Name) {
 		cfg.TransactionHistory = ctx.Uint64(TransactionHistoryFlag.Name)
-	} else if ctx.IsSet(TxLookupLimitFlag.Name) {
-		log.Warn("The flag --txlookuplimit is deprecated and will be removed, please use --history.transactions")
-		cfg.TransactionHistory = ctx.Uint64(TxLookupLimitFlag.Name)
 	}
 	if ctx.String(GCModeFlag.Name) == "archive" && cfg.TransactionHistory != 0 {
 		cfg.TransactionHistory = 0
 		log.Warn("Disabled transaction unindexing for archive node")
-	}
-	if ctx.IsSet(LightServeFlag.Name) && cfg.TransactionHistory != 0 {
-		log.Warn("LES server cannot serve old transaction status and cannot connect below les/4 protocol version if transaction lookup index is limited")
 	}
 	if ctx.IsSet(CacheFlag.Name) || ctx.IsSet(CacheTrieFlag.Name) {
 		cfg.TrieCleanCache = ctx.Int(CacheFlag.Name) * ctx.Int(CacheTrieFlag.Name) / 100
@@ -1819,24 +1643,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultBetaNetGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.BetaNetGenesisHash)
-	case ctx.Bool(HoleskyFlag.Name):
-		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 17000
-		}
-		cfg.Genesis = core.DefaultHoleskyGenesisBlock()
-		SetDNSDiscoveryDefaults(cfg, params.HoleskyGenesisHash)
-	case ctx.Bool(SepoliaFlag.Name):
-		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 11155111
-		}
-		cfg.Genesis = core.DefaultSepoliaGenesisBlock()
-		SetDNSDiscoveryDefaults(cfg, params.SepoliaGenesisHash)
-	case ctx.Bool(GoerliFlag.Name):
-		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 5
-		}
-		cfg.Genesis = core.DefaultGoerliGenesisBlock()
-		SetDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
 	case ctx.Bool(DeveloperFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1919,9 +1725,6 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 		return // already set through flags/config
 	}
 	protocol := "all"
-	if cfg.SyncMode == downloader.LightSync {
-		protocol = "les"
-	}
 	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
 		cfg.EthDiscoveryURLs = []string{url}
 		cfg.SnapDiscoveryURLs = cfg.EthDiscoveryURLs
@@ -1929,26 +1732,10 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
-// The second return value is the full node instance, which may be nil if the
-// node is running as a light client.
 func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *zond.Ethereum) {
-	if cfg.SyncMode == downloader.LightSync {
-		backend, err := les.New(stack, cfg)
-		if err != nil {
-			Fatalf("Failed to register the Ethereum service: %v", err)
-		}
-		stack.RegisterAPIs(tracers.APIs(backend.ApiBackend))
-		return backend.ApiBackend, nil
-	}
 	backend, err := zond.New(stack, cfg)
 	if err != nil {
 		Fatalf("Failed to register the Ethereum service: %v", err)
-	}
-	if cfg.LightServ > 0 {
-		_, err := les.NewLesServer(stack, backend, cfg)
-		if err != nil {
-			Fatalf("Failed to create the LES server: %v", err)
-		}
 	}
 	stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
 	return backend.APIBackend, backend
@@ -1971,13 +1758,12 @@ func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, filterSyst
 
 // RegisterFilterAPI adds the zond log filtering RPC API to the node.
 func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconfig.Config) *filters.FilterSystem {
-	isLightClient := ethcfg.SyncMode == downloader.LightSync
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{
 		LogCacheSize: ethcfg.FilterLogCacheSize,
 	})
 	stack.RegisterAPIs([]rpc.API{{
 		Namespace: "zond",
-		Service:   filters.NewFilterAPI(filterSystem, isLightClient),
+		Service:   filters.NewFilterAPI(filterSystem),
 	}})
 	return filterSystem
 }
@@ -2095,8 +1881,6 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) zonddb
 			break
 		}
 		chainDb = remotedb.New(client)
-	case ctx.String(SyncModeFlag.Name) == "light":
-		chainDb, err = stack.OpenDatabase("lightchaindata", cache, handles, "", readonly)
 	default:
 		chainDb, err = stack.OpenDatabaseWithFreezer("chaindata", cache, handles, ctx.String(AncientFlag.Name), "", readonly)
 	}
@@ -2159,12 +1943,6 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultGenesisBlock()
 	case ctx.Bool(BetaNetFlag.Name):
 		genesis = core.DefaultBetaNetGenesisBlock()
-	case ctx.Bool(HoleskyFlag.Name):
-		genesis = core.DefaultHoleskyGenesisBlock()
-	case ctx.Bool(SepoliaFlag.Name):
-		genesis = core.DefaultSepoliaGenesisBlock()
-	case ctx.Bool(GoerliFlag.Name):
-		genesis = core.DefaultGoerliGenesisBlock()
 	case ctx.Bool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

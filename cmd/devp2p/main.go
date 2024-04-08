@@ -26,7 +26,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var app = flags.NewApp("go-ethereum devp2p tool")
+var app = flags.NewApp("go-zond devp2p tool")
 
 func init() {
 	app.Flags = append(app.Flags, debug.Flags...)

@@ -21,9 +21,9 @@ import (
 	"sync"
 
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // transitionStatus describes the status of eth1/2 transition. This switch
@@ -35,7 +35,6 @@ type transitionStatus struct {
 }
 
 // Merger is an internal help structure used to track the eth1/2 transition status.
-// It's a common structure can be used in both full node and light client.
 type Merger struct {
 	db     zonddb.KeyValueStore
 	status transitionStatus

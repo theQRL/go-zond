@@ -26,7 +26,6 @@ import (
 	"math"
 	"mime"
 	"net/http"
-	"net/url"
 	"strconv"
 	"sync"
 	"time"
@@ -118,28 +117,6 @@ var DefaultHTTPTimeouts = HTTPTimeouts{
 	ReadHeaderTimeout: 30 * time.Second,
 	WriteTimeout:      30 * time.Second,
 	IdleTimeout:       120 * time.Second,
-}
-
-// DialHTTP creates a new RPC client that connects to an RPC server over HTTP.
-func DialHTTP(endpoint string) (*Client, error) {
-	return DialHTTPWithClient(endpoint, new(http.Client))
-}
-
-// DialHTTPWithClient creates a new RPC client that connects to an RPC server over HTTP
-// using the provided HTTP Client.
-//
-// Deprecated: use DialOptions and the WithHTTPClient option.
-func DialHTTPWithClient(endpoint string, client *http.Client) (*Client, error) {
-	// Sanity check URL so we don't end up with a client that will fail every request.
-	_, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	var cfg clientConfig
-	cfg.httpClient = client
-	fn := newClientTransportHTTP(endpoint, &cfg)
-	return newClient(context.Background(), &cfg, fn)
 }
 
 func newClientTransportHTTP(endpoint string, cfg *clientConfig) reconnectFunc {

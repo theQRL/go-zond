@@ -30,11 +30,6 @@ var (
 		Name:  "trace",
 		Usage: "Output full trace logs to files <txhash>.jsonl",
 	}
-	TraceDisableMemoryFlag = &cli.BoolFlag{
-		Name:  "trace.nomemory",
-		Value: true,
-		Usage: "Disable full memory dump in traces (deprecated)",
-	}
 	TraceEnableMemoryFlag = &cli.BoolFlag{
 		Name:  "trace.memory",
 		Usage: "Enable full memory dump in traces",
@@ -42,11 +37,6 @@ var (
 	TraceDisableStackFlag = &cli.BoolFlag{
 		Name:  "trace.nostack",
 		Usage: "Disable stack output in traces",
-	}
-	TraceDisableReturnDataFlag = &cli.BoolFlag{
-		Name:  "trace.noreturndata",
-		Value: true,
-		Usage: "Disable return data output in traces (deprecated)",
 	}
 	TraceEnableReturnDataFlag = &cli.BoolFlag{
 		Name:  "trace.returndata",

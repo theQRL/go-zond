@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package zondclient provides a client for the Ethereum RPC API.
+// Package zondclient provides a client for the Zond RPC API.
 package zondclient
 
 import (
@@ -31,7 +31,7 @@ import (
 	"github.com/theQRL/go-zond/rpc"
 )
 
-// Client defines typed wrappers for the Ethereum RPC API.
+// Client defines typed wrappers for the Zond RPC API.
 type Client struct {
 	c *rpc.Client
 }
@@ -80,7 +80,7 @@ func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
 // BlockByHash returns the given full block.
 //
 // Note that loading full blocks requires two requests. Use HeaderByHash
-// if you don't need all transactions or uncle headers.
+// if you don't need all transactions.
 func (ec *Client) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return ec.getBlock(ctx, "zond_getBlockByHash", hash, true)
 }
@@ -89,7 +89,7 @@ func (ec *Client) BlockByHash(ctx context.Context, hash common.Hash) (*types.Blo
 // latest known block is returned.
 //
 // Note that loading full blocks requires two requests. Use HeaderByNumber
-// if you don't need all transactions or uncle headers.
+// if you don't need all transactions.
 func (ec *Client) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
 	return ec.getBlock(ctx, "zond_getBlockByNumber", toBlockNumArg(number), true)
 }

@@ -35,13 +35,13 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
-	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p/msgrate"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/trie/trienode"
+	"github.com/theQRL/go-zond/zonddb"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -312,7 +312,7 @@ type accountTask struct {
 	codeTasks  map[common.Hash]struct{}    // Code hashes that need retrieval
 	stateTasks map[common.Hash]common.Hash // Account hashes->roots that need full state retrieval
 
-	genBatch zonddb.Batch     // Batch used by the node generator
+	genBatch zonddb.Batch    // Batch used by the node generator
 	genTrie  *trie.StackTrie // Node generator from storage slots
 
 	done bool // Flag whether the task can be removed
@@ -327,7 +327,7 @@ type storageTask struct {
 	root common.Hash     // Storage root hash for this instance
 	req  *storageRequest // Pending request to fill this task
 
-	genBatch zonddb.Batch     // Batch used by the node generator
+	genBatch zonddb.Batch    // Batch used by the node generator
 	genTrie  *trie.StackTrie // Node generator from storage slots
 
 	done bool // Flag whether the task can be removed
@@ -409,7 +409,7 @@ type SyncPeer interface {
 //   - The peer delivers a refusal to serve the requested state
 type Syncer struct {
 	db     zonddb.KeyValueStore // Database to store the trie nodes into (and dedup)
-	scheme string              // Node scheme used in node database
+	scheme string               // Node scheme used in node database
 
 	root    common.Hash    // Current state trie root being synced
 	tasks   []*accountTask // Current account task set being synced
@@ -462,7 +462,7 @@ type Syncer struct {
 	bytecodeHealDups   uint64             // Number of bytecodes already processed
 	bytecodeHealNops   uint64             // Number of bytecodes not requested
 
-	stateWriter        zonddb.Batch        // Shared batch writer used for persisting raw states
+	stateWriter        zonddb.Batch       // Shared batch writer used for persisting raw states
 	accountHealed      uint64             // Number of accounts downloaded during the healing stage
 	accountHealedBytes common.StorageSize // Number of raw account bytes persisted to disk during the healing stage
 	storageHealed      uint64             // Number of storage slots downloaded during the healing stage
@@ -2394,11 +2394,11 @@ func (s *Syncer) OnAccounts(peer SyncPeer, id uint64, hashes []common.Hash, acco
 	for i, key := range hashes {
 		keys[i] = common.CopyBytes(key[:])
 	}
-	nodes := make(light.NodeList, len(proof))
+	nodes := make(trienode.ProofList, len(proof))
 	for i, node := range proof {
 		nodes[i] = node
 	}
-	proofdb := nodes.NodeSet()
+	proofdb := nodes.Set()
 
 	var end []byte
 	if len(keys) > 0 {
@@ -2639,7 +2639,7 @@ func (s *Syncer) OnStorage(peer SyncPeer, id uint64, hashes [][]common.Hash, slo
 		for j, key := range hashes[i] {
 			keys[j] = common.CopyBytes(key[:])
 		}
-		nodes := make(light.NodeList, 0, len(proof))
+		nodes := make(trienode.ProofList, 0, len(proof))
 		if i == len(hashes)-1 {
 			for _, node := range proof {
 				nodes = append(nodes, node)
@@ -2658,7 +2658,7 @@ func (s *Syncer) OnStorage(peer SyncPeer, id uint64, hashes [][]common.Hash, slo
 		} else {
 			// A proof was attached, the response is only partial, check that the
 			// returned data is indeed part of the storage trie
-			proofdb := nodes.NodeSet()
+			proofdb := nodes.Set()
 
 			var end []byte
 			if len(keys) > 0 {

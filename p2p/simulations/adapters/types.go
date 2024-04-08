@@ -102,7 +102,7 @@ type NodeConfig struct {
 	Lifecycles []string
 
 	// Properties are the names of the properties this node should hold
-	// within running services (e.g. "bootnode", "lightnode" or any custom values)
+	// within running services (e.g. "bootnode" or any custom values)
 	// These values need to be checked and acted upon by node Services
 	Properties []string
 

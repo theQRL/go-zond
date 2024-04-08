@@ -25,8 +25,8 @@ import (
 	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 	"golang.org/x/crypto/sha3"
 )

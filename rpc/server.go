@@ -28,15 +28,7 @@ import (
 const MetadataApi = "rpc"
 const EngineApi = "engine"
 
-// CodecOption specifies which type of messages a codec supports.
-//
-// Deprecated: this option is no longer honored by Server.
-type CodecOption int
-
 const (
-	// OptionMethodInvocation is an indication that the codec supports RPC method calls
-	OptionMethodInvocation CodecOption = 1 << iota
-
 	// OptionSubscriptions is an indication that the codec supports RPC notifications
 	OptionSubscriptions = 1 << iota // support pub sub
 )
@@ -89,9 +81,7 @@ func (s *Server) RegisterName(name string, receiver interface{}) error {
 // ServeCodec reads incoming requests from codec, calls the appropriate callback and writes
 // the response back using the given codec. It will block until the codec is closed or the
 // server is stopped. In either case the codec is closed.
-//
-// Note that codec options are no longer supported.
-func (s *Server) ServeCodec(codec ServerCodec, options CodecOption) {
+func (s *Server) ServeCodec(codec ServerCodec) {
 	defer codec.close()
 
 	if !s.trackCodec(codec) {

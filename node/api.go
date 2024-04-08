@@ -24,7 +24,6 @@ import (
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/internal/debug"
-	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/rpc"
@@ -212,24 +211,10 @@ func (api *adminAPI) StartHTTP(host *string, port *int, cors *string, apis *stri
 	return true, nil
 }
 
-// StartRPC starts the HTTP RPC API server.
-// Deprecated: use StartHTTP instead.
-func (api *adminAPI) StartRPC(host *string, port *int, cors *string, apis *string, vhosts *string) (bool, error) {
-	log.Warn("Deprecation warning", "method", "admin.StartRPC", "use-instead", "admin.StartHTTP")
-	return api.StartHTTP(host, port, cors, apis, vhosts)
-}
-
 // StopHTTP shuts down the HTTP server.
 func (api *adminAPI) StopHTTP() (bool, error) {
 	api.node.http.stop()
 	return true, nil
-}
-
-// StopRPC shuts down the HTTP server.
-// Deprecated: use StopHTTP instead.
-func (api *adminAPI) StopRPC() (bool, error) {
-	log.Warn("Deprecation warning", "method", "admin.StopRPC", "use-instead", "admin.StopHTTP")
-	return api.StopHTTP()
 }
 
 // StartWS starts the websocket RPC API server.

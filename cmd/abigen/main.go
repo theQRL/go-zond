@@ -37,11 +37,11 @@ var (
 	// Flags needed by abigen
 	abiFlag = &cli.StringFlag{
 		Name:  "abi",
-		Usage: "Path to the Ethereum contract ABI json to bind, - for STDIN",
+		Usage: "Path to the Zond contract ABI json to bind, - for STDIN",
 	}
 	binFlag = &cli.StringFlag{
 		Name:  "bin",
-		Usage: "Path to the Ethereum contract bytecode (generate deploy method)",
+		Usage: "Path to the Zond contract bytecode (generate deploy method)",
 	}
 	typeFlag = &cli.StringFlag{
 		Name:  "type",
@@ -74,7 +74,7 @@ var (
 	}
 )
 
-var app = flags.NewApp("Ethereum ABI wrapper code generator")
+var app = flags.NewApp("Zond ABI wrapper code generator")
 
 func init() {
 	app.Name = "abigen"

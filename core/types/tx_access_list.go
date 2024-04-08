@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 )
 
@@ -93,17 +93,17 @@ func (tx *AccessListTx) copy() TxData {
 }
 
 // accessors for innerTx.
-func (tx *AccessListTx) txType() byte              { return AccessListTxType }
-func (tx *AccessListTx) chainID() *big.Int         { return tx.ChainID }
-func (tx *AccessListTx) accessList() AccessList    { return tx.AccessList }
-func (tx *AccessListTx) data() []byte              { return tx.Data }
-func (tx *AccessListTx) gas() uint64               { return tx.Gas }
-func (tx *AccessListTx) gasPrice() *big.Int        { return tx.GasPrice }
-func (tx *AccessListTx) gasTipCap() *big.Int       { return tx.GasPrice }
-func (tx *AccessListTx) gasFeeCap() *big.Int       { return tx.GasPrice }
-func (tx *AccessListTx) value() *big.Int           { return tx.Value }
-func (tx *AccessListTx) nonce() uint64             { return tx.Nonce }
-func (tx *AccessListTx) to() *common.Address       { return tx.To }
+func (tx *AccessListTx) txType() byte           { return AccessListTxType }
+func (tx *AccessListTx) chainID() *big.Int      { return tx.ChainID }
+func (tx *AccessListTx) accessList() AccessList { return tx.AccessList }
+func (tx *AccessListTx) data() []byte           { return tx.Data }
+func (tx *AccessListTx) gas() uint64            { return tx.Gas }
+func (tx *AccessListTx) gasPrice() *big.Int     { return tx.GasPrice }
+func (tx *AccessListTx) gasTipCap() *big.Int    { return tx.GasPrice }
+func (tx *AccessListTx) gasFeeCap() *big.Int    { return tx.GasPrice }
+func (tx *AccessListTx) value() *big.Int        { return tx.Value }
+func (tx *AccessListTx) nonce() uint64          { return tx.Nonce }
+func (tx *AccessListTx) to() *common.Address    { return tx.To }
 
 func (tx *AccessListTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	return dst.Set(tx.GasPrice)

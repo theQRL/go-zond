@@ -30,8 +30,7 @@ import (
 )
 
 // ChainReader defines a small collection of methods needed to access the local
-// blockchain during header verification. It's implemented by both blockchain
-// and lightchain.
+// blockchain during header verification.
 type ChainReader interface {
 	// Config retrieves the header chain's chain configuration.
 	Config() *params.ChainConfig

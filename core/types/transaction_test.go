@@ -26,9 +26,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 )
 

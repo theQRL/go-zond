@@ -52,7 +52,7 @@ type StatetestResult struct {
 }
 
 func stateTestCmd(ctx *cli.Context) error {
-	// Configure the go-ethereum logger
+	// Configure the go-zond logger
 	glogger := log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
 	glogger.Verbosity(log.Lvl(ctx.Int(VerbosityFlag.Name)))
 	log.Root().SetHandler(glogger)

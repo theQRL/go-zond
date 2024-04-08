@@ -19,8 +19,6 @@ package utils
 import (
 	"fmt"
 
-	"github.com/theQRL/go-zond/zond/ethconfig"
-	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,52 +30,7 @@ var ShowDeprecated = &cli.Command{
 	Description: "Show flags that have been deprecated and will soon be removed",
 }
 
-var DeprecatedFlags = []cli.Flag{
-	NoUSBFlag,
-	LegacyWhitelistFlag,
-	CacheTrieJournalFlag,
-	CacheTrieRejournalFlag,
-	LegacyDiscoveryV5Flag,
-	TxLookupLimitFlag,
-}
-
-var (
-	// Deprecated May 2020, shown in aliased flags section
-	NoUSBFlag = &cli.BoolFlag{
-		Name:     "nousb",
-		Usage:    "Disables monitoring for and managing USB hardware wallets (deprecated)",
-		Category: flags.DeprecatedCategory,
-	}
-	// Deprecated March 2022
-	LegacyWhitelistFlag = &cli.StringFlag{
-		Name:     "whitelist",
-		Usage:    "Comma separated block number-to-hash mappings to enforce (<number>=<hash>) (deprecated in favor of --eth.requiredblocks)",
-		Category: flags.DeprecatedCategory,
-	}
-	// Deprecated July 2023
-	CacheTrieJournalFlag = &cli.StringFlag{
-		Name:     "cache.trie.journal",
-		Usage:    "Disk journal directory for trie cache to survive node restarts",
-		Category: flags.DeprecatedCategory,
-	}
-	CacheTrieRejournalFlag = &cli.DurationFlag{
-		Name:     "cache.trie.rejournal",
-		Usage:    "Time interval to regenerate the trie cache journal",
-		Category: flags.DeprecatedCategory,
-	}
-	LegacyDiscoveryV5Flag = &cli.BoolFlag{
-		Name:     "v5disc",
-		Usage:    "Enables the experimental RLPx V5 (Topic Discovery) mechanism (deprecated, use --discv5 instead)",
-		Category: flags.DeprecatedCategory,
-	}
-	// Deprecated August 2023
-	TxLookupLimitFlag = &cli.Uint64Flag{
-		Name:     "txlookuplimit",
-		Usage:    "Number of recent blocks to maintain transactions index for (default = about one year, 0 = entire chain) (deprecated, use history.transactions instead)",
-		Value:    ethconfig.Defaults.TransactionHistory,
-		Category: flags.DeprecatedCategory,
-	}
-)
+var DeprecatedFlags = []cli.Flag{}
 
 // showDeprecated displays deprecated flags that will be soon removed from the codebase.
 func showDeprecated(*cli.Context) error {

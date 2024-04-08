@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 )
 

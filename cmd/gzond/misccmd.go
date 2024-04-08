@@ -28,6 +28,7 @@ import (
 )
 
 var (
+	// TODO(theQRL/go-zond/issues/36)
 	VersionCheckUrlFlag = &cli.StringFlag{
 		Name:  "check.url",
 		Usage: "URL to use when checking vulnerabilities",
@@ -54,7 +55,7 @@ The output of this command is supposed to be machine-readable.
 			VersionCheckVersionFlag,
 		},
 		Name:      "version-check",
-		Usage:     "Checks (online) for known Geth security vulnerabilities",
+		Usage:     "Checks (online) for known Gzond security vulnerabilities",
 		ArgsUsage: "<versionstring (optional)>",
 		Description: `
 The version-check command fetches vulnerability-information from https://geth.ethereum.org/docs/vulnerabilities/vulnerabilities.json, 

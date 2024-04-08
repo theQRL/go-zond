@@ -35,13 +35,13 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zond/tracers/logger"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond/tracers/logger"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 const (
@@ -74,7 +74,7 @@ var errTxNotFound = errors.New("transaction not found")
 type StateReleaseFunc func()
 
 // Backend interface provides the common API services (that are provided by
-// both full and light clients) with access to necessary functions.
+// full clients) with access to necessary functions.
 type Backend interface {
 	HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error)
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error)

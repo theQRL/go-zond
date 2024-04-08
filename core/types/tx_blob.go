@@ -24,8 +24,8 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/crypto/kzg4844"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 )
 

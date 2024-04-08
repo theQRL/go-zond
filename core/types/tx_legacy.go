@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 )
 
 // LegacyTx is the transaction data of the original Ethereum transactions.

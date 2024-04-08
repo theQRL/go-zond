@@ -30,15 +30,15 @@ import (
 	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rpc"
-	"github.com/theQRL/go-zond/zond"
+	zondsvc "github.com/theQRL/go-zond/zond"
 	"github.com/theQRL/go-zond/zond/ethconfig"
 )
 
-// Verify that Client implements the ethereum interfaces.
+// Verify that Client implements the zond interfaces.
 var (
 	_ = zond.ChainReader(&Client{})
 	_ = zond.TransactionReader(&Client{})
@@ -180,8 +180,8 @@ func TestToFilterArg(t *testing.T) {
 }
 
 var (
-	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	testAddr    = crypto.PubkeyToAddress(testKey.PublicKey)
+	testKey, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testAddr    = testKey.GetAddress()
 	testBalance = big.NewInt(2e15)
 )
 
@@ -218,17 +218,17 @@ func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
 	if err != nil {
 		t.Fatalf("can't create new node: %v", err)
 	}
-	// Create Ethereum Service
+	// Create Zond Service
 	config := &ethconfig.Config{Genesis: genesis}
-	ethservice, err := zond.New(n, config)
+	zondservice, err := zondsvc.New(n, config)
 	if err != nil {
-		t.Fatalf("can't create new ethereum service: %v", err)
+		t.Fatalf("can't create new zond service: %v", err)
 	}
 	// Import the test chain.
 	if err := n.Start(); err != nil {
 		t.Fatalf("can't start test node: %v", err)
 	}
-	if _, err := ethservice.BlockChain().InsertChain(blocks[1:]); err != nil {
+	if _, err := zondservice.BlockChain().InsertChain(blocks[1:]); err != nil {
 		t.Fatalf("can't import test blocks: %v", err)
 	}
 	return n, blocks
@@ -248,7 +248,7 @@ func generateTestChain() []*types.Block {
 	return append([]*types.Block{genesis.ToBlock()}, blocks...)
 }
 
-func TestEthClient(t *testing.T) {
+func TestZondClient(t *testing.T) {
 	backend, chain := newTestBackend(t)
 	client := backend.Attach()
 	defer backend.Close()

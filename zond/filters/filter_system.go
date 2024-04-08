@@ -31,7 +31,6 @@ import (
 	"github.com/theQRL/go-zond/common/lru"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/bloombits"
-	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/log"
@@ -193,10 +192,9 @@ type subscription struct {
 // EventSystem creates subscriptions, processes events and broadcasts them to the
 // subscription which match the subscription criteria.
 type EventSystem struct {
-	backend   Backend
-	sys       *FilterSystem
-	lightMode bool
-	lastHead  *types.Header
+	backend  Backend
+	sys      *FilterSystem
+	lastHead *types.Header
 
 	// Subscriptions
 	txsSub         event.Subscription // Subscription for new transaction event
@@ -221,11 +219,10 @@ type EventSystem struct {
 //
 // The returned manager has a loop that needs to be stopped with the Stop function
 // or by stopping the given mux.
-func NewEventSystem(sys *FilterSystem, lightMode bool) *EventSystem {
+func NewEventSystem(sys *FilterSystem) *EventSystem {
 	m := &EventSystem{
 		sys:           sys,
 		backend:       sys.backend,
-		lightMode:     lightMode,
 		install:       make(chan *subscription),
 		uninstall:     make(chan *subscription),
 		txsCh:         make(chan core.NewTxsEvent, txChanSize),
@@ -454,91 +451,6 @@ func (es *EventSystem) handleChainEvent(filters filterIndex, ev core.ChainEvent)
 	for _, f := range filters[BlocksSubscription] {
 		f.headers <- ev.Block.Header()
 	}
-	if es.lightMode && len(filters[LogsSubscription]) > 0 {
-		es.lightFilterNewHead(ev.Block.Header(), func(header *types.Header, remove bool) {
-			for _, f := range filters[LogsSubscription] {
-				if f.logsCrit.FromBlock != nil && header.Number.Cmp(f.logsCrit.FromBlock) < 0 {
-					continue
-				}
-				if f.logsCrit.ToBlock != nil && header.Number.Cmp(f.logsCrit.ToBlock) > 0 {
-					continue
-				}
-				if matchedLogs := es.lightFilterLogs(header, f.logsCrit.Addresses, f.logsCrit.Topics, remove); len(matchedLogs) > 0 {
-					f.logs <- matchedLogs
-				}
-			}
-		})
-	}
-}
-
-func (es *EventSystem) lightFilterNewHead(newHeader *types.Header, callBack func(*types.Header, bool)) {
-	oldh := es.lastHead
-	es.lastHead = newHeader
-	if oldh == nil {
-		return
-	}
-	newh := newHeader
-	// find common ancestor, create list of rolled back and new block hashes
-	var oldHeaders, newHeaders []*types.Header
-	for oldh.Hash() != newh.Hash() {
-		if oldh.Number.Uint64() >= newh.Number.Uint64() {
-			oldHeaders = append(oldHeaders, oldh)
-			oldh = rawdb.ReadHeader(es.backend.ChainDb(), oldh.ParentHash, oldh.Number.Uint64()-1)
-		}
-		if oldh.Number.Uint64() < newh.Number.Uint64() {
-			newHeaders = append(newHeaders, newh)
-			newh = rawdb.ReadHeader(es.backend.ChainDb(), newh.ParentHash, newh.Number.Uint64()-1)
-			if newh == nil {
-				// happens when CHT syncing, nothing to do
-				newh = oldh
-			}
-		}
-	}
-	// roll back old blocks
-	for _, h := range oldHeaders {
-		callBack(h, true)
-	}
-	// check new blocks (array is in reverse order)
-	for i := len(newHeaders) - 1; i >= 0; i-- {
-		callBack(newHeaders[i], false)
-	}
-}
-
-// filter logs of a single header in light client mode
-func (es *EventSystem) lightFilterLogs(header *types.Header, addresses []common.Address, topics [][]common.Hash, remove bool) []*types.Log {
-	if !bloomFilter(header.Bloom, addresses, topics) {
-		return nil
-	}
-	// Get the logs of the block
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	cached, err := es.sys.cachedLogElem(ctx, header.Hash(), header.Number.Uint64())
-	if err != nil {
-		return nil
-	}
-	unfiltered := append([]*types.Log{}, cached.logs...)
-	for i, log := range unfiltered {
-		// Don't modify in-cache elements
-		logcopy := *log
-		logcopy.Removed = remove
-		// Swap copy in-place
-		unfiltered[i] = &logcopy
-	}
-	logs := filterLogs(unfiltered, nil, nil, addresses, topics)
-	// Txhash is already resolved
-	if len(logs) > 0 && logs[0].TxHash != (common.Hash{}) {
-		return logs
-	}
-	// Resolve txhash
-	body, err := es.sys.cachedGetBody(ctx, cached, header.Hash(), header.Number.Uint64())
-	if err != nil {
-		return nil
-	}
-	for _, log := range logs {
-		// logs are already copied, safe to modify
-		log.TxHash = body.Transactions[log.TxIndex].Hash()
-	}
-	return logs
 }
 
 // eventLoop (un)installs filters and processes mux events.

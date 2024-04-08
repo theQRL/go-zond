@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package ethconfig contains the configuration of the ETH and LES protocols.
+// Package ethconfig contains the configuration of the ZOND protocol.
 package ethconfig
 
 import (
@@ -47,25 +47,13 @@ var FullNodeGPO = gasprice.Config{
 	IgnorePrice:      gasprice.DefaultIgnorePrice,
 }
 
-// LightClientGPO contains default gasprice oracle settings for light client.
-var LightClientGPO = gasprice.Config{
-	Blocks:           2,
-	Percentile:       60,
-	MaxHeaderHistory: 300,
-	MaxBlockHistory:  5,
-	MaxPrice:         gasprice.DefaultMaxPrice,
-	IgnorePrice:      gasprice.DefaultIgnorePrice,
-}
-
 // Defaults contains default settings for use on the Ethereum main net.
 var Defaults = Config{
 	SyncMode:           downloader.SnapSync,
 	NetworkId:          1,
-	TxLookupLimit:      2350000,
 	TransactionHistory: 2350000,
 	StateHistory:       params.FullImmutabilityThreshold,
 	StateScheme:        rawdb.HashScheme,
-	LightPeers:         100,
 	DatabaseCache:      512,
 	TrieCleanCache:     154,
 	TrieDirtyCache:     256,
@@ -83,10 +71,10 @@ var Defaults = Config{
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
-// Config contains configuration options for of the ETH and LES protocols.
+// Config contains configuration options for of the Zond protocol.
 type Config struct {
 	// The genesis block, which is inserted if the database is empty.
-	// If nil, the Ethereum main net block is used.
+	// If nil, the Zond main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// Protocol options
@@ -101,24 +89,14 @@ type Config struct {
 	NoPruning  bool // Whether to disable pruning and flush everything to disk
 	NoPrefetch bool // Whether to disable prefetching and only load state on demand
 
-	// Deprecated, use 'TransactionHistory' instead.
-	TxLookupLimit      uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 	TransactionHistory uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 	StateHistory       uint64 `toml:",omitempty"` // The maximum number of blocks from head whose state histories are reserved.
-	StateScheme        string `toml:",omitempty"` // State scheme used to store ethereum state and merkle trie nodes on top
+	StateScheme        string `toml:",omitempty"` // State scheme used to store zond state and merkle trie nodes on top
 
 	// RequiredBlocks is a set of block number -> hash mappings which must be in the
-	// canonical chain of all remote peers. Setting the option makes geth verify the
+	// canonical chain of all remote peers. Setting the option makes gzond verify the
 	// presence of these blocks for every new peer connection.
 	RequiredBlocks map[uint64]common.Hash `toml:"-"`
-
-	// Light client options
-	LightServ        int  `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
-	LightIngress     int  `toml:",omitempty"` // Incoming bandwidth limit for light servers
-	LightEgress      int  `toml:",omitempty"` // Outgoing bandwidth limit for light servers
-	LightPeers       int  `toml:",omitempty"` // Maximum number of LES client peers
-	LightNoPrune     bool `toml:",omitempty"` // Whether to disable light chain pruning
-	LightNoSyncServe bool `toml:",omitempty"` // Whether to serve light clients before syncing
 
 	// Database options
 	SkipBcVersionCheck bool `toml:"-"`

@@ -24,9 +24,9 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/internal/blocktest"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 )
 

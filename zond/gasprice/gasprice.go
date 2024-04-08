@@ -60,7 +60,7 @@ type OracleBackend interface {
 }
 
 // Oracle recommends gas prices based on the content of recent
-// blocks. Suitable for both light and full clients.
+// blocks.
 type Oracle struct {
 	backend     OracleBackend
 	lastHead    common.Hash

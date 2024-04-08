@@ -24,13 +24,13 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/enr"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/trie/trienode"
 )
 
 const (
@@ -321,7 +321,7 @@ func ServiceGetAccountRangeQuery(chain *core.BlockChain, req *GetAccountRangePac
 	it.Release()
 
 	// Generate the Merkle proofs for the first and last account
-	proof := light.NewNodeSet()
+	proof := trienode.NewProofSet()
 	if err := tr.Prove(req.Origin[:], proof); err != nil {
 		log.Warn("Failed to prove account range", "origin", req.Origin, "err", err)
 		return nil, nil
@@ -333,7 +333,7 @@ func ServiceGetAccountRangeQuery(chain *core.BlockChain, req *GetAccountRangePac
 		}
 	}
 	var proofs [][]byte
-	for _, blob := range proof.NodeList() {
+	for _, blob := range proof.List() {
 		proofs = append(proofs, blob)
 	}
 	return accounts, proofs
@@ -427,7 +427,7 @@ func ServiceGetStorageRangesQuery(chain *core.BlockChain, req *GetStorageRangesP
 			if err != nil {
 				return nil, nil
 			}
-			proof := light.NewNodeSet()
+			proof := trienode.NewProofSet()
 			if err := stTrie.Prove(origin[:], proof); err != nil {
 				log.Warn("Failed to prove storage range", "origin", req.Origin, "err", err)
 				return nil, nil
@@ -438,7 +438,7 @@ func ServiceGetStorageRangesQuery(chain *core.BlockChain, req *GetStorageRangesP
 					return nil, nil
 				}
 			}
-			for _, blob := range proof.NodeList() {
+			for _, blob := range proof.List() {
 				proofs = append(proofs, blob)
 			}
 			// Proof terminates the reply as proofs are only added if a node

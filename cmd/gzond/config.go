@@ -157,8 +157,8 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-	if ctx.IsSet(utils.EthStatsURLFlag.Name) {
-		cfg.Ethstats.URL = ctx.String(utils.EthStatsURLFlag.Name)
+	if ctx.IsSet(utils.ZondStatsURLFlag.Name) {
+		cfg.Ethstats.URL = ctx.String(utils.ZondStatsURLFlag.Name)
 	}
 	applyMetricConfig(ctx, &cfg)
 
@@ -168,18 +168,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 // makeFullNode loads geth configuration and creates the Ethereum backend.
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	stack, cfg := makeConfigNode(ctx)
-	if ctx.IsSet(utils.OverrideCancun.Name) {
-		v := ctx.Uint64(utils.OverrideCancun.Name)
-		cfg.Eth.OverrideCancun = &v
-	}
-	if ctx.IsSet(utils.OverrideVerkle.Name) {
-		v := ctx.Uint64(utils.OverrideVerkle.Name)
-		cfg.Eth.OverrideVerkle = &v
-	}
 	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Create gauge with geth system and build information
-	if eth != nil { // The 'eth' backend may be nil in light mode
+	if eth != nil {
 		var protos []string
 		for _, p := range eth.Protocols() {
 			protos = append(protos, fmt.Sprintf("%v/%d", p.Name, p.Version))
@@ -219,7 +211,7 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		}
 		catalyst.RegisterSimulatedBeaconAPIs(stack, simBeacon)
 		stack.RegisterLifecycle(simBeacon)
-	} else if cfg.Eth.SyncMode != downloader.LightSync {
+	} else {
 		err := catalyst.Register(stack, eth)
 		if err != nil {
 			utils.Fatalf("failed to register catalyst service: %v", err)

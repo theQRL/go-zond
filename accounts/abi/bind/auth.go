@@ -28,8 +28,7 @@ import (
 	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/log"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 )
 
 // ErrNoChainID is returned whenever the user failed to specify a chain id.
@@ -37,75 +36,6 @@ var ErrNoChainID = errors.New("no chain id specified")
 
 // ErrNotAuthorized is returned when an account is not properly unlocked.
 var ErrNotAuthorized = errors.New("not authorized to sign this account")
-
-// NewTransactor is a utility method to easily create a transaction signer from
-// an encrypted json key stream and the associated passphrase.
-//
-// Deprecated: Use NewTransactorWithChainID instead.
-func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
-	log.Warn("WARNING: NewTransactor has been deprecated in favour of NewTransactorWithChainID")
-	json, err := io.ReadAll(keyin)
-	if err != nil {
-		return nil, err
-	}
-	key, err := keystore.DecryptKey(json, passphrase)
-	if err != nil {
-		return nil, err
-	}
-	return NewKeyedTransactor(key.Dilithium), nil
-}
-
-// NewKeyStoreTransactor is a utility method to easily create a transaction signer from
-// an decrypted key from a keystore.
-//
-// Deprecated: Use NewKeyStoreTransactorWithChainID instead.
-func NewKeyStoreTransactor(keystore *keystore.KeyStore, account accounts.Account) (*TransactOpts, error) {
-	log.Warn("WARNING: NewKeyStoreTransactor has been deprecated in favour of NewTransactorWithChainID")
-	signer := types.HomesteadSigner{}
-	return &TransactOpts{
-		From: account.Address,
-		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
-			if address != account.Address {
-				return nil, ErrNotAuthorized
-			}
-			signature, err := keystore.SignHash(account, signer.Hash(tx).Bytes())
-			if err != nil {
-				return nil, err
-			}
-			pk, err := keystore.GetPublicKey(account)
-			if err != nil {
-				return nil, err
-			}
-			return tx.WithSignatureAndPublicKey(signer, signature, pk)
-		},
-		Context: context.Background(),
-	}, nil
-}
-
-// NewKeyedTransactor is a utility method to easily create a transaction signer
-// from a single private key.
-//
-// Deprecated: Use NewKeyedTransactorWithChainID instead.
-func NewKeyedTransactor(d *dilithium.Dilithium) *TransactOpts {
-	log.Warn("WARNING: NewKeyedTransactor has been deprecated in favour of NewKeyedTransactorWithChainID")
-	keyAddr := d.GetAddress()
-	signer := types.HomesteadSigner{}
-	return &TransactOpts{
-		From: keyAddr,
-		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
-			if address != keyAddr {
-				return nil, ErrNotAuthorized
-			}
-			signature, err := pqcrypto.Sign(signer.Hash(tx).Bytes(), d)
-			if err != nil {
-				return nil, err
-			}
-			pk := d.GetPK()
-			return tx.WithSignatureAndPublicKey(signer, signature, pk[:])
-		},
-		Context: context.Background(),
-	}
-}
 
 // NewTransactorWithChainID is a utility method to easily create a transaction signer from
 // an encrypted json key stream and the associated passphrase.

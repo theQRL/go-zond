@@ -37,12 +37,12 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zond/filters"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rpc"
+	"github.com/theQRL/go-zond/zond/filters"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // This nil assignment ensures at compile time that SimulatedBackend implements bind.ContractBackend.
@@ -93,7 +93,7 @@ func NewSimulatedBackendWithDatabase(database zonddb.Database, alloc core.Genesi
 
 	filterBackend := &filterBackend{database, blockchain, backend}
 	backend.filterSystem = filters.NewFilterSystem(filterBackend, filters.Config{})
-	backend.events = filters.NewEventSystem(backend.filterSystem, false)
+	backend.events = filters.NewEventSystem(backend.filterSystem)
 
 	header := backend.blockchain.CurrentBlock()
 	block := backend.blockchain.GetBlock(header.Hash(), header.Number.Uint64())

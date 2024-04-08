@@ -25,10 +25,10 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zond/protocols/snap"
 	"github.com/theQRL/go-zond/internal/utesting"
-	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/trie/trienode"
+	"github.com/theQRL/go-zond/zond/protocols/snap"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -530,11 +530,11 @@ func (s *Suite) snapGetAccountRange(t *utesting.T, tc *accRangeTest) error {
 	for i, key := range hashes {
 		keys[i] = common.CopyBytes(key[:])
 	}
-	nodes := make(light.NodeList, len(proof))
+	nodes := make(trienode.ProofList, len(proof))
 	for i, node := range proof {
 		nodes[i] = node
 	}
-	proofdb := nodes.NodeSet()
+	proofdb := nodes.Set()
 
 	var end []byte
 	if len(keys) > 0 {

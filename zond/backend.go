@@ -107,9 +107,6 @@ type Ethereum struct {
 // initialisation of the common Ethereum object)
 func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
-	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run zond.Ethereum in light sync mode, use les.LightEthereum")
-	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
@@ -507,13 +504,8 @@ func (s *Ethereum) Start() error {
 
 	// Figure out a max peers count based on the server limits
 	maxPeers := s.p2pServer.MaxPeers
-	if s.config.LightServ > 0 {
-		if s.config.LightPeers >= s.p2pServer.MaxPeers {
-			return fmt.Errorf("invalid peer config: light peer count (%d) >= total peer count (%d)", s.config.LightPeers, s.p2pServer.MaxPeers)
-		}
-		maxPeers -= s.config.LightPeers
-	}
-	// Start the networking layer and the light server if requested
+
+	// Start the networking layer if requested
 	s.handler.Start(maxPeers)
 	return nil
 }

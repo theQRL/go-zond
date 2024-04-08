@@ -19,8 +19,8 @@ Section "Gzond" GZOND_IDX
 
   # Create start menu launcher
   createDirectory "$SMPROGRAMS\${APPNAME}"
-  createShortCut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\geth.exe"
-  createShortCut "$SMPROGRAMS\${APPNAME}\Attach.lnk" "$INSTDIR\geth.exe" "attach"
+  createShortCut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\gzond.exe"
+  createShortCut "$SMPROGRAMS\${APPNAME}\Attach.lnk" "$INSTDIR\gzond.exe" "attach"
   createShortCut "$SMPROGRAMS\${APPNAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
   # Firewall - remove rules (if exists)
@@ -29,13 +29,13 @@ Section "Gzond" GZOND_IDX
   SimpleFC::AdvRemoveRule "Gzond UDP discovery (UDP:30303)"
 
   # Firewall - add rules
-  SimpleFC::AdvAddRule "Gzond incoming peers (TCP:30303)" ""  6 1 1 2147483647 1 "$INSTDIR\geth.exe" "" "" "Ethereum" 30303 "" "" ""
-  SimpleFC::AdvAddRule "Gzond outgoing peers (TCP:30303)" ""  6 2 1 2147483647 1 "$INSTDIR\geth.exe" "" "" "Ethereum" "" 30303 "" ""
-  SimpleFC::AdvAddRule "Gzond UDP discovery (UDP:30303)" "" 17 2 1 2147483647 1 "$INSTDIR\geth.exe" "" "" "Ethereum" "" 30303 "" ""
+  SimpleFC::AdvAddRule "Gzond incoming peers (TCP:30303)" ""  6 1 1 2147483647 1 "$INSTDIR\gzond.exe" "" "" "Zond" 30303 "" "" ""
+  SimpleFC::AdvAddRule "Gzond outgoing peers (TCP:30303)" ""  6 2 1 2147483647 1 "$INSTDIR\gzond.exe" "" "" "Zond" "" 30303 "" ""
+  SimpleFC::AdvAddRule "Gzond UDP discovery (UDP:30303)" "" 17 2 1 2147483647 1 "$INSTDIR\gzond.exe" "" "" "Zond" "" 30303 "" ""
 
   # Set default IPC endpoint (https://github.com/ethereum/EIPs/issues/147)
-  ${EnvVarUpdate} $0 "ETHEREUM_SOCKET" "R" "HKLM" "\\.\pipe\geth.ipc"
-  ${EnvVarUpdate} $0 "ETHEREUM_SOCKET" "A" "HKLM" "\\.\pipe\geth.ipc"
+  ${EnvVarUpdate} $0 "ETHEREUM_SOCKET" "R" "HKLM" "\\.\pipe\gzond.ipc"
+  ${EnvVarUpdate} $0 "ETHEREUM_SOCKET" "A" "HKLM" "\\.\pipe\gzond.ipc"
 
   # Add instdir to PATH
   Push "$INSTDIR"
@@ -54,8 +54,8 @@ Var GetInstalledSize.total
 Function GetInstalledSize
   StrCpy $GetInstalledSize.total 0
 
-  ${if} ${SectionIsSelected} ${GETH_IDX}
-    SectionGetSize ${GETH_IDX} $0
+  ${if} ${SectionIsSelected} ${GZOND_IDX}
+    SectionGetSize ${GZOND_IDX} $0
     IntOp $GetInstalledSize.total $GetInstalledSize.total + $0
   ${endif}
 

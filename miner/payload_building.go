@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/beacon/engine"
+	beaconparams "github.com/theQRL/go-zond/beacon/params"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
@@ -205,11 +206,10 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		timer := time.NewTimer(0)
 		defer timer.Stop()
 
-		// Setup the timer for terminating the process if SECONDS_PER_SLOT (12s in
+		// Setup the timer for terminating the process if SECONDS_PER_SLOT (60s in
 		// the Mainnet configuration) have passed since the point in time identified
 		// by the timestamp parameter.
-		// TODO: (cyyber) Move hard coded 12 to config
-		endTimer := time.NewTimer(time.Second * 60)
+		endTimer := time.NewTimer(time.Second * beaconparams.SecondsPerSlot)
 
 		fullParams := &generateParams{
 			timestamp:   args.Timestamp,

@@ -20,7 +20,6 @@ import "github.com/urfave/cli/v2"
 
 const (
 	EthCategory        = "ETHEREUM"
-	LightCategory      = "LIGHT CLIENT"
 	DevCategory        = "DEVELOPER CHAIN"
 	StateCategory      = "STATE HISTORY MANAGEMENT"
 	TxPoolCategory     = "TRANSACTION POOL (EVM)"

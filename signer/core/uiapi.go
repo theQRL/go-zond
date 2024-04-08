@@ -28,7 +28,7 @@ import (
 	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 )
 
 // SignerUIAPI implements methods Clef provides for a UI to query, in the bidirectional communication

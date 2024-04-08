@@ -38,7 +38,6 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/event"
-	"github.com/theQRL/go-zond/les"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
@@ -67,7 +66,6 @@ type backend interface {
 	SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription
 	CurrentHeader() *types.Header
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error)
-	GetTd(ctx context.Context, hash common.Hash) *big.Int
 	Stats() (pending int, queued int)
 	SyncProgress() zond.SyncProgress
 }
@@ -82,7 +80,7 @@ type fullNodeBackend interface {
 	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 }
 
-// Service implements an Ethereum netstats reporting daemon that pushes local
+// Service implements a Zond netstats reporting daemon that pushes local
 // chain statistics up to a monitoring server.
 type Service struct {
 	server  *p2p.Server // Peer-to-peer server to retrieve networking infos
@@ -150,10 +148,10 @@ func (w *connWrapper) Close() error {
 	return w.conn.Close()
 }
 
-// parseEthstatsURL parses the netstats connection url.
+// parseZondstatsURL parses the netstats connection url.
 // URL argument should be of the form <nodename:secret@host:port>
 // If non-erroring, the returned slice contains 3 elements: [nodename, pass, host]
-func parseEthstatsURL(url string) (parts []string, err error) {
+func parseZondstatsURL(url string) (parts []string, err error) {
 	err = fmt.Errorf("invalid netstats url: \"%s\", should be nodename:secret@host:port", url)
 
 	hostIndex := strings.LastIndex(url, "@")
@@ -176,11 +174,11 @@ func parseEthstatsURL(url string) (parts []string, err error) {
 
 // New returns a monitoring service ready for stats reporting.
 func New(node *node.Node, backend backend, engine consensus.Engine, url string) error {
-	parts, err := parseEthstatsURL(url)
+	parts, err := parseZondstatsURL(url)
 	if err != nil {
 		return err
 	}
-	ethstats := &Service{
+	zondstats := &Service{
 		backend: backend,
 		engine:  engine,
 		server:  node.Server(),
@@ -191,7 +189,7 @@ func New(node *node.Node, backend backend, engine consensus.Engine, url string) 
 		histCh:  make(chan []uint64, 1),
 	}
 
-	node.RegisterLifecycle(ethstats)
+	node.RegisterLifecycle(zondstats)
 	return nil
 }
 
@@ -477,10 +475,10 @@ func (s *Service) login(conn *connWrapper) error {
 		protocols = append(protocols, fmt.Sprintf("%s/%d", proto.Name, proto.Version))
 	}
 	var network string
-	if info := infos.Protocols["eth"]; info != nil {
+	if info := infos.Protocols["zond"]; info != nil {
 		network = fmt.Sprintf("%d", info.(*ethproto.NodeInfo).Network)
 	} else {
-		network = fmt.Sprintf("%d", infos.Protocols["les"].(*les.NodeInfo).Network)
+		return errors.New("zond protocol not available")
 	}
 	auth := &authMsg{
 		ID: s.node,
@@ -577,28 +575,14 @@ type blockStats struct {
 	Miner      common.Address `json:"miner"`
 	GasUsed    uint64         `json:"gasUsed"`
 	GasLimit   uint64         `json:"gasLimit"`
-	Diff       string         `json:"difficulty"`
-	TotalDiff  string         `json:"totalDifficulty"`
 	Txs        []txStats      `json:"transactions"`
 	TxHash     common.Hash    `json:"transactionsRoot"`
 	Root       common.Hash    `json:"stateRoot"`
-	Uncles     uncleStats     `json:"uncles"`
 }
 
 // txStats is the information to report about individual transactions.
 type txStats struct {
 	Hash common.Hash `json:"hash"`
-}
-
-// uncleStats is a custom wrapper around an uncle array to force serializing
-// empty arrays instead of returning null for them.
-type uncleStats []*types.Header
-
-func (s uncleStats) MarshalJSON() ([]byte, error) {
-	if uncles := ([]*types.Header)(s); len(uncles) > 0 {
-		return json.Marshal(uncles)
-	}
-	return []byte("[]"), nil
 }
 
 // reportBlock retrieves the current chain head and reports it to the stats server.
@@ -625,9 +609,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 	// Gather the block infos from the local blockchain
 	var (
 		header *types.Header
-		td     *big.Int
 		txs    []txStats
-		uncles []*types.Header
 	)
 
 	// check if backend is a full node
@@ -637,21 +619,18 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 			block = fullBackend.CurrentBlock()
 		}
 		header = block.Header()
-		td = fullBackend.GetTd(context.Background(), header.Hash())
 
 		txs = make([]txStats, len(block.Transactions()))
 		for i, tx := range block.Transactions() {
 			txs[i].Hash = tx.Hash()
 		}
-		uncles = block.Uncles()
 	} else {
-		// Light nodes would need on-demand lookups for transactions/uncles, skip
+		// Light nodes would need on-demand lookups for transactions, skip
 		if block != nil {
 			header = block.Header()
 		} else {
 			header = s.backend.CurrentHeader()
 		}
-		td = s.backend.GetTd(context.Background(), header.Hash())
 		txs = []txStats{}
 	}
 
@@ -666,12 +645,9 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		Miner:      author,
 		GasUsed:    header.GasUsed,
 		GasLimit:   header.GasLimit,
-		Diff:       header.Difficulty.String(),
-		TotalDiff:  td.String(),
 		Txs:        txs,
 		TxHash:     header.TxHash,
 		Root:       header.Root,
-		Uncles:     uncles,
 	}
 }
 
@@ -761,8 +737,6 @@ func (s *Service) reportPending(conn *connWrapper) error {
 type nodeStats struct {
 	Active   bool `json:"active"`
 	Syncing  bool `json:"syncing"`
-	Mining   bool `json:"mining"`
-	Hashrate int  `json:"hashrate"`
 	Peers    int  `json:"peers"`
 	GasPrice int  `json:"gasPrice"`
 	Uptime   int  `json:"uptime"`
@@ -773,17 +747,12 @@ type nodeStats struct {
 func (s *Service) reportStats(conn *connWrapper) error {
 	// Gather the syncing and mining infos from the local miner instance
 	var (
-		mining   bool
-		hashrate int
 		syncing  bool
 		gasprice int
 	)
 	// check if backend is a full node
 	fullBackend, ok := s.backend.(fullNodeBackend)
 	if ok {
-		mining = fullBackend.Miner().Mining()
-		hashrate = int(fullBackend.Miner().Hashrate())
-
 		sync := fullBackend.SyncProgress()
 		syncing = fullBackend.CurrentHeader().Number.Uint64() >= sync.HighestBlock
 
@@ -803,8 +772,6 @@ func (s *Service) reportStats(conn *connWrapper) error {
 		"id": s.node,
 		"stats": &nodeStats{
 			Active:   true,
-			Mining:   mining,
-			Hashrate: hashrate,
 			Peers:    s.server.PeerCount(),
 			GasPrice: gasprice,
 			Syncing:  syncing,
