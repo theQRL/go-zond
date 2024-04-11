@@ -28,12 +28,11 @@ import (
 	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/txpool"
 	"github.com/theQRL/go-zond/core/txpool/legacypool"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/params"
@@ -42,15 +41,15 @@ import (
 
 var (
 	// testKey is a private key to use for funding a tester account.
-	testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testKey, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
-	// testAddr is the Ethereum address of the tester account.
-	testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
+	// testAddr is the Zond address of the tester account.
+	testAddr = testKey.GetAddress()
 )
 
 func u64(val uint64) *uint64 { return &val }
 
-// testBackend is a mock implementation of the live Ethereum message handler. Its
+// testBackend is a mock implementation of the live Zond message handler. Its
 // purpose is to allow testing the request/reply workflows and wire serialization
 // in the `zond` protocol without actually doing any data processing.
 type testBackend struct {
@@ -105,7 +104,7 @@ func newTestBackendWithGenerator(blocks int, shanghai bool, generator func(int, 
 		Config: config,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(100_000_000_000_000_000)}},
 	}
-	chain, _ := core.NewBlockChain(db, nil, gspec, nil, engine, vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, gspec, engine, vm.Config{}, nil, nil)
 
 	_, bs, _ := core.GenerateChainWithGenesis(gspec, engine, blocks, generator)
 	if _, err := chain.InsertChain(bs); err != nil {
@@ -151,8 +150,6 @@ func (b *testBackend) Handle(*Peer, Packet) error {
 }
 
 // Tests that block headers can be retrieved from a remote chain based on user queries.
-func TestGetBlockHeaders66(t *testing.T) { testGetBlockHeaders(t, ETH66) }
-func TestGetBlockHeaders67(t *testing.T) { testGetBlockHeaders(t, ETH67) }
 func TestGetBlockHeaders68(t *testing.T) { testGetBlockHeaders(t, ETH68) }
 
 func testGetBlockHeaders(t *testing.T, protocol uint) {
@@ -338,8 +335,6 @@ func testGetBlockHeaders(t *testing.T, protocol uint) {
 }
 
 // Tests that block contents can be retrieved from a remote chain based on their hashes.
-func TestGetBlockBodies66(t *testing.T) { testGetBlockBodies(t, ETH66) }
-func TestGetBlockBodies67(t *testing.T) { testGetBlockBodies(t, ETH67) }
 func TestGetBlockBodies68(t *testing.T) { testGetBlockBodies(t, ETH68) }
 
 func testGetBlockBodies(t *testing.T, protocol uint) {
@@ -433,137 +428,17 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 	}
 }
 
-// Tests that the state trie nodes can be retrieved based on hashes.
-func TestGetNodeData66(t *testing.T) { testGetNodeData(t, ETH66, false) }
-func TestGetNodeData67(t *testing.T) { testGetNodeData(t, ETH67, true) }
-func TestGetNodeData68(t *testing.T) { testGetNodeData(t, ETH68, true) }
-
-func testGetNodeData(t *testing.T, protocol uint, drop bool) {
-	t.Parallel()
-
-	// Define three accounts to simulate transactions with
-	acc1Key, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-	acc2Key, _ := crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
-	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
-	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
-
-	signer := types.HomesteadSigner{}
-	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_makers_test)
-	generator := func(i int, block *core.BlockGen) {
-		switch i {
-		case 0:
-			// In block 1, the test bank sends account #1 some ether.
-			tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testAddr), acc1Addr, big.NewInt(10_000_000_000_000_000), params.TxGas, block.BaseFee(), nil), signer, testKey)
-			block.AddTx(tx)
-		case 1:
-			// In block 2, the test bank sends some more ether to account #1.
-			// acc1Addr passes it on to account #2.
-			tx1, _ := types.SignTx(types.NewTransaction(block.TxNonce(testAddr), acc1Addr, big.NewInt(1_000_000_000_000_000), params.TxGas, block.BaseFee(), nil), signer, testKey)
-			tx2, _ := types.SignTx(types.NewTransaction(block.TxNonce(acc1Addr), acc2Addr, big.NewInt(1_000_000_000_000_000), params.TxGas, block.BaseFee(), nil), signer, acc1Key)
-			block.AddTx(tx1)
-			block.AddTx(tx2)
-		case 2:
-			// Block 3 is empty but was mined by account #2.
-			block.SetCoinbase(acc2Addr)
-			block.SetExtra([]byte("yeehaw"))
-		case 3:
-			// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
-			b2 := block.PrevBlock(1).Header()
-			b2.Extra = []byte("foo")
-			block.AddUncle(b2)
-			b3 := block.PrevBlock(2).Header()
-			b3.Extra = []byte("foo")
-			block.AddUncle(b3)
-		}
-	}
-	// Assemble the test environment
-	backend := newTestBackendWithGenerator(4, false, generator)
-	defer backend.close()
-
-	peer, _ := newTestPeer("peer", protocol, backend)
-	defer peer.close()
-
-	// Collect all state tree hashes.
-	var hashes []common.Hash
-	it := backend.db.NewIterator(nil, nil)
-	for it.Next() {
-		if key := it.Key(); len(key) == common.HashLength {
-			hashes = append(hashes, common.BytesToHash(key))
-		}
-	}
-	it.Release()
-
-	// Request all hashes.
-	p2p.Send(peer.app, GetNodeDataMsg, &GetNodeDataPacket66{
-		RequestId:         123,
-		GetNodeDataPacket: hashes,
-	})
-	msg, err := peer.app.ReadMsg()
-	if !drop {
-		if err != nil {
-			t.Fatalf("failed to read node data response: %v", err)
-		}
-	} else {
-		if err != nil {
-			return
-		}
-		t.Fatalf("succeeded to read node data response on non-supporting protocol: %v", msg)
-	}
-	if msg.Code != NodeDataMsg {
-		t.Fatalf("response packet code mismatch: have %x, want %x", msg.Code, NodeDataMsg)
-	}
-	var res NodeDataPacket66
-	if err := msg.Decode(&res); err != nil {
-		t.Fatalf("failed to decode response node data: %v", err)
-	}
-
-	// Verify that all hashes correspond to the requested data.
-	data := res.NodeDataPacket
-	for i, want := range hashes {
-		if hash := crypto.Keccak256Hash(data[i]); hash != want {
-			t.Errorf("data hash mismatch: have %x, want %x", hash, want)
-		}
-	}
-
-	// Reconstruct state tree from the received data.
-	reconstructDB := rawdb.NewMemoryDatabase()
-	for i := 0; i < len(data); i++ {
-		rawdb.WriteLegacyTrieNode(reconstructDB, hashes[i], data[i])
-	}
-
-	// Sanity check whether all state matches.
-	accounts := []common.Address{testAddr, acc1Addr, acc2Addr}
-	for i := uint64(0); i <= backend.chain.CurrentBlock().Number.Uint64(); i++ {
-		root := backend.chain.GetBlockByNumber(i).Root()
-		reconstructed, _ := state.New(root, state.NewDatabase(reconstructDB), nil)
-		for j, acc := range accounts {
-			state, _ := backend.chain.StateAt(root)
-			bw := state.GetBalance(acc)
-			bh := reconstructed.GetBalance(acc)
-
-			if (bw == nil) != (bh == nil) {
-				t.Errorf("block %d, account %d: balance mismatch: have %v, want %v", i, j, bh, bw)
-			}
-			if bw != nil && bh != nil && bw.Cmp(bh) != 0 {
-				t.Errorf("block %d, account %d: balance mismatch: have %v, want %v", i, j, bh, bw)
-			}
-		}
-	}
-}
-
 // Tests that the transaction receipts can be retrieved based on hashes.
-func TestGetBlockReceipts66(t *testing.T) { testGetBlockReceipts(t, ETH66) }
-func TestGetBlockReceipts67(t *testing.T) { testGetBlockReceipts(t, ETH67) }
 func TestGetBlockReceipts68(t *testing.T) { testGetBlockReceipts(t, ETH68) }
 
 func testGetBlockReceipts(t *testing.T, protocol uint) {
 	t.Parallel()
 
 	// Define three accounts to simulate transactions with
-	acc1Key, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-	acc2Key, _ := crypto.HexToECDSA("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
-	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
-	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
+	acc1Key, _ := pqcrypto.HexToDilithium("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+	acc2Key, _ := pqcrypto.HexToDilithium("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
+	acc1Addr := acc1Key.GetAddress()
+	acc2Addr := acc2Key.GetAddress()
 
 	signer := types.HomesteadSigner{}
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)

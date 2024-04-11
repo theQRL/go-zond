@@ -23,8 +23,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/p2p"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 // TestEthProtocolNegotiation tests whether the test suite

@@ -34,7 +34,7 @@ import (
 	"github.com/theQRL/go-zond/consensus/misc/eip1559"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/internal/ethapi"
+	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/zond/filters"
@@ -310,7 +310,7 @@ func (t *Transaction) MaxFeePerGas(ctx context.Context) *hexutil.Big {
 		return nil
 	}
 	switch tx.Type() {
-	case types.DynamicFeeTxType, types.BlobTxType:
+	case types.DynamicFeeTxType:
 		return (*hexutil.Big)(tx.GasFeeCap())
 	default:
 		return nil
@@ -323,31 +323,11 @@ func (t *Transaction) MaxPriorityFeePerGas(ctx context.Context) *hexutil.Big {
 		return nil
 	}
 	switch tx.Type() {
-	case types.DynamicFeeTxType, types.BlobTxType:
+	case types.DynamicFeeTxType:
 		return (*hexutil.Big)(tx.GasTipCap())
 	default:
 		return nil
 	}
-}
-
-func (t *Transaction) MaxFeePerBlobGas(ctx context.Context) *hexutil.Big {
-	tx, _ := t.resolve(ctx)
-	if tx == nil {
-		return nil
-	}
-	return (*hexutil.Big)(tx.BlobGasFeeCap())
-}
-
-func (t *Transaction) BlobVersionedHashes(ctx context.Context) *[]common.Hash {
-	tx, _ := t.resolve(ctx)
-	if tx == nil {
-		return nil
-	}
-	if tx.Type() != types.BlobTxType {
-		return nil
-	}
-	blobHashes := tx.BlobHashes()
-	return &blobHashes
 }
 
 func (t *Transaction) EffectiveTip(ctx context.Context) (*hexutil.Big, error) {
@@ -480,40 +460,6 @@ func (t *Transaction) CumulativeGasUsed(ctx context.Context) (*hexutil.Uint64, e
 	}
 	ret := hexutil.Uint64(receipt.CumulativeGasUsed)
 	return &ret, nil
-}
-
-func (t *Transaction) BlobGasUsed(ctx context.Context) (*hexutil.Uint64, error) {
-	tx, _ := t.resolve(ctx)
-	if tx == nil {
-		return nil, nil
-	}
-	if tx.Type() != types.BlobTxType {
-		return nil, nil
-	}
-
-	receipt, err := t.getReceipt(ctx)
-	if err != nil || receipt == nil {
-		return nil, err
-	}
-	ret := hexutil.Uint64(receipt.BlobGasUsed)
-	return &ret, nil
-}
-
-func (t *Transaction) BlobGasPrice(ctx context.Context) (*hexutil.Big, error) {
-	tx, _ := t.resolve(ctx)
-	if tx == nil {
-		return nil, nil
-	}
-	if tx.Type() != types.BlobTxType {
-		return nil, nil
-	}
-
-	receipt, err := t.getReceipt(ctx)
-	if err != nil || receipt == nil {
-		return nil, err
-	}
-	ret := (*hexutil.Big)(receipt.BlobGasPrice)
-	return ret, nil
 }
 
 func (t *Transaction) CreatedContract(ctx context.Context, args BlockNumberArgs) (*Account, error) {
@@ -1044,30 +990,6 @@ func (b *Block) Withdrawals(ctx context.Context) (*[]*Withdrawal, error) {
 	return &ret, nil
 }
 
-func (b *Block) BlobGasUsed(ctx context.Context) (*hexutil.Uint64, error) {
-	header, err := b.resolveHeader(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if header.BlobGasUsed == nil {
-		return nil, nil
-	}
-	ret := hexutil.Uint64(*header.BlobGasUsed)
-	return &ret, nil
-}
-
-func (b *Block) ExcessBlobGas(ctx context.Context) (*hexutil.Uint64, error) {
-	header, err := b.resolveHeader(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if header.ExcessBlobGas == nil {
-		return nil, nil
-	}
-	ret := hexutil.Uint64(*header.ExcessBlobGas)
-	return &ret, nil
-}
-
 // BlockFilterCriteria encapsulates criteria passed to a `logs` accessor inside
 // a block.
 type BlockFilterCriteria struct {
@@ -1168,9 +1090,9 @@ func (c *CallResult) Status() hexutil.Uint64 {
 }
 
 func (b *Block) Call(ctx context.Context, args struct {
-	Data ethapi.TransactionArgs
+	Data zondapi.TransactionArgs
 }) (*CallResult, error) {
-	result, err := ethapi.DoCall(ctx, b.r.backend, args.Data, *b.numberOrHash, nil, nil, b.r.backend.RPCEVMTimeout(), b.r.backend.RPCGasCap())
+	result, err := zondapi.DoCall(ctx, b.r.backend, args.Data, *b.numberOrHash, nil, nil, b.r.backend.RPCEVMTimeout(), b.r.backend.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
@@ -1187,9 +1109,9 @@ func (b *Block) Call(ctx context.Context, args struct {
 }
 
 func (b *Block) EstimateGas(ctx context.Context, args struct {
-	Data ethapi.TransactionArgs
+	Data zondapi.TransactionArgs
 }) (hexutil.Uint64, error) {
-	return ethapi.DoEstimateGas(ctx, b.r.backend, args.Data, *b.numberOrHash, nil, b.r.backend.RPCGasCap())
+	return zondapi.DoEstimateGas(ctx, b.r.backend, args.Data, *b.numberOrHash, nil, b.r.backend.RPCGasCap())
 }
 
 type Pending struct {
@@ -1230,10 +1152,10 @@ func (p *Pending) Account(ctx context.Context, args struct {
 }
 
 func (p *Pending) Call(ctx context.Context, args struct {
-	Data ethapi.TransactionArgs
+	Data zondapi.TransactionArgs
 }) (*CallResult, error) {
 	pendingBlockNr := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
-	result, err := ethapi.DoCall(ctx, p.r.backend, args.Data, pendingBlockNr, nil, nil, p.r.backend.RPCEVMTimeout(), p.r.backend.RPCGasCap())
+	result, err := zondapi.DoCall(ctx, p.r.backend, args.Data, pendingBlockNr, nil, nil, p.r.backend.RPCEVMTimeout(), p.r.backend.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
@@ -1250,15 +1172,15 @@ func (p *Pending) Call(ctx context.Context, args struct {
 }
 
 func (p *Pending) EstimateGas(ctx context.Context, args struct {
-	Data ethapi.TransactionArgs
+	Data zondapi.TransactionArgs
 }) (hexutil.Uint64, error) {
 	latestBlockNr := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
-	return ethapi.DoEstimateGas(ctx, p.r.backend, args.Data, latestBlockNr, nil, p.r.backend.RPCGasCap())
+	return zondapi.DoEstimateGas(ctx, p.r.backend, args.Data, latestBlockNr, nil, p.r.backend.RPCGasCap())
 }
 
 // Resolver is the top-level object in the GraphQL hierarchy.
 type Resolver struct {
-	backend      ethapi.Backend
+	backend      zondapi.Backend
 	filterSystem *filters.FilterSystem
 }
 
@@ -1359,7 +1281,7 @@ func (r *Resolver) SendRawTransaction(ctx context.Context, args struct{ Data hex
 	if err := tx.UnmarshalBinary(args.Data); err != nil {
 		return common.Hash{}, err
 	}
-	hash, err := ethapi.SubmitTransaction(ctx, r.backend, tx)
+	hash, err := zondapi.SubmitTransaction(ctx, r.backend, tx)
 	return hash, err
 }
 

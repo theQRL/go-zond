@@ -24,7 +24,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/holiman/uint256"
 	"github.com/kylelemons/godebug/diff"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/params"
@@ -88,8 +87,6 @@ var (
 	to3 = common.HexToAddress("0x3")
 	to4 = common.HexToAddress("0x4")
 	to5 = common.HexToAddress("0x5")
-	to6 = common.HexToAddress("0x6")
-	to7 = common.HexToAddress("0x7")
 	txs = Transactions{
 		NewTx(&LegacyTx{
 			Nonce:    1,
@@ -127,27 +124,6 @@ var (
 			Gas:       5,
 			GasTipCap: big.NewInt(55),
 			GasFeeCap: big.NewInt(1055),
-		}),
-		// EIP-4844 transactions.
-		NewTx(&BlobTx{
-			To:         to6,
-			Nonce:      6,
-			Value:      uint256.NewInt(6),
-			Gas:        6,
-			GasTipCap:  uint256.NewInt(66),
-			GasFeeCap:  uint256.NewInt(1066),
-			BlobFeeCap: uint256.NewInt(100066),
-			BlobHashes: []common.Hash{{}},
-		}),
-		NewTx(&BlobTx{
-			To:         to7,
-			Nonce:      7,
-			Value:      uint256.NewInt(7),
-			Gas:        7,
-			GasTipCap:  uint256.NewInt(77),
-			GasFeeCap:  uint256.NewInt(1077),
-			BlobFeeCap: uint256.NewInt(100077),
-			BlobHashes: []common.Hash{{}, {}, {}},
 		}),
 	}
 
@@ -263,36 +239,6 @@ var (
 			BlockNumber:       blockNumber,
 			TransactionIndex:  4,
 		},
-		&Receipt{
-			Type:              BlobTxType,
-			PostState:         common.Hash{6}.Bytes(),
-			CumulativeGasUsed: 21,
-			Logs:              []*Log{},
-			// derived fields:
-			TxHash:            txs[5].Hash(),
-			GasUsed:           6,
-			EffectiveGasPrice: big.NewInt(1066),
-			BlobGasUsed:       params.BlobTxBlobGasPerBlob,
-			BlobGasPrice:      big.NewInt(920),
-			BlockHash:         blockHash,
-			BlockNumber:       blockNumber,
-			TransactionIndex:  5,
-		},
-		&Receipt{
-			Type:              BlobTxType,
-			PostState:         common.Hash{7}.Bytes(),
-			CumulativeGasUsed: 28,
-			Logs:              []*Log{},
-			// derived fields:
-			TxHash:            txs[6].Hash(),
-			GasUsed:           7,
-			EffectiveGasPrice: big.NewInt(1077),
-			BlobGasUsed:       3 * params.BlobTxBlobGasPerBlob,
-			BlobGasPrice:      big.NewInt(920),
-			BlockHash:         blockHash,
-			BlockNumber:       blockNumber,
-			TransactionIndex:  6,
-		},
 	}
 )
 
@@ -309,9 +255,8 @@ func TestDecodeEmptyTypedReceipt(t *testing.T) {
 func TestDeriveFields(t *testing.T) {
 	// Re-derive receipts.
 	basefee := big.NewInt(1000)
-	blobGasPrice := big.NewInt(920)
 	derivedReceipts := clearComputedFieldsOnReceipts(receipts)
-	err := Receipts(derivedReceipts).DeriveFields(params.TestChainConfig, blockHash, blockNumber.Uint64(), blockTime, basefee, blobGasPrice, txs)
+	err := Receipts(derivedReceipts).DeriveFields(params.TestChainConfig, blockHash, blockNumber.Uint64(), blockTime, basefee, txs)
 	if err != nil {
 		t.Fatalf("DeriveFields(...) = %v, want <nil>", err)
 	}
@@ -509,8 +454,6 @@ func clearComputedFieldsOnReceipt(receipt *Receipt) *Receipt {
 	cpy.GasUsed = 0xffffffff
 	cpy.Logs = clearComputedFieldsOnLogs(receipt.Logs)
 	cpy.EffectiveGasPrice = big.NewInt(0)
-	cpy.BlobGasUsed = 0
-	cpy.BlobGasPrice = nil
 	return &cpy
 }
 

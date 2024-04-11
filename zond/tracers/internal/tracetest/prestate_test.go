@@ -29,8 +29,8 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zond/tracers"
 	"github.com/theQRL/go-zond/tests"
+	"github.com/theQRL/go-zond/zond/tracers"
 )
 
 // prestateTrace is the result of a prestateTrace run.

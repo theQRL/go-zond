@@ -17,12 +17,12 @@
 package miner
 
 import (
-	"crypto/ecdsa"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/txpool"
 	"github.com/theQRL/go-zond/core/types"
@@ -44,9 +44,9 @@ func TestTransactionPriceNonceSort1559(t *testing.T) {
 // the same account.
 func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	// Generate a batch of accounts to start with
-	keys := make([]*ecdsa.PrivateKey, 25)
+	keys := make([]*dilithium.Dilithium, 25)
 	for i := 0; i < len(keys); i++ {
-		keys[i], _ = crypto.GenerateKey()
+		keys[i], _ = crypto.GenerateDilithiumKey()
 	}
 	signer := types.LatestSignerForChainID(common.Big1)
 
@@ -54,7 +54,7 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	groups := map[common.Address][]*txpool.LazyTransaction{}
 	expectedCount := 0
 	for start, key := range keys {
-		addr := crypto.PubkeyToAddress(key.PublicKey)
+		addr := key.GetAddress()
 		count := 25
 		for i := 0; i < 25; i++ {
 			var tx *types.Transaction
@@ -137,16 +137,16 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 // are prioritized to avoid network spam attacks aiming for a specific ordering.
 func TestTransactionTimeSort(t *testing.T) {
 	// Generate a batch of accounts to start with
-	keys := make([]*ecdsa.PrivateKey, 5)
+	keys := make([]*dilithium.Dilithium, 5)
 	for i := 0; i < len(keys); i++ {
-		keys[i], _ = crypto.GenerateKey()
+		keys[i], _ = crypto.GenerateDilithiumKey()
 	}
 	signer := types.HomesteadSigner{}
 
 	// Generate a batch of transactions with overlapping prices, but different creation times
 	groups := map[common.Address][]*txpool.LazyTransaction{}
 	for start, key := range keys {
-		addr := crypto.PubkeyToAddress(key.PublicKey)
+		addr := key.GetAddress()
 
 		tx, _ := types.SignTx(types.NewTransaction(0, common.Address{}, big.NewInt(100), 100, big.NewInt(1), nil), signer, key)
 		tx.SetTime(time.Unix(0, int64(len(keys)-start)))

@@ -192,9 +192,6 @@ func Transition(ctx *cli.Context) error {
 	if err := applyMergeChecks(&prestate.Env, chainConfig); err != nil {
 		return err
 	}
-	if err := applyCancunChecks(&prestate.Env, chainConfig); err != nil {
-		return err
-	}
 	// Run the test and aggregate the result
 	s, result, err := prestate.Apply(vmConfig, chainConfig, txs, ctx.Int64(RewardFlag.Name), getTracer)
 	if err != nil {
@@ -388,19 +385,6 @@ func applyMergeChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		return NewError(ErrorConfig, errors.New("post-merge difficulty must be zero (or omitted) in env"))
 	}
 	env.Difficulty = nil
-	return nil
-}
-
-func applyCancunChecks(env *stEnv, chainConfig *params.ChainConfig) error {
-	if !chainConfig.IsCancun(big.NewInt(int64(env.Number)), env.Timestamp) {
-		env.ParentBeaconBlockRoot = nil // un-set it if it has been set too early
-		return nil
-	}
-	// Post-cancun
-	// We require EIP-4788 beacon root to be set in the env
-	if env.ParentBeaconBlockRoot == nil {
-		return NewError(ErrorConfig, errors.New("post-cancun env requires parentBeaconBlockRoot to be set"))
-	}
 	return nil
 }
 

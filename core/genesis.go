@@ -59,12 +59,10 @@ type Genesis struct {
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
-	Number        uint64      `json:"number"`
-	GasUsed       uint64      `json:"gasUsed"`
-	ParentHash    common.Hash `json:"parentHash"`
-	BaseFee       *big.Int    `json:"baseFeePerGas"` // EIP-1559
-	ExcessBlobGas *uint64     `json:"excessBlobGas"` // EIP-4844
-	BlobGasUsed   *uint64     `json:"blobGasUsed"`   // EIP-4844
+	Number     uint64      `json:"number"`
+	GasUsed    uint64      `json:"gasUsed"`
+	ParentHash common.Hash `json:"parentHash"`
+	BaseFee    *big.Int    `json:"baseFeePerGas"` // EIP-1559
 }
 
 func ReadGenesis(db zonddb.Database) (*Genesis, error) {
@@ -99,8 +97,6 @@ func ReadGenesis(db zonddb.Database) (*Genesis, error) {
 	genesis.Mixhash = genesisHeader.MixDigest
 	genesis.Coinbase = genesisHeader.Coinbase
 	genesis.BaseFee = genesisHeader.BaseFee
-	genesis.ExcessBlobGas = genesisHeader.ExcessBlobGas
-	genesis.BlobGasUsed = genesisHeader.BlobGasUsed
 
 	return &genesis, nil
 }
@@ -221,17 +217,15 @@ type GenesisAccount struct {
 
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
-	Nonce         math.HexOrDecimal64
-	Timestamp     math.HexOrDecimal64
-	ExtraData     hexutil.Bytes
-	GasLimit      math.HexOrDecimal64
-	GasUsed       math.HexOrDecimal64
-	Number        math.HexOrDecimal64
-	Difficulty    *math.HexOrDecimal256
-	Alloc         map[common.UnprefixedAddress]GenesisAccount
-	BaseFee       *math.HexOrDecimal256
-	ExcessBlobGas *math.HexOrDecimal64
-	BlobGasUsed   *math.HexOrDecimal64
+	Nonce      math.HexOrDecimal64
+	Timestamp  math.HexOrDecimal64
+	ExtraData  hexutil.Bytes
+	GasLimit   math.HexOrDecimal64
+	GasUsed    math.HexOrDecimal64
+	Number     math.HexOrDecimal64
+	Difficulty *math.HexOrDecimal256
+	Alloc      map[common.UnprefixedAddress]GenesisAccount
+	BaseFee    *math.HexOrDecimal256
 }
 
 type genesisAccountMarshaling struct {
@@ -272,12 +266,6 @@ func (e *GenesisMismatchError) Error() string {
 	return fmt.Sprintf("database contains incompatible genesis (have %x, new %x)", e.Stored, e.New)
 }
 
-// ChainOverrides contains the changes to chain config.
-type ChainOverrides struct {
-	OverrideCancun *uint64
-	OverrideVerkle *uint64
-}
-
 // SetupGenesisBlock writes or updates the genesis block in db.
 // The block that will be used is:
 //
@@ -292,22 +280,12 @@ type ChainOverrides struct {
 //
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db zonddb.Database, triedb *trie.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
-	return SetupGenesisBlockWithOverride(db, triedb, genesis, nil)
+	return SetupGenesisBlockWithOverride(db, triedb, genesis)
 }
 
-func SetupGenesisBlockWithOverride(db zonddb.Database, triedb *trie.Database, genesis *Genesis, overrides *ChainOverrides) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlockWithOverride(db zonddb.Database, triedb *trie.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
-	}
-	applyOverrides := func(config *params.ChainConfig) {
-		if config != nil {
-			if overrides != nil && overrides.OverrideCancun != nil {
-				config.CancunTime = overrides.OverrideCancun
-			}
-			if overrides != nil && overrides.OverrideVerkle != nil {
-				config.VerkleTime = overrides.OverrideVerkle
-			}
-		}
 	}
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
@@ -322,7 +300,6 @@ func SetupGenesisBlockWithOverride(db zonddb.Database, triedb *trie.Database, ge
 		if err != nil {
 			return genesis.Config, common.Hash{}, err
 		}
-		applyOverrides(genesis.Config)
 		return genesis.Config, block.Hash(), nil
 	}
 	// The genesis block is present(perhaps in ancient database) while the
@@ -343,7 +320,6 @@ func SetupGenesisBlockWithOverride(db zonddb.Database, triedb *trie.Database, ge
 		if err != nil {
 			return genesis.Config, hash, err
 		}
-		applyOverrides(genesis.Config)
 		return genesis.Config, block.Hash(), nil
 	}
 	// Check whether the genesis block is already written.
@@ -355,7 +331,6 @@ func SetupGenesisBlockWithOverride(db zonddb.Database, triedb *trie.Database, ge
 	}
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
-	applyOverrides(newcfg)
 	if err := newcfg.CheckConfigForkOrder(); err != nil {
 		return newcfg, common.Hash{}, err
 	}
@@ -373,7 +348,6 @@ func SetupGenesisBlockWithOverride(db zonddb.Database, triedb *trie.Database, ge
 	// apply the overrides.
 	if genesis == nil && stored != params.MainnetGenesisHash {
 		newcfg = storedcfg
-		applyOverrides(newcfg)
 	}
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
@@ -476,21 +450,6 @@ func (g *Genesis) ToBlock() *types.Block {
 			head.WithdrawalsHash = &types.EmptyWithdrawalsHash
 			withdrawals = make([]*types.Withdrawal, 0)
 		}
-		if conf.IsCancun(num, g.Timestamp) {
-			// EIP-4788: The parentBeaconBlockRoot of the genesis block is always
-			// the zero hash. This is because the genesis block does not have a parent
-			// by definition.
-			head.ParentBeaconRoot = new(common.Hash)
-			// EIP-4844 fields
-			head.ExcessBlobGas = g.ExcessBlobGas
-			head.BlobGasUsed = g.BlobGasUsed
-			if head.ExcessBlobGas == nil {
-				head.ExcessBlobGas = new(uint64)
-			}
-			if head.BlobGasUsed == nil {
-				head.BlobGasUsed = new(uint64)
-			}
-		}
 	}
 	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil)).WithWithdrawals(withdrawals)
 }
@@ -564,7 +523,7 @@ func DefaultBetaNetGenesisBlock() *Genesis {
 	}
 }
 
-// DeveloperGenesisBlock returns the 'geth --dev' genesis block.
+// DeveloperGenesisBlock returns the 'gzond --dev' genesis block.
 func DeveloperGenesisBlock(gasLimit uint64, faucet common.Address) *Genesis {
 	// Override the default period to the user requested one
 	config := *params.AllDevChainProtocolChanges
@@ -576,15 +535,13 @@ func DeveloperGenesisBlock(gasLimit uint64, faucet common.Address) *Genesis {
 		BaseFee:    big.NewInt(params.InitialBaseFee),
 		Difficulty: big.NewInt(0),
 		Alloc: map[common.Address]GenesisAccount{
-			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
+			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // DepositRoot
 			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
-			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
 			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
 			common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			common.BytesToAddress([]byte{9}): {Balance: big.NewInt(1)}, // BLAKE2b
 			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}

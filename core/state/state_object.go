@@ -127,11 +127,6 @@ func (s *stateObject) touch() {
 	s.db.journal.append(touchChange{
 		account: &s.address,
 	})
-	if s.address == ripemd {
-		// Explicitly put it in the dirty-cache, which is otherwise generated from
-		// flattened journals.
-		s.db.journal.dirty(s.address)
-	}
 }
 
 // getTrie returns the associated storage trie. The trie will be opened

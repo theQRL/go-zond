@@ -69,7 +69,7 @@ func (w *withdrawalQueue) gatherPending(maxCount int) []*types.Withdrawal {
 
 type SimulatedBeacon struct {
 	shutdownCh  chan struct{}
-	eth         *zond.Ethereum
+	zond        *zond.Zond
 	period      uint64
 	withdrawals withdrawalQueue
 
@@ -81,18 +81,18 @@ type SimulatedBeacon struct {
 	lastBlockTime      uint64
 }
 
-func NewSimulatedBeacon(period uint64, eth *zond.Ethereum) (*SimulatedBeacon, error) {
-	chainConfig := eth.APIBackend.ChainConfig()
+func NewSimulatedBeacon(period uint64, zond *zond.Zond) (*SimulatedBeacon, error) {
+	chainConfig := zond.APIBackend.ChainConfig()
 	if !chainConfig.IsDevMode {
 		return nil, errors.New("incompatible pre-existing chain configuration")
 	}
-	block := eth.BlockChain().CurrentBlock()
+	block := zond.BlockChain().CurrentBlock()
 	current := engine.ForkchoiceStateV1{
 		HeadBlockHash:      block.Hash(),
 		SafeBlockHash:      block.Hash(),
 		FinalizedBlockHash: block.Hash(),
 	}
-	engineAPI := newConsensusAPIWithoutHeartbeat(eth)
+	engineAPI := newConsensusAPIWithoutHeartbeat(zond)
 
 	// if genesis block, send forkchoiceUpdated to trigger transition to PoS
 	if block.Number.Sign() == 0 {
@@ -101,7 +101,7 @@ func NewSimulatedBeacon(period uint64, eth *zond.Ethereum) (*SimulatedBeacon, er
 		}
 	}
 	return &SimulatedBeacon{
-		eth:                eth,
+		zond:               zond,
 		period:             period,
 		shutdownCh:         make(chan struct{}),
 		engineAPI:          engineAPI,
@@ -145,7 +145,7 @@ func (c *SimulatedBeacon) sealBlock(withdrawals []*types.Withdrawal) error {
 	c.feeRecipientLock.Unlock()
 
 	// Reset to CurrentBlock in case of the chain was rewound
-	if header := c.eth.BlockChain().CurrentBlock(); c.curForkchoiceState.HeadBlockHash != header.Hash() {
+	if header := c.zond.BlockChain().CurrentBlock(); c.curForkchoiceState.HeadBlockHash != header.Hash() {
 		finalizedHash := c.finalizedBlockHash(header.Number.Uint64())
 		c.setCurrentState(header.Hash(), *finalizedHash)
 	}
@@ -199,7 +199,7 @@ func (c *SimulatedBeacon) sealBlock(withdrawals []*types.Withdrawal) error {
 func (c *SimulatedBeacon) loopOnDemand() {
 	var (
 		newTxs = make(chan core.NewTxsEvent)
-		sub    = c.eth.TxPool().SubscribeNewTxsEvent(newTxs)
+		sub    = c.zond.TxPool().SubscribeNewTxsEvent(newTxs)
 	)
 	defer sub.Unsubscribe()
 
@@ -249,7 +249,7 @@ func (c *SimulatedBeacon) finalizedBlockHash(number uint64) *common.Hash {
 		finalizedNumber = (number - 1) / devEpochLength * devEpochLength
 	}
 
-	if finalizedBlock := c.eth.BlockChain().GetBlockByNumber(finalizedNumber); finalizedBlock != nil {
+	if finalizedBlock := c.zond.BlockChain().GetBlockByNumber(finalizedNumber); finalizedBlock != nil {
 		fh := finalizedBlock.Hash()
 		return &fh
 	}

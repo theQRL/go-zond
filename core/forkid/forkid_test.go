@@ -385,7 +385,6 @@ func TestTimeBasedForkInGenesis(t *testing.T) {
 				TerminalTotalDifficultyPassed: true,
 				MergeNetsplitBlock:            big.NewInt(0),
 				ShanghaiTime:                  &shanghai,
-				CancunTime:                    &cancun,
 				Ethash:                        new(params.EthashConfig),
 			}
 		}

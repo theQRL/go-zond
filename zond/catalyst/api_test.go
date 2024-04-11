@@ -28,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mattn/go-colorable"
 	"github.com/theQRL/go-zond/beacon/engine"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
@@ -38,9 +37,7 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/crypto/kzg4844"
 	"github.com/theQRL/go-zond/crypto/pqcrypto"
-	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
@@ -49,7 +46,7 @@ import (
 	"github.com/theQRL/go-zond/trie"
 	"github.com/theQRL/go-zond/zond"
 	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/zond/zondconfig"
 )
 
 var (
@@ -150,7 +147,7 @@ func TestEth2AssembleBlockWithAnotherBlocksTxs(t *testing.T) {
 
 	// Put the 10th block's tx in the pool and produce a new block
 	txs := blocks[9].Transactions()
-	api.eth.TxPool().Add(txs, false, true)
+	api.zond.TxPool().Add(txs, false, true)
 	blockParams := engine.PayloadAttributes{
 		Timestamp: blocks[8].Time() + 5,
 	}
@@ -210,9 +207,8 @@ func TestEth2PrepareAndGetPayload(t *testing.T) {
 		Timestamp:    blockParams.Timestamp,
 		FeeRecipient: blockParams.SuggestedFeeRecipient,
 		Random:       blockParams.Random,
-		BeaconRoot:   blockParams.BeaconRoot,
 	}).Id()
-	execData, err := api.GetPayloadV1(payloadID)
+	execData, err := api.GetPayloadV2(payloadID)
 	if err != nil {
 		t.Fatalf("error getting payload, err=%v", err)
 	}
@@ -223,7 +219,7 @@ func TestEth2PrepareAndGetPayload(t *testing.T) {
 	var invPayload engine.PayloadID
 	copy(invPayload[:], payloadID[:])
 	invPayload[0] = ^invPayload[0]
-	_, err = api.GetPayloadV1(invPayload)
+	_, err = api.GetPayloadV2(invPayload)
 	if err == nil {
 		t.Fatal("expected error retrieving invalid payload")
 	}
@@ -321,11 +317,11 @@ func TestEth2NewBlock(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create the executable data %v", err)
 		}
-		block, err := engine.ExecutableDataToBlock(*execData, nil, nil)
+		block, err := engine.ExecutableDataToBlock(*execData)
 		if err != nil {
 			t.Fatalf("Failed to convert executable data to block %v", err)
 		}
-		newResp, err := api.NewPayloadV1(*execData)
+		newResp, err := api.NewPayloadV2(*execData)
 		switch {
 		case err != nil:
 			t.Fatalf("Failed to insert block: %v", err)
@@ -363,11 +359,11 @@ func TestEth2NewBlock(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create the executable data %v", err)
 		}
-		block, err := engine.ExecutableDataToBlock(*execData, nil, nil)
+		block, err := engine.ExecutableDataToBlock(*execData)
 		if err != nil {
 			t.Fatalf("Failed to convert executable data to block %v", err)
 		}
-		newResp, err := api.NewPayloadV1(*execData)
+		newResp, err := api.NewPayloadV2(*execData)
 		if err != nil || newResp.Status != "VALID" {
 			t.Fatalf("Failed to insert block: %v", err)
 		}
@@ -437,7 +433,7 @@ func TestEth2DeepReorg(t *testing.T) {
 }
 
 // startEthService creates a full node instance for testing.
-func startEthService(t *testing.T, genesis *core.Genesis, blocks []*types.Block) (*node.Node, *zond.Ethereum) {
+func startEthService(t *testing.T, genesis *core.Genesis, blocks []*types.Block) (*node.Node, *zond.Zond) {
 	t.Helper()
 
 	n, err := node.New(&node.Config{
@@ -450,7 +446,7 @@ func startEthService(t *testing.T, genesis *core.Genesis, blocks []*types.Block)
 		t.Fatal("can't create node:", err)
 	}
 
-	ethcfg := &ethconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256}
+	ethcfg := &zondconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256}
 	ethservice, err := zond.New(n, ethcfg)
 	if err != nil {
 		t.Fatal("can't create zond service:", err)
@@ -488,7 +484,7 @@ func TestFullAPI(t *testing.T) {
 	setupBlocks(t, ethservice, 10, parent, callback, nil)
 }
 
-func setupBlocks(t *testing.T, ethservice *zond.Ethereum, n int, parent *types.Header, callback func(parent *types.Header), withdrawals [][]*types.Withdrawal) []*types.Header {
+func setupBlocks(t *testing.T, ethservice *zond.Zond, n int, parent *types.Header, callback func(parent *types.Header), withdrawals [][]*types.Withdrawal) []*types.Header {
 	api := NewConsensusAPI(ethservice)
 	var blocks []*types.Header
 	for i := 0; i < n; i++ {
@@ -633,7 +629,7 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 			}
 			// give the payload some time to be built
 			time.Sleep(50 * time.Millisecond)
-			if payload, err = api.GetPayloadV1(*resp.PayloadID); err != nil {
+			if payload, err = api.GetPayloadV2(*resp.PayloadID); err != nil {
 				t.Fatalf("can't get payload: %v", err)
 			}
 			if len(payload.Transactions) > 0 {
@@ -645,7 +641,7 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 				t.Fatalf("payload should not be empty")
 			}
 		}
-		execResp, err := api.NewPayloadV1(*payload)
+		execResp, err := api.NewPayloadV2(*payload)
 		if err != nil {
 			t.Fatalf("can't execute payload: %v", err)
 		}
@@ -674,9 +670,8 @@ func assembleBlock(api *ConsensusAPI, parentHash common.Hash, params *engine.Pay
 		FeeRecipient: params.SuggestedFeeRecipient,
 		Random:       params.Random,
 		Withdrawals:  params.Withdrawals,
-		BeaconRoot:   params.BeaconRoot,
 	}
-	payload, err := api.eth.Miner().BuildPayload(args)
+	payload, err := api.zond.Miner().BuildPayload(args)
 	if err != nil {
 		return nil, err
 	}
@@ -697,7 +692,7 @@ func TestEmptyBlocks(t *testing.T) {
 	// (1) check LatestValidHash by sending a normal payload (P1'')
 	payload := getNewPayload(t, api, commonAncestor, nil)
 
-	status, err := api.NewPayloadV1(*payload)
+	status, err := api.NewPayloadV2(*payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -713,7 +708,7 @@ func TestEmptyBlocks(t *testing.T) {
 	payload.GasUsed += 1
 	payload = setBlockhash(payload)
 	// Now latestValidHash should be the common ancestor
-	status, err = api.NewPayloadV1(*payload)
+	status, err = api.NewPayloadV2(*payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -731,7 +726,7 @@ func TestEmptyBlocks(t *testing.T) {
 	payload.ParentHash = common.Hash{1}
 	payload = setBlockhash(payload)
 	// Now latestValidHash should be the common ancestor
-	status, err = api.NewPayloadV1(*payload)
+	status, err = api.NewPayloadV2(*payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -843,7 +838,7 @@ func TestTrickRemoteBlockCache(t *testing.T) {
 
 	// feed the payloads to node B
 	for _, payload := range invalidChain {
-		status, err := apiB.NewPayloadV1(*payload)
+		status, err := apiB.NewPayloadV2(*payload)
 		if err != nil {
 			panic(err)
 		}
@@ -877,7 +872,7 @@ func TestInvalidBloom(t *testing.T) {
 	// (1) check LatestValidHash by sending a normal payload (P1'')
 	payload := getNewPayload(t, api, commonAncestor, nil)
 	payload.LogsBloom = append(payload.LogsBloom, byte(1))
-	status, err := api.NewPayloadV1(*payload)
+	status, err := api.NewPayloadV2(*payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -914,7 +909,7 @@ func TestNewPayloadOnInvalidTerminalBlock(t *testing.T) {
 		Random:       crypto.Keccak256Hash([]byte{byte(1)}),
 		FeeRecipient: parent.Coinbase(),
 	}
-	payload, err := api.eth.Miner().BuildPayload(args)
+	payload, err := api.zond.Miner().BuildPayload(args)
 	if err != nil {
 		t.Fatalf("error preparing payload, err=%v", err)
 	}
@@ -941,7 +936,7 @@ func TestNewPayloadOnInvalidTerminalBlock(t *testing.T) {
 	block := types.NewBlockWithHeader(header).WithBody(txs, nil /* uncles */)
 	data.BlockHash = block.Hash()
 	// Send the new payload
-	resp2, err := api.NewPayloadV1(data)
+	resp2, err := api.NewPayloadV2(data)
 	if err != nil {
 		t.Fatalf("error sending NewPayload, err=%v", err)
 	}
@@ -980,7 +975,7 @@ func TestSimultaneousNewBlock(t *testing.T) {
 			for ii := 0; ii < 10; ii++ {
 				go func() {
 					defer wg.Done()
-					if newResp, err := api.NewPayloadV1(*execData); err != nil {
+					if newResp, err := api.NewPayloadV2(*execData); err != nil {
 						errMu.Lock()
 						testErr = fmt.Errorf("Failed to insert block: %w", err)
 						errMu.Unlock()
@@ -996,7 +991,7 @@ func TestSimultaneousNewBlock(t *testing.T) {
 				t.Fatal(testErr)
 			}
 		}
-		block, err := engine.ExecutableDataToBlock(*execData, nil, nil)
+		block, err := engine.ExecutableDataToBlock(*execData)
 		if err != nil {
 			t.Fatalf("Failed to convert executable data to block %v", err)
 		}
@@ -1076,7 +1071,6 @@ func TestWithdrawals(t *testing.T) {
 		FeeRecipient: blockParams.SuggestedFeeRecipient,
 		Random:       blockParams.Random,
 		Withdrawals:  blockParams.Withdrawals,
-		BeaconRoot:   blockParams.BeaconRoot,
 	}).Id()
 	execData, err := api.GetPayloadV2(payloadID)
 	if err != nil {
@@ -1124,7 +1118,6 @@ func TestWithdrawals(t *testing.T) {
 		FeeRecipient: blockParams.SuggestedFeeRecipient,
 		Random:       blockParams.Random,
 		Withdrawals:  blockParams.Withdrawals,
-		BeaconRoot:   blockParams.BeaconRoot,
 	}).Id()
 	execData, err = api.GetPayloadV2(payloadID)
 	if err != nil {
@@ -1255,7 +1248,6 @@ func TestNilWithdrawals(t *testing.T) {
 			Timestamp:    test.blockParams.Timestamp,
 			FeeRecipient: test.blockParams.SuggestedFeeRecipient,
 			Random:       test.blockParams.Random,
-			BeaconRoot:   test.blockParams.BeaconRoot,
 		}).Id()
 		execData, err := api.GetPayloadV2(payloadID)
 		if err != nil {
@@ -1269,7 +1261,7 @@ func TestNilWithdrawals(t *testing.T) {
 	}
 }
 
-func setupBodies(t *testing.T) (*node.Node, *zond.Ethereum, []*types.Block) {
+func setupBodies(t *testing.T) (*node.Node, *zond.Zond, []*types.Block) {
 	genesis, blocks := generateMergeChain(10, true)
 	// enable shanghai on the last block
 	time := blocks[len(blocks)-1].Header().Time + 1
@@ -1521,125 +1513,4 @@ func equalBody(a *types.Body, b *engine.ExecutionPayloadBodyV1) bool {
 		}
 	}
 	return reflect.DeepEqual(a.Withdrawals, b.Withdrawals)
-}
-
-func TestBlockToPayloadWithBlobs(t *testing.T) {
-	header := types.Header{}
-	var txs []*types.Transaction
-
-	inner := types.BlobTx{
-		BlobHashes: make([]common.Hash, 1),
-	}
-
-	txs = append(txs, types.NewTx(&inner))
-	sidecars := []*types.BlobTxSidecar{
-		{
-			Blobs:       make([]kzg4844.Blob, 1),
-			Commitments: make([]kzg4844.Commitment, 1),
-			Proofs:      make([]kzg4844.Proof, 1),
-		},
-	}
-
-	block := types.NewBlock(&header, txs, nil, nil, trie.NewStackTrie(nil))
-	envelope := engine.BlockToExecutableData(block, nil, sidecars)
-	var want int
-	for _, tx := range txs {
-		want += len(tx.BlobHashes())
-	}
-	if got := len(envelope.BlobsBundle.Commitments); got != want {
-		t.Fatalf("invalid number of commitments: got %v, want %v", got, want)
-	}
-	if got := len(envelope.BlobsBundle.Proofs); got != want {
-		t.Fatalf("invalid number of proofs: got %v, want %v", got, want)
-	}
-	if got := len(envelope.BlobsBundle.Blobs); got != want {
-		t.Fatalf("invalid number of blobs: got %v, want %v", got, want)
-	}
-	_, err := engine.ExecutableDataToBlock(*envelope.ExecutionPayload, make([]common.Hash, 1), nil)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-// This checks that beaconRoot is applied to the state from the engine API.
-func TestParentBeaconBlockRoot(t *testing.T) {
-	log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
-
-	genesis, blocks := generateMergeChain(10, true)
-
-	// Set cancun time to last block + 5 seconds
-	time := blocks[len(blocks)-1].Time() + 5
-	genesis.Config.ShanghaiTime = &time
-	genesis.Config.CancunTime = &time
-
-	n, ethservice := startEthService(t, genesis, blocks)
-	ethservice.Merger().ReachTTD()
-	defer n.Close()
-
-	api := NewConsensusAPI(ethservice)
-
-	// 11: Build Shanghai block with no withdrawals.
-	parent := ethservice.BlockChain().CurrentHeader()
-	blockParams := engine.PayloadAttributes{
-		Timestamp:   parent.Time + 5,
-		Withdrawals: make([]*types.Withdrawal, 0),
-		BeaconRoot:  &common.Hash{42},
-	}
-	fcState := engine.ForkchoiceStateV1{
-		HeadBlockHash: parent.Hash(),
-	}
-	resp, err := api.ForkchoiceUpdatedV2(fcState, &blockParams)
-	if err != nil {
-		t.Fatalf("error preparing payload, err=%v", err.(*engine.EngineAPIError).ErrorData())
-	}
-	if resp.PayloadStatus.Status != engine.VALID {
-		t.Fatalf("unexpected status (got: %s, want: %s)", resp.PayloadStatus.Status, engine.VALID)
-	}
-
-	// 11: verify state root is the same as parent
-	payloadID := (&miner.BuildPayloadArgs{
-		Parent:       fcState.HeadBlockHash,
-		Timestamp:    blockParams.Timestamp,
-		FeeRecipient: blockParams.SuggestedFeeRecipient,
-		Random:       blockParams.Random,
-		Withdrawals:  blockParams.Withdrawals,
-		BeaconRoot:   blockParams.BeaconRoot,
-	}).Id()
-	execData, err := api.GetPayloadV3(payloadID)
-	if err != nil {
-		t.Fatalf("error getting payload, err=%v", err)
-	}
-
-	// 11: verify locally built block
-	if status, err := api.NewPayloadV3(*execData.ExecutionPayload, []common.Hash{}, &common.Hash{42}); err != nil {
-		t.Fatalf("error validating payload: %v", err)
-	} else if status.Status != engine.VALID {
-		t.Fatalf("invalid payload")
-	}
-
-	fcState.HeadBlockHash = execData.ExecutionPayload.BlockHash
-	resp, err = api.ForkchoiceUpdatedV3(fcState, nil)
-	if err != nil {
-		t.Fatalf("error preparing payload, err=%v", err.(*engine.EngineAPIError).ErrorData())
-	}
-	if resp.PayloadStatus.Status != engine.VALID {
-		t.Fatalf("unexpected status (got: %s, want: %s)", resp.PayloadStatus.Status, engine.VALID)
-	}
-
-	// 11: verify beacon root was processed.
-	db, _, err := ethservice.APIBackend.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(execData.ExecutionPayload.Number))
-	if err != nil {
-		t.Fatalf("unable to load db: %v", err)
-	}
-	var (
-		timeIdx = common.BigToHash(big.NewInt(int64(execData.ExecutionPayload.Timestamp % 98304)))
-		rootIdx = common.BigToHash(big.NewInt(int64((execData.ExecutionPayload.Timestamp % 98304) + 98304)))
-	)
-
-	if num := db.GetState(params.BeaconRootsStorageAddress, timeIdx); num != timeIdx {
-		t.Fatalf("incorrect number stored: want %s, got %s", timeIdx, num)
-	}
-	if root := db.GetState(params.BeaconRootsStorageAddress, rootIdx); root != *blockParams.BeaconRoot {
-		t.Fatalf("incorrect root stored: want %s, got %s", *blockParams.BeaconRoot, root)
-	}
 }

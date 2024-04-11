@@ -235,7 +235,7 @@ func Setup(ctx *cli.Context) error {
 	}
 	if rotation {
 		// Lumberjack uses <processname>-lumberjack.log in is.TempDir() if empty.
-		// so typically /tmp/geth-lumberjack.log on linux
+		// so typically /tmp/gzond-lumberjack.log on linux
 		if len(logFile) > 0 {
 			context = append(context, "location", logFile)
 		} else {

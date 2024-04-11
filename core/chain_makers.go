@@ -24,14 +24,13 @@ import (
 	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/consensus/misc"
 	"github.com/theQRL/go-zond/consensus/misc/eip1559"
-	"github.com/theQRL/go-zond/consensus/misc/eip4844"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // BlockGen creates blocks for testing.
@@ -86,11 +85,6 @@ func (b *BlockGen) SetDifficulty(diff *big.Int) {
 // SetPos makes the header a PoS-header (0 difficulty)
 func (b *BlockGen) SetPoS() {
 	b.header.Difficulty = new(big.Int)
-}
-
-// SetBlobGas sets the data gas used by the blob in the generated block.
-func (b *BlockGen) SetBlobGas(blobGasUsed uint64) {
-	b.header.BlobGasUsed = &blobGasUsed
 }
 
 // addTx adds a transaction to the generated block. If no coinbase has
@@ -398,20 +392,6 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 			parentGasLimit := parent.GasLimit() * chain.Config().ElasticityMultiplier()
 			header.GasLimit = CalcGasLimit(parentGasLimit, parentGasLimit)
 		}
-	}
-	if chain.Config().IsCancun(header.Number, header.Time) {
-		var (
-			parentExcessBlobGas uint64
-			parentBlobGasUsed   uint64
-		)
-		if parent.ExcessBlobGas() != nil {
-			parentExcessBlobGas = *parent.ExcessBlobGas()
-			parentBlobGasUsed = *parent.BlobGasUsed()
-		}
-		excessBlobGas := eip4844.CalcExcessBlobGas(parentExcessBlobGas, parentBlobGasUsed)
-		header.ExcessBlobGas = &excessBlobGas
-		header.BlobGasUsed = new(uint64)
-		header.ParentBeaconRoot = new(common.Hash)
 	}
 	return header
 }

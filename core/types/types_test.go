@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 )
 
@@ -41,7 +41,7 @@ func BenchmarkDecodeRLP(b *testing.B) {
 }
 
 func benchRLP(b *testing.B, encode bool) {
-	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
 	signer := NewLondonSigner(big.NewInt(1337))
 	for _, tc := range []struct {

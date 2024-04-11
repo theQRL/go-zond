@@ -326,14 +326,6 @@ func (p *Peer) ReplyBlockBodiesRLP(id uint64, bodies []rlp.RawValue) error {
 	})
 }
 
-// ReplyNodeData is the zond/66 response to GetNodeData.
-func (p *Peer) ReplyNodeData(id uint64, data [][]byte) error {
-	return p2p.Send(p.rw, NodeDataMsg, &NodeDataPacket66{
-		RequestId:      id,
-		NodeDataPacket: data,
-	})
-}
-
 // ReplyReceiptsRLP is the zond/66 response to GetReceipts.
 func (p *Peer) ReplyReceiptsRLP(id uint64, receipts []rlp.RawValue) error {
 	return p2p.Send(p.rw, ReceiptsMsg, &ReceiptsRLPPacket66{
@@ -437,28 +429,6 @@ func (p *Peer) RequestBodies(hashes []common.Hash, sink chan *Response) (*Reques
 		data: &GetBlockBodiesPacket66{
 			RequestId:            id,
 			GetBlockBodiesPacket: hashes,
-		},
-	}
-	if err := p.dispatchRequest(req); err != nil {
-		return nil, err
-	}
-	return req, nil
-}
-
-// RequestNodeData fetches a batch of arbitrary data from a node's known state
-// data, corresponding to the specified hashes.
-func (p *Peer) RequestNodeData(hashes []common.Hash, sink chan *Response) (*Request, error) {
-	p.Log().Debug("Fetching batch of state data", "count", len(hashes))
-	id := rand.Uint64()
-
-	req := &Request{
-		id:   id,
-		sink: sink,
-		code: GetNodeDataMsg,
-		want: NodeDataMsg,
-		data: &GetNodeDataPacket66{
-			RequestId:         id,
-			GetNodeDataPacket: hashes,
 		},
 	}
 	if err := p.dispatchRequest(req); err != nil {

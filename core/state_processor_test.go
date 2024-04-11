@@ -20,7 +20,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/holiman/uint256"
 	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
@@ -28,7 +27,6 @@ import (
 	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/consensus/misc/eip1559"
-	"github.com/theQRL/go-zond/consensus/misc/eip4844"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
@@ -63,7 +61,6 @@ func TestStateProcessorErrors(t *testing.T) {
 			TerminalTotalDifficulty:       big.NewInt(0),
 			TerminalTotalDifficultyPassed: true,
 			ShanghaiTime:                  new(uint64),
-			CancunTime:                    new(uint64),
 		}
 		signer = types.LatestSigner(config)
 		d1, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -95,21 +92,6 @@ func TestStateProcessorErrors(t *testing.T) {
 		}), signer, d1)
 		return tx
 	}
-	var mkBlobTx = func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int, hashes []common.Hash) *types.Transaction {
-		tx, err := types.SignTx(types.NewTx(&types.BlobTx{
-			Nonce:      nonce,
-			GasTipCap:  uint256.MustFromBig(gasTipCap),
-			GasFeeCap:  uint256.MustFromBig(gasFeeCap),
-			Gas:        gasLimit,
-			To:         to,
-			BlobHashes: hashes,
-			Value:      new(uint256.Int),
-		}), signer, d1)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return tx
-	}
 
 	{ // Tests against a 'recent' chain definition
 		var (
@@ -127,7 +109,7 @@ func TestStateProcessorErrors(t *testing.T) {
 					},
 				},
 			}
-			blockchain, _  = NewBlockChain(db, nil, gspec, nil, beacon.New(ethash.NewFaker()), vm.Config{}, nil, nil)
+			blockchain, _  = NewBlockChain(db, nil, gspec, beacon.New(ethash.NewFaker()), vm.Config{}, nil, nil)
 			tooBigInitCode = [params.MaxInitCodeSize + 1]byte{}
 		)
 
@@ -245,12 +227,6 @@ func TestStateProcessorErrors(t *testing.T) {
 				},
 				want: "could not apply tx 0 [0xfd49536a9b323769d8472fcb3ebb3689b707a349379baee3e2ee3fe7baae06a1]: intrinsic gas too low: have 54299, want 54300",
 			},
-			{ // ErrBlobFeeCapTooLow
-				txs: []*types.Transaction{
-					mkBlobTx(0, common.Address{}, params.TxGas, big.NewInt(1), big.NewInt(1), []common.Hash{(common.Hash{1})}),
-				},
-				want: "could not apply tx 0 [0x6c11015985ce82db691d7b2d017acda296db88b811c3c60dc71449c76256c716]: max fee per gas less than block base fee: address 0x71562b71999873DB5b286dF957af199Ec94617F7, maxFeePerGas: 1 baseFee: 875000000",
-			},
 		} {
 			block := GenerateBadBlock(gspec.ToBlock(), beacon.New(ethash.NewFaker()), tt.txs, gspec.Config)
 			_, err := blockchain.InsertChain(types.Blocks{block})
@@ -287,7 +263,7 @@ func TestStateProcessorErrors(t *testing.T) {
 					},
 				},
 			}
-			blockchain, _ = NewBlockChain(db, nil, gspec, nil, ethash.NewFaker(), vm.Config{}, nil, nil)
+			blockchain, _ = NewBlockChain(db, nil, gspec, ethash.NewFaker(), vm.Config{}, nil, nil)
 		)
 		defer blockchain.Stop()
 		for i, tt := range []struct {
@@ -326,7 +302,7 @@ func TestStateProcessorErrors(t *testing.T) {
 					},
 				},
 			}
-			blockchain, _ = NewBlockChain(db, nil, gspec, nil, beacon.New(ethash.NewFaker()), vm.Config{}, nil, nil)
+			blockchain, _ = NewBlockChain(db, nil, gspec, beacon.New(ethash.NewFaker()), vm.Config{}, nil, nil)
 		)
 		defer blockchain.Stop()
 		for i, tt := range []struct {
@@ -388,7 +364,6 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 	hasher := sha3.NewLegacyKeccak256()
 	hasher.Write(header.Number.Bytes())
 	var cumulativeGas uint64
-	var nBlobs int
 	for _, tx := range txs {
 		txh := tx.Hash()
 		hasher.Write(txh[:])
@@ -397,23 +372,8 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		receipt.GasUsed = tx.Gas()
 		receipts = append(receipts, receipt)
 		cumulativeGas += tx.Gas()
-		nBlobs += len(tx.BlobHashes())
 	}
 	header.Root = common.BytesToHash(hasher.Sum(nil))
-	if config.IsCancun(header.Number, header.Time) {
-		var pExcess, pUsed = uint64(0), uint64(0)
-		if parent.ExcessBlobGas() != nil {
-			pExcess = *parent.ExcessBlobGas()
-			pUsed = *parent.BlobGasUsed()
-		}
-		excess := eip4844.CalcExcessBlobGas(pExcess, pUsed)
-		used := uint64(nBlobs * params.BlobTxBlobGasPerBlob)
-		header.ExcessBlobGas = &excess
-		header.BlobGasUsed = &used
-
-		beaconRoot := common.HexToHash("0xbeac00")
-		header.ParentBeaconRoot = &beaconRoot
-	}
 	// Assemble and return the final block for sealing
 	if config.IsShanghai(header.Number, header.Time) {
 		return types.NewBlockWithWithdrawals(header, txs, nil, receipts, []*types.Withdrawal{}, trie.NewStackTrie(nil))

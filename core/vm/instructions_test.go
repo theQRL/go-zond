@@ -25,6 +25,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
 	"github.com/theQRL/go-zond/core/rawdb"
@@ -32,7 +33,6 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/params"
-	"github.com/holiman/uint256"
 )
 
 type TwoOperandTestcase struct {
@@ -740,48 +740,6 @@ func TestRandom(t *testing.T) {
 		}
 		actual := stack.pop()
 		expected, overflow := uint256.FromBig(new(big.Int).SetBytes(tt.random.Bytes()))
-		if overflow {
-			t.Errorf("Testcase %v: invalid overflow", tt.name)
-		}
-		if actual.Cmp(expected) != 0 {
-			t.Errorf("Testcase %v: expected  %x, got %x", tt.name, expected, actual)
-		}
-	}
-}
-
-func TestBlobHash(t *testing.T) {
-	type testcase struct {
-		name   string
-		idx    uint64
-		expect common.Hash
-		hashes []common.Hash
-	}
-	var (
-		zero  = common.Hash{0}
-		one   = common.Hash{1}
-		two   = common.Hash{2}
-		three = common.Hash{3}
-	)
-	for _, tt := range []testcase{
-		{name: "[{1}]", idx: 0, expect: one, hashes: []common.Hash{one}},
-		{name: "[1,{2},3]", idx: 2, expect: three, hashes: []common.Hash{one, two, three}},
-		{name: "out-of-bounds (empty)", idx: 10, expect: zero, hashes: []common.Hash{}},
-		{name: "out-of-bounds", idx: 25, expect: zero, hashes: []common.Hash{one, two, three}},
-		{name: "out-of-bounds (nil)", idx: 25, expect: zero, hashes: nil},
-	} {
-		var (
-			env            = NewEVM(BlockContext{}, TxContext{BlobHashes: tt.hashes}, nil, params.TestChainConfig, Config{})
-			stack          = newstack()
-			pc             = uint64(0)
-			evmInterpreter = env.interpreter
-		)
-		stack.push(uint256.NewInt(tt.idx))
-		opBlobHash(&pc, evmInterpreter, &ScopeContext{nil, stack, nil})
-		if len(stack.data) != 1 {
-			t.Errorf("Expected one item on stack after %v, got %d: ", tt.name, len(stack.data))
-		}
-		actual := stack.pop()
-		expected, overflow := uint256.FromBig(new(big.Int).SetBytes(tt.expect.Bytes()))
 		if overflow {
 			t.Errorf("Testcase %v: invalid overflow", tt.name)
 		}

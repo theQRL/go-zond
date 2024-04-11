@@ -21,32 +21,32 @@ import (
 	"github.com/theQRL/go-zond/common/hexutil"
 )
 
-// EthereumAPI provides an API to access Ethereum full node-related information.
-type EthereumAPI struct {
-	e *Ethereum
+// ZondAPI provides an API to access Zond full node-related information.
+type ZondAPI struct {
+	z *Zond
 }
 
-// NewEthereumAPI creates a new Ethereum protocol API for full nodes.
-func NewEthereumAPI(e *Ethereum) *EthereumAPI {
-	return &EthereumAPI{e}
+// NewZondAPI creates a new Zond protocol API for full nodes.
+func NewZondAPI(z *Zond) *ZondAPI {
+	return &ZondAPI{z}
 }
 
 // Etherbase is the address that mining rewards will be sent to.
-func (api *EthereumAPI) Etherbase() (common.Address, error) {
-	return api.e.Etherbase()
+func (api *ZondAPI) Etherbase() (common.Address, error) {
+	return api.z.Etherbase()
 }
 
 // Coinbase is the address that mining rewards will be sent to (alias for Etherbase).
-func (api *EthereumAPI) Coinbase() (common.Address, error) {
+func (api *ZondAPI) Coinbase() (common.Address, error) {
 	return api.Etherbase()
 }
 
 // Hashrate returns the POW hashrate.
-func (api *EthereumAPI) Hashrate() hexutil.Uint64 {
-	return hexutil.Uint64(api.e.Miner().Hashrate())
+func (api *ZondAPI) Hashrate() hexutil.Uint64 {
+	return hexutil.Uint64(api.z.Miner().Hashrate())
 }
 
 // Mining returns an indication if this node is currently mining.
-func (api *EthereumAPI) Mining() bool {
-	return api.e.IsMining()
+func (api *ZondAPI) Mining() bool {
+	return api.z.IsMining()
 }

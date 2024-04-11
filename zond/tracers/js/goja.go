@@ -34,7 +34,7 @@ import (
 
 var assetTracers = make(map[string]string)
 
-// init retrieves the JavaScript transaction tracers included in go-ethereum.
+// init retrieves the JavaScript transaction tracers included in go-zond.
 func init() {
 	var err error
 	assetTracers, err = jsassets.Load()

@@ -32,9 +32,9 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/zond/tracers"
 	"github.com/theQRL/go-zond/zond/tracers/logger"
-	"github.com/theQRL/go-zond/params"
 
 	// force-load js tracers to trigger registration
 	_ "github.com/theQRL/go-zond/zond/tracers/js"

@@ -33,10 +33,6 @@ func (s stEnv) MarshalJSON() ([]byte, error) {
 		Withdrawals           []*types.Withdrawal                 `json:"withdrawals,omitempty"`
 		BaseFee               *math.HexOrDecimal256               `json:"currentBaseFee,omitempty"`
 		ParentUncleHash       common.Hash                         `json:"parentUncleHash"`
-		ExcessBlobGas         *math.HexOrDecimal64                `json:"excessBlobGas,omitempty"`
-		ParentExcessBlobGas   *math.HexOrDecimal64                `json:"parentExcessBlobGas,omitempty"`
-		ParentBlobGasUsed     *math.HexOrDecimal64                `json:"parentBlobGasUsed,omitempty"`
-		ParentBeaconBlockRoot *common.Hash                        `json:"parentBeaconBlockRoot"`
 	}
 	var enc stEnv
 	enc.Coinbase = common.UnprefixedAddress(s.Coinbase)
@@ -55,10 +51,6 @@ func (s stEnv) MarshalJSON() ([]byte, error) {
 	enc.Withdrawals = s.Withdrawals
 	enc.BaseFee = (*math.HexOrDecimal256)(s.BaseFee)
 	enc.ParentUncleHash = s.ParentUncleHash
-	enc.ExcessBlobGas = (*math.HexOrDecimal64)(s.ExcessBlobGas)
-	enc.ParentExcessBlobGas = (*math.HexOrDecimal64)(s.ParentExcessBlobGas)
-	enc.ParentBlobGasUsed = (*math.HexOrDecimal64)(s.ParentBlobGasUsed)
-	enc.ParentBeaconBlockRoot = s.ParentBeaconBlockRoot
 	return json.Marshal(&enc)
 }
 
@@ -81,10 +73,6 @@ func (s *stEnv) UnmarshalJSON(input []byte) error {
 		Withdrawals           []*types.Withdrawal                 `json:"withdrawals,omitempty"`
 		BaseFee               *math.HexOrDecimal256               `json:"currentBaseFee,omitempty"`
 		ParentUncleHash       *common.Hash                        `json:"parentUncleHash"`
-		ExcessBlobGas         *math.HexOrDecimal64                `json:"excessBlobGas,omitempty"`
-		ParentExcessBlobGas   *math.HexOrDecimal64                `json:"parentExcessBlobGas,omitempty"`
-		ParentBlobGasUsed     *math.HexOrDecimal64                `json:"parentBlobGasUsed,omitempty"`
-		ParentBeaconBlockRoot *common.Hash                        `json:"parentBeaconBlockRoot"`
 	}
 	var dec stEnv
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -141,18 +129,6 @@ func (s *stEnv) UnmarshalJSON(input []byte) error {
 	}
 	if dec.ParentUncleHash != nil {
 		s.ParentUncleHash = *dec.ParentUncleHash
-	}
-	if dec.ExcessBlobGas != nil {
-		s.ExcessBlobGas = (*uint64)(dec.ExcessBlobGas)
-	}
-	if dec.ParentExcessBlobGas != nil {
-		s.ParentExcessBlobGas = (*uint64)(dec.ParentExcessBlobGas)
-	}
-	if dec.ParentBlobGasUsed != nil {
-		s.ParentBlobGasUsed = (*uint64)(dec.ParentBlobGasUsed)
-	}
-	if dec.ParentBeaconBlockRoot != nil {
-		s.ParentBeaconBlockRoot = dec.ParentBeaconBlockRoot
 	}
 	return nil
 }

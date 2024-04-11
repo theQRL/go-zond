@@ -331,9 +331,9 @@ func (h *handler) decHandlers() {
 	h.handlerDoneCh <- struct{}{}
 }
 
-// runEthPeer registers an eth peer into the joint eth/snap peerset, adds it to
+// runZondPeer registers a zond peer into the joint zond/snap peerset, adds it to
 // various subsystems and starts handling messages.
-func (h *handler) runEthPeer(peer *zond.Peer, handler zond.Handler) error {
+func (h *handler) runZondPeer(peer *zond.Peer, handler zond.Handler) error {
 	if !h.incHandlers() {
 		return p2p.DiscQuitting
 	}

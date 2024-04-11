@@ -20,9 +20,9 @@
 //
 // build/bin/clef --4bytedb=./cmd/clef/4byte.json --rpc
 //
-// Start geth with
+// Start gzond with
 //
-// build/bin/geth --nodiscover --maxpeers 0 --signer http://localhost:8550 console --preload=cmd/clef/tests/testsigner.js
+// build/bin/gzond --nodiscover --maxpeers 0 --signer http://localhost:8550 console --preload=cmd/clef/tests/testsigner.js
 //
 // and in the console simply invoke
 //

@@ -43,7 +43,7 @@ import (
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/rpc"
-	ethproto "github.com/theQRL/go-zond/zond/protocols/zond"
+	zondproto "github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 const (
@@ -476,7 +476,7 @@ func (s *Service) login(conn *connWrapper) error {
 	}
 	var network string
 	if info := infos.Protocols["zond"]; info != nil {
-		network = fmt.Sprintf("%d", info.(*ethproto.NodeInfo).Network)
+		network = fmt.Sprintf("%d", info.(*zondproto.NodeInfo).Network)
 	} else {
 		return errors.New("zond protocol not available")
 	}

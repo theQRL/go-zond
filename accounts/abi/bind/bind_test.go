@@ -1810,13 +1810,13 @@ var bindTests = []struct {
 			"github.com/theQRL/go-zond/accounts/abi/bind/backends"
 			"github.com/theQRL/go-zond/core"
 			"github.com/theQRL/go-zond/crypto"
-			"github.com/theQRL/go-zond/zond/ethconfig"
+			"github.com/theQRL/go-zond/zond/zondconfig"
 	   `,
 		`
 			var (
 				key, _  = crypto.GenerateKey()
 				user, _ = bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, ethconfig.Defaults.Miner.GasCeil)
+				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, zondconfigDefaults.Miner.GasCeil)
 			)
 			defer sim.Close()
 
@@ -1880,13 +1880,13 @@ var bindTests = []struct {
 			"github.com/theQRL/go-zond/accounts/abi/bind/backends"
 			"github.com/theQRL/go-zond/core"
 			"github.com/theQRL/go-zond/crypto"
-			"github.com/theQRL/go-zond/zond/ethconfig"
+			"github.com/theQRL/go-zond/zond/zondconfig"
 	   `,
 		`
 			var (
 				key, _  = crypto.GenerateKey()
 				user, _ = bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, ethconfig.Defaults.Miner.GasCeil)
+				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, zondconfigDefaults.Miner.GasCeil)
 			)
 			defer sim.Close()
 	
@@ -1932,13 +1932,13 @@ var bindTests = []struct {
 			"github.com/theQRL/go-zond/accounts/abi/bind/backends"
 			"github.com/theQRL/go-zond/core"
 			"github.com/theQRL/go-zond/crypto"
-			"github.com/theQRL/go-zond/zond/ethconfig"
+			"github.com/theQRL/go-zond/zond/zondconfig"
 		`,
 		tester: `
 			var (
 				key, _  = crypto.GenerateKey()
 				user, _ = bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, ethconfig.Defaults.Miner.GasCeil)
+				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, zondconfigDefaults.Miner.GasCeil)
 			)
 			defer sim.Close()
 
@@ -1980,13 +1980,13 @@ var bindTests = []struct {
 			"github.com/theQRL/go-zond/accounts/abi/bind/backends"
 			"github.com/theQRL/go-zond/core"
 			"github.com/theQRL/go-zond/crypto"
-			"github.com/theQRL/go-zond/zond/ethconfig"
+			"github.com/theQRL/go-zond/zond/zondconfig"
 		`,
 		tester: `
 			var (
 				key, _  = crypto.GenerateKey()
 				user, _ = bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, ethconfig.Defaults.Miner.GasCeil)
+				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, zondconfigDefaults.Miner.GasCeil)
 			)
 			defer sim.Close()
 
@@ -2020,13 +2020,13 @@ var bindTests = []struct {
 			"github.com/theQRL/go-zond/accounts/abi/bind/backends"
 			"github.com/theQRL/go-zond/core"
 			"github.com/theQRL/go-zond/crypto"
-			"github.com/theQRL/go-zond/zond/ethconfig"
+			"github.com/theQRL/go-zond/zond/zondconfig"
 		`,
 		tester: `
 			var (
 				key, _  = crypto.GenerateKey()
 				user, _ = bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, ethconfig.Defaults.Miner.GasCeil)
+				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, zondconfigDefaults.Miner.GasCeil)
 			)
 			_, tx, _, err := DeployRangeKeyword(user, sim)
 			if err != nil {

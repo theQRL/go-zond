@@ -112,7 +112,3 @@ func DilithiumPKToAddress(publicKey []byte) common.Address {
 	copy(pk[:], publicKey)
 	return dilithium.GetDilithiumAddressFromPK(pk)
 }
-
-func zeroBytes(d **dilithium.Dilithium) {
-	*d = nil
-}

@@ -27,7 +27,7 @@ import (
 	"github.com/theQRL/go-zond/zond/downloader"
 )
 
-// FullSyncTester is an auxiliary service that allows Geth to perform full sync
+// FullSyncTester is an auxiliary service that allows Gzond to perform full sync
 // alone without consensus-layer attached. Users must specify a valid block as
 // the sync target. This tester can be applied to different networks, no matter
 // it's pre-merge or post-merge, but only for full-sync.
@@ -40,7 +40,7 @@ type FullSyncTester struct {
 
 // RegisterFullSyncTester registers the full-sync tester service into the node
 // stack for launching and stopping the service controlled by node.
-func RegisterFullSyncTester(stack *node.Node, backend *zond.Ethereum, block *types.Block) (*FullSyncTester, error) {
+func RegisterFullSyncTester(stack *node.Node, backend *zond.Zond, block *types.Block) (*FullSyncTester, error) {
 	cl := &FullSyncTester{
 		api:    newConsensusAPIWithoutHeartbeat(backend),
 		block:  block,
@@ -63,19 +63,19 @@ func (tester *FullSyncTester) Start() error {
 			select {
 			case <-ticker.C:
 				// Don't bother downloader in case it's already syncing.
-				if tester.api.eth.Downloader().Synchronising() {
+				if tester.api.zond.Downloader().Synchronising() {
 					continue
 				}
 				// Short circuit in case the target block is already stored
 				// locally. TODO(somehow terminate the node stack if target
 				// is reached).
-				if tester.api.eth.BlockChain().HasBlock(tester.block.Hash(), tester.block.NumberU64()) {
+				if tester.api.zond.BlockChain().HasBlock(tester.block.Hash(), tester.block.NumberU64()) {
 					log.Info("Full-sync target reached", "number", tester.block.NumberU64(), "hash", tester.block.Hash())
 					return
 				}
 				// Trigger beacon sync with the provided block header as
 				// trusted chain head.
-				err := tester.api.eth.Downloader().BeaconSync(downloader.FullSync, tester.block.Header(), tester.block.Header())
+				err := tester.api.zond.Downloader().BeaconSync(downloader.FullSync, tester.block.Header(), tester.block.Header())
 				if err != nil {
 					log.Info("Failed to beacon sync", "err", err)
 				}

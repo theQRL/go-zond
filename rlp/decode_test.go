@@ -77,8 +77,8 @@ func TestNewListStream(t *testing.T) {
 		t.Errorf("List() returned (%d, %v), expected (3, nil)", size, err)
 	}
 	for i := 0; i < 3; i++ {
-		if val, err := ls.Uint(); val != 1 || err != nil {
-			t.Errorf("Uint() returned (%d, %v), expected (1, nil)", val, err)
+		if val, err := ls.Uint64(); val != 1 || err != nil {
+			t.Errorf("Uint64() returned (%d, %v), expected (1, nil)", val, err)
 		}
 	}
 	if err := ls.ListEnd(); err != nil {
@@ -241,7 +241,7 @@ func TestStreamList(t *testing.T) {
 	}
 
 	for i := uint64(1); i <= 8; i++ {
-		v, err := s.Uint()
+		v, err := s.Uint64()
 		if err != nil {
 			t.Fatalf("Uint error: %v", err)
 		}
@@ -250,7 +250,7 @@ func TestStreamList(t *testing.T) {
 		}
 	}
 
-	if _, err := s.Uint(); err != EOL {
+	if _, err := s.Uint64(); err != EOL {
 		t.Errorf("Uint error mismatch, got %v, want %v", err, EOL)
 	}
 	if err = s.ListEnd(); err != nil {
@@ -966,7 +966,7 @@ func TestDecodeStreamReset(t *testing.T) {
 type testDecoder struct{ called bool }
 
 func (t *testDecoder) DecodeRLP(s *Stream) error {
-	if _, err := s.Uint(); err != nil {
+	if _, err := s.Uint64(); err != nil {
 		return err
 	}
 	t.called = true
@@ -1019,7 +1019,7 @@ func TestDecodeDecoderNilPointer(t *testing.T) {
 type byteDecoder byte
 
 func (bd *byteDecoder) DecodeRLP(s *Stream) error {
-	_, err := s.Uint()
+	_, err := s.Uint64()
 	*bd = 255
 	return err
 }
@@ -1161,8 +1161,8 @@ func ExampleStream() {
 	}
 
 	// Decode elements
-	fmt.Println(s.Uint())
-	fmt.Println(s.Uint())
+	fmt.Println(s.Uint64())
+	fmt.Println(s.Uint64())
 	fmt.Println(s.Bytes())
 
 	// Acknowledge end of list

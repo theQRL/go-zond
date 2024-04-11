@@ -25,9 +25,9 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/trie/triestate"
+	"github.com/theQRL/go-zond/zonddb"
 	"golang.org/x/exp/slices"
 )
 

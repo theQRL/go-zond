@@ -98,9 +98,8 @@ type Downloader struct {
 	mode atomic.Uint32  // Synchronisation mode defining the strategy used (per sync cycle), use d.getMode() to get the SyncMode
 	mux  *event.TypeMux // Event multiplexer to announce sync operation events
 
-	genesis uint64   // Genesis block number to limit sync to (e.g. light client CHT)
-	queue   *queue   // Scheduler for selecting the hashes to download
-	peers   *peerSet // Set of active peers from which download can proceed
+	queue *queue   // Scheduler for selecting the hashes to download
+	peers *peerSet // Set of active peers from which download can proceed
 
 	stateDB zonddb.Database // Database to state sync into (and deduplicate via)
 
@@ -152,7 +151,7 @@ type Downloader struct {
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 
 	// Progress reporting metrics
-	syncStartBlock uint64    // Head snap block when Geth was started
+	syncStartBlock uint64    // Head snap block when Gzond was started
 	syncStartTime  time.Time // Time instance when chain sync started
 	syncLogTime    time.Time // Time instance when status was last reported
 }
@@ -1255,16 +1254,12 @@ func (d *Downloader) processHeaders(origin uint64, td, ttd *big.Int, beaconMode 
 	)
 	defer func() {
 		if rollback > 0 {
-			lastHeader, lastFastBlock, lastBlock := d.lightchain.CurrentHeader().Number, common.Big0, common.Big0
-			lastFastBlock = d.blockchain.CurrentSnapBlock().Number
-			lastBlock = d.blockchain.CurrentBlock().Number
+			lastHeader, lastFastBlock, lastBlock := d.lightchain.CurrentHeader().Number, d.blockchain.CurrentSnapBlock().Number, d.blockchain.CurrentBlock().Number
 			if err := d.lightchain.SetHead(rollback - 1); err != nil { // -1 to target the parent of the first uncertain block
 				// We're already unwinding the stack, only print the error to make it more visible
 				log.Error("Failed to roll back chain segment", "head", rollback-1, "err", err)
 			}
-			curFastBlock, curBlock := common.Big0, common.Big0
-			curFastBlock = d.blockchain.CurrentSnapBlock().Number
-			curBlock = d.blockchain.CurrentBlock().Number
+			curFastBlock, curBlock := d.blockchain.CurrentSnapBlock().Number, d.blockchain.CurrentBlock().Number
 			log.Warn("Rolled back chain segment",
 				"header", fmt.Sprintf("%d->%d", lastHeader, d.lightchain.CurrentHeader().Number),
 				"snap", fmt.Sprintf("%d->%d", lastFastBlock, curFastBlock),

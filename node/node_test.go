@@ -26,12 +26,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/rpc"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 var (

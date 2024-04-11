@@ -22,10 +22,10 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // ReadTxLookupEntry retrieves the positional metadata associated with a transaction

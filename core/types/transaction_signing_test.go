@@ -27,8 +27,8 @@ import (
 )
 
 func TestEIP155Signing(t *testing.T) {
-	key, _ := crypto.GenerateKey()
-	addr := crypto.PubkeyToAddress(key.PublicKey)
+	key, _ := crypto.GenerateDilithiumKey()
+	addr := key.GetAddress()
 
 	signer := NewEIP155Signer(big.NewInt(18))
 	tx, err := SignTx(NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil), signer, key)
@@ -46,34 +46,17 @@ func TestEIP155Signing(t *testing.T) {
 }
 
 func TestEIP155ChainId(t *testing.T) {
-	key, _ := crypto.GenerateKey()
-	addr := crypto.PubkeyToAddress(key.PublicKey)
+	key, _ := crypto.GenerateDilithiumKey()
+	addr := key.GetAddress()
 
 	signer := NewEIP155Signer(big.NewInt(18))
 	tx, err := SignTx(NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil), signer, key)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !tx.Protected() {
-		t.Fatal("expected tx to be protected")
-	}
 
 	if tx.ChainId().Cmp(signer.chainId) != 0 {
 		t.Error("expected chainId to be", signer.chainId, "got", tx.ChainId())
-	}
-
-	tx = NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil)
-	tx, err = SignTx(tx, HomesteadSigner{}, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if tx.Protected() {
-		t.Error("didn't expect tx to be protected")
-	}
-
-	if tx.ChainId().Sign() != 0 {
-		t.Error("expected chain id to be 0 got", tx.ChainId())
 	}
 }
 

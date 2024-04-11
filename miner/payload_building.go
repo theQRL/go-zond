@@ -41,7 +41,6 @@ type BuildPayloadArgs struct {
 	FeeRecipient common.Address    // The provided recipient address for collecting transaction fee
 	Random       common.Hash       // The provided randomness value
 	Withdrawals  types.Withdrawals // The provided withdrawals
-	BeaconRoot   *common.Hash      // The provided beaconRoot (Cancun)
 }
 
 // Id computes an 8-byte identifier by hashing the components of the payload arguments.
@@ -53,9 +52,6 @@ func (args *BuildPayloadArgs) Id() engine.PayloadID {
 	hasher.Write(args.Random[:])
 	hasher.Write(args.FeeRecipient[:])
 	rlp.Encode(hasher, args.Withdrawals)
-	if args.BeaconRoot != nil {
-		hasher.Write(args.BeaconRoot[:])
-	}
 	var out engine.PayloadID
 	copy(out[:], hasher.Sum(nil)[:8])
 	return out
@@ -70,7 +66,6 @@ type Payload struct {
 	id       engine.PayloadID
 	empty    *types.Block
 	full     *types.Block
-	sidecars []*types.BlobTxSidecar
 	fullFees *big.Int
 	stop     chan struct{}
 	lock     sync.Mutex
@@ -105,7 +100,6 @@ func (payload *Payload) update(r *newPayloadResult, elapsed time.Duration) {
 	if payload.full == nil || r.fees.Cmp(payload.fullFees) > 0 {
 		payload.full = r.block
 		payload.fullFees = r.fees
-		payload.sidecars = r.sidecars
 
 		feesInEther := new(big.Float).Quo(new(big.Float).SetInt(r.fees), big.NewFloat(params.Ether))
 		log.Info("Updated payload",
@@ -135,9 +129,9 @@ func (payload *Payload) Resolve() *engine.ExecutionPayloadEnvelope {
 		close(payload.stop)
 	}
 	if payload.full != nil {
-		return engine.BlockToExecutableData(payload.full, payload.fullFees, payload.sidecars)
+		return engine.BlockToExecutableData(payload.full, payload.fullFees)
 	}
-	return engine.BlockToExecutableData(payload.empty, big.NewInt(0), nil)
+	return engine.BlockToExecutableData(payload.empty, big.NewInt(0))
 }
 
 // ResolveEmpty is basically identical to Resolve, but it expects empty block only.
@@ -146,7 +140,7 @@ func (payload *Payload) ResolveEmpty() *engine.ExecutionPayloadEnvelope {
 	payload.lock.Lock()
 	defer payload.lock.Unlock()
 
-	return engine.BlockToExecutableData(payload.empty, big.NewInt(0), nil)
+	return engine.BlockToExecutableData(payload.empty, big.NewInt(0))
 }
 
 // ResolveFull is basically identical to Resolve, but it expects full block only.
@@ -172,7 +166,7 @@ func (payload *Payload) ResolveFull() *engine.ExecutionPayloadEnvelope {
 	default:
 		close(payload.stop)
 	}
-	return engine.BlockToExecutableData(payload.full, payload.fullFees, payload.sidecars)
+	return engine.BlockToExecutableData(payload.full, payload.fullFees)
 }
 
 // buildPayload builds the payload according to the provided parameters.
@@ -187,7 +181,6 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		coinbase:    args.FeeRecipient,
 		random:      args.Random,
 		withdrawals: args.Withdrawals,
-		beaconRoot:  args.BeaconRoot,
 		noTxs:       true,
 	}
 	empty := w.getSealingBlock(emptyParams)
@@ -218,7 +211,6 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 			coinbase:    args.FeeRecipient,
 			random:      args.Random,
 			withdrawals: args.Withdrawals,
-			beaconRoot:  args.BeaconRoot,
 			noTxs:       false,
 		}
 

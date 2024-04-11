@@ -25,16 +25,16 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/zondconfig"
 )
 
-func startSimulatedBeaconEthService(t *testing.T, genesis *core.Genesis) (*node.Node, *eth.Ethereum, *SimulatedBeacon) {
+func startSimulatedBeaconEthService(t *testing.T, genesis *core.Genesis) (*node.Node, *zond.Zond, *SimulatedBeacon) {
 	t.Helper()
 
 	n, err := node.New(&node.Config{
@@ -48,13 +48,13 @@ func startSimulatedBeaconEthService(t *testing.T, genesis *core.Genesis) (*node.
 		t.Fatal("can't create node:", err)
 	}
 
-	ethcfg := &ethconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256}
-	ethservice, err := eth.New(n, ethcfg)
+	ethcfg := &zondconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256}
+	zondservice, err := zond.New(n, ethcfg)
 	if err != nil {
 		t.Fatal("can't create eth service:", err)
 	}
 
-	simBeacon, err := NewSimulatedBeacon(1, ethservice)
+	simBeacon, err := NewSimulatedBeacon(1, zondservice)
 	if err != nil {
 		t.Fatal("can't create simulated beacon:", err)
 	}
@@ -65,8 +65,8 @@ func startSimulatedBeaconEthService(t *testing.T, genesis *core.Genesis) (*node.
 		t.Fatal("can't start node:", err)
 	}
 
-	ethservice.SetSynced()
-	return n, ethservice, simBeacon
+	zondservice.SetSynced()
+	return n, zondservice, simBeacon
 }
 
 // send 20 transactions, >10 withdrawals and ensure they are included in order
@@ -77,10 +77,10 @@ func TestSimulatedBeaconSendWithdrawals(t *testing.T) {
 
 	var (
 		// testKey is a private key to use for funding a tester account.
-		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		testKey, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 		// testAddr is the Ethereum address of the tester account.
-		testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
+		testAddr = testKey.GetAddress()
 	)
 
 	// short period (1 second) for testing purposes

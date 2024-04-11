@@ -22,7 +22,6 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
-	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rlp"
@@ -234,47 +233,6 @@ func ServiceGetBlockBodiesQuery(chain *core.BlockChain, query GetBlockBodiesPack
 	return bodies
 }
 
-func handleGetNodeData66(backend Backend, msg Decoder, peer *Peer) error {
-	// Decode the trie node data retrieval message
-	var query GetNodeDataPacket66
-	if err := msg.Decode(&query); err != nil {
-		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
-	}
-	response := ServiceGetNodeDataQuery(backend.Chain(), query.GetNodeDataPacket)
-	return peer.ReplyNodeData(query.RequestId, response)
-}
-
-// ServiceGetNodeDataQuery assembles the response to a node data query. It is
-// exposed to allow external packages to test protocol behavior.
-func ServiceGetNodeDataQuery(chain *core.BlockChain, query GetNodeDataPacket) [][]byte {
-	// Request nodes by hash is not supported in path-based scheme.
-	if chain.TrieDB().Scheme() == rawdb.PathScheme {
-		return nil
-	}
-	// Gather state data until the fetch or network limits is reached
-	var (
-		bytes int
-		nodes [][]byte
-	)
-	for lookups, hash := range query {
-		if bytes >= softResponseLimit || len(nodes) >= maxNodeDataServe ||
-			lookups >= 2*maxNodeDataServe {
-			break
-		}
-		// Retrieve the requested state entry
-		entry, err := chain.TrieDB().Node(hash)
-		if len(entry) == 0 || err != nil {
-			// Read the contract code with prefix only to save unnecessary lookups.
-			entry, err = chain.ContractCodeWithPrefix(hash)
-		}
-		if err == nil && len(entry) > 0 {
-			nodes = append(nodes, entry)
-			bytes += len(entry)
-		}
-	}
-	return nodes
-}
-
 func handleGetReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 	// Decode the block receipts retrieval message
 	var query GetReceiptsPacket66
@@ -405,19 +363,6 @@ func handleBlockBodies66(backend Backend, msg Decoder, peer *Peer) error {
 	}, metadata)
 }
 
-func handleNodeData66(backend Backend, msg Decoder, peer *Peer) error {
-	// A batch of node state data arrived to one of our previous requests
-	res := new(NodeDataPacket66)
-	if err := msg.Decode(res); err != nil {
-		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
-	}
-	return peer.dispatchResponse(&Response{
-		id:   res.RequestId,
-		code: NodeDataMsg,
-		Res:  &res.NodeDataPacket,
-	}, nil) // No post-processing, we're not using this packet anymore
-}
-
 func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 	// A batch of receipts arrived to one of our previous requests
 	res := new(ReceiptsPacket66)
@@ -437,23 +382,6 @@ func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 		code: ReceiptsMsg,
 		Res:  &res.ReceiptsPacket,
 	}, metadata)
-}
-
-func handleNewPooledTransactionHashes66(backend Backend, msg Decoder, peer *Peer) error {
-	// New transaction announcement arrived, make sure we have
-	// a valid and fresh chain to handle them
-	if !backend.AcceptTxs() {
-		return nil
-	}
-	ann := new(NewPooledTransactionHashesPacket66)
-	if err := msg.Decode(ann); err != nil {
-		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
-	}
-	// Schedule all the unknown hashes for retrieval
-	for _, hash := range *ann {
-		peer.markTransaction(hash)
-	}
-	return backend.Handle(peer, ann)
 }
 
 func handleNewPooledTransactionHashes68(backend Backend, msg Decoder, peer *Peer) error {

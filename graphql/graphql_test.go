@@ -35,11 +35,12 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/zond/filters"
+	"github.com/theQRL/go-zond/zond/zondconfig"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -170,8 +171,8 @@ func TestGraphQLBlockSerialization(t *testing.T) {
 func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 	// Account for signing txes
 	var (
-		key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		address = crypto.PubkeyToAddress(key.PublicKey)
+		key, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		address = key.GetAddress()
 		funds   = big.NewInt(1000000000000000)
 		dad     = common.HexToAddress("0x0000000000000000000000000000000000000dad")
 	)
@@ -270,8 +271,8 @@ func TestGraphQLHTTPOnSamePort_GQLRequest_Unsuccessful(t *testing.T) {
 
 func TestGraphQLConcurrentResolvers(t *testing.T) {
 	var (
-		key, _  = crypto.GenerateKey()
-		addr    = crypto.PubkeyToAddress(key.PublicKey)
+		key, _  = crypto.GenerateDilithiumKey()
+		addr    = key.GetAddress()
 		dadStr  = "0x0000000000000000000000000000000000000dad"
 		dad     = common.HexToAddress(dadStr)
 		genesis = &core.Genesis{
@@ -364,8 +365,8 @@ func TestGraphQLConcurrentResolvers(t *testing.T) {
 
 func TestWithdrawals(t *testing.T) {
 	var (
-		key, _ = crypto.GenerateKey()
-		addr   = crypto.PubkeyToAddress(key.PublicKey)
+		key, _ = crypto.GenerateDilithiumKey()
+		addr   = key.GetAddress()
 
 		genesis = &core.Genesis{
 			Config:     params.AllEthashProtocolChanges,
@@ -437,7 +438,7 @@ func createNode(t *testing.T) *node.Node {
 }
 
 func newGQLService(t *testing.T, stack *node.Node, shanghai bool, gspec *core.Genesis, genBlocks int, genfunc func(i int, gen *core.BlockGen)) (*handler, []*types.Block) {
-	ethConf := &ethconfig.Config{
+	ethConf := &zondconfig.Config{
 		Genesis:        gspec,
 		NetworkId:      1337,
 		TrieCleanCache: 5,
@@ -456,20 +457,20 @@ func newGQLService(t *testing.T, stack *node.Node, shanghai bool, gspec *core.Ge
 		shanghaiTime := uint64(5)
 		chainCfg.ShanghaiTime = &shanghaiTime
 	}
-	ethBackend, err := eth.New(stack, ethConf)
+	zondBackend, err := zond.New(stack, ethConf)
 	if err != nil {
 		t.Fatalf("could not create eth backend: %v", err)
 	}
 	// Create some blocks and import them
-	chain, _ := core.GenerateChain(params.AllEthashProtocolChanges, ethBackend.BlockChain().Genesis(),
-		engine, ethBackend.ChainDb(), genBlocks, genfunc)
-	_, err = ethBackend.BlockChain().InsertChain(chain)
+	chain, _ := core.GenerateChain(params.AllEthashProtocolChanges, zondBackend.BlockChain().Genesis(),
+		engine, zondBackend.ChainDb(), genBlocks, genfunc)
+	_, err = zondBackend.BlockChain().InsertChain(chain)
 	if err != nil {
 		t.Fatalf("could not create import blocks: %v", err)
 	}
 	// Set up handler
-	filterSystem := filters.NewFilterSystem(ethBackend.APIBackend, filters.Config{})
-	handler, err := newHandler(stack, ethBackend.APIBackend, filterSystem, []string{}, []string{})
+	filterSystem := filters.NewFilterSystem(zondBackend.APIBackend, filters.Config{})
+	handler, err := newHandler(stack, zondBackend.APIBackend, filterSystem, []string{}, []string{})
 	if err != nil {
 		t.Fatalf("could not create graphql service: %v", err)
 	}

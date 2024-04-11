@@ -28,11 +28,11 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/console/prompt"
 	"github.com/theQRL/go-zond/core"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/internal/jsre"
 	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/zondconfig"
 )
 
 const (
@@ -76,7 +76,7 @@ func (p *hookedPrompter) SetWordCompleter(completer prompt.WordCompleter) {}
 type tester struct {
 	workspace string
 	stack     *node.Node
-	ethereum  *zond.Ethereum
+	zond      *zond.Zond
 	console   *Console
 	input     *hookedPrompter
 	output    *bytes.Buffer
@@ -84,7 +84,7 @@ type tester struct {
 
 // newTester creates a test environment based on which the console can operate.
 // Please ensure you call Close() on the returned tester to avoid leaks.
-func newTester(t *testing.T, confOverride func(*ethconfig.Config)) *tester {
+func newTester(t *testing.T, confOverride func(*zondconfig.Config)) *tester {
 	// Create a temporary storage for the node keys and initialize it
 	workspace := t.TempDir()
 
@@ -93,7 +93,7 @@ func newTester(t *testing.T, confOverride func(*ethconfig.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
-	ethConf := &ethconfig.Config{
+	ethConf := &zondconfig.Config{
 		Genesis: core.DeveloperGenesisBlock(11_500_000, common.Address{}),
 		Miner: miner.Config{
 			Etherbase: common.HexToAddress(testAddress),
@@ -102,7 +102,7 @@ func newTester(t *testing.T, confOverride func(*ethconfig.Config)) *tester {
 	if confOverride != nil {
 		confOverride(ethConf)
 	}
-	ethBackend, err := zond.New(stack, ethConf)
+	zondBackend, err := zond.New(stack, ethConf)
 	if err != nil {
 		t.Fatalf("failed to register Ethereum protocol: %v", err)
 	}
@@ -133,7 +133,7 @@ func newTester(t *testing.T, confOverride func(*ethconfig.Config)) *tester {
 	return &tester{
 		workspace: workspace,
 		stack:     stack,
-		ethereum:  ethBackend,
+		zond:      zondBackend,
 		console:   console,
 		input:     prompter,
 		output:    printer,

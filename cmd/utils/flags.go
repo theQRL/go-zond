@@ -49,8 +49,8 @@ import (
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/graphql"
-	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
+	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/metrics/exp"
@@ -70,10 +70,10 @@ import (
 	"github.com/theQRL/go-zond/zond"
 	"github.com/theQRL/go-zond/zond/catalyst"
 	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
 	"github.com/theQRL/go-zond/zond/filters"
 	"github.com/theQRL/go-zond/zond/gasprice"
 	"github.com/theQRL/go-zond/zond/tracers"
+	"github.com/theQRL/go-zond/zond/zondconfig"
 	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/zonddb/remotedb"
 	"github.com/theQRL/go-zond/zondstats"
@@ -93,7 +93,7 @@ var (
 		Name:     "datadir",
 		Usage:    "Data directory for the databases and keystore",
 		Value:    flags.DirectoryString(node.DefaultDataDir()),
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	RemoteDBFlag = &cli.StringFlag{
 		Name:     "remotedb",
@@ -104,17 +104,17 @@ var (
 		Name:     "db.engine",
 		Usage:    "Backing database implementation to use ('pebble' or 'leveldb')",
 		Value:    node.DefaultConfig.DBEngine,
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	AncientFlag = &flags.DirectoryFlag{
 		Name:     "datadir.ancient",
 		Usage:    "Root directory for ancient data (default = inside chaindata)",
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	MinFreeDiskSpaceFlag = &flags.DirectoryFlag{
 		Name:     "datadir.minfreedisk",
 		Usage:    "Minimum free disk space in MB, once reached triggers auto shut down (default = --cache.gc converted to MB, 0 = disabled)",
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	KeyStoreDirFlag = &flags.DirectoryFlag{
 		Name:     "keystore",
@@ -135,18 +135,18 @@ var (
 	NetworkIdFlag = &cli.Uint64Flag{
 		Name:     "networkid",
 		Usage:    "Explicitly set network id (integer)(For testnets: use --betanet instead)",
-		Value:    ethconfig.Defaults.NetworkId,
-		Category: flags.EthCategory,
+		Value:    zondconfig.Defaults.NetworkId,
+		Category: flags.ZondCategory,
 	}
 	MainnetFlag = &cli.BoolFlag{
 		Name:     "mainnet",
-		Usage:    "Ethereum mainnet",
-		Category: flags.EthCategory,
+		Usage:    "Zond mainnet",
+		Category: flags.ZondCategory,
 	}
 	BetaNetFlag = &cli.BoolFlag{
 		Name:     "betanet",
 		Usage:    "BetaNet network: pre-configured proof-of-work test network",
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	// Dev mode
 	DeveloperFlag = &cli.BoolFlag{
@@ -180,7 +180,7 @@ var (
 	ExitWhenSyncedFlag = &cli.BoolFlag{
 		Name:     "exitwhensynced",
 		Usage:    "Exits after block synchronisation completes",
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 
 	// Dump command options.
@@ -212,12 +212,12 @@ var (
 		Value: 0,
 	}
 
-	defaultSyncMode = ethconfig.Defaults.SyncMode
+	defaultSyncMode = zondconfig.Defaults.SyncMode
 	SnapshotFlag    = &cli.BoolFlag{
 		Name:     "snapshot",
 		Usage:    `Enables snapshot-database mode (default = enable)`,
 		Value:    true,
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	LightKDFFlag = &cli.BoolFlag{
 		Name:     "lightkdf",
@@ -227,13 +227,13 @@ var (
 	ZondRequiredBlocksFlag = &cli.StringFlag{
 		Name:     "zond.requiredblocks",
 		Usage:    "Comma separated block number-to-hash mappings to require for peering (<number>=<hash>)",
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	BloomFilterSizeFlag = &cli.Uint64Flag{
 		Name:     "bloomfilter.size",
 		Usage:    "Megabytes of memory allocated to bloom-filter for pruning",
 		Value:    2048,
-		Category: flags.EthCategory,
+		Category: flags.ZondCategory,
 	}
 	SyncModeFlag = &flags.TextMarshalerFlag{
 		Name:     "syncmode",
@@ -249,20 +249,20 @@ var (
 	}
 	StateSchemeFlag = &cli.StringFlag{
 		Name:     "state.scheme",
-		Usage:    "Scheme to use for storing ethereum state ('hash' or 'path')",
+		Usage:    "Scheme to use for storing zond state ('hash' or 'path')",
 		Value:    rawdb.HashScheme,
 		Category: flags.StateCategory,
 	}
 	StateHistoryFlag = &cli.Uint64Flag{
 		Name:     "history.state",
 		Usage:    "Number of recent blocks to retain state history for (default = 90,000 blocks, 0 = entire chain)",
-		Value:    ethconfig.Defaults.StateHistory,
+		Value:    zondconfig.Defaults.StateHistory,
 		Category: flags.StateCategory,
 	}
 	TransactionHistoryFlag = &cli.Uint64Flag{
 		Name:     "history.transactions",
 		Usage:    "Number of recent blocks to maintain transactions index for (default = about one year, 0 = entire chain)",
-		Value:    ethconfig.Defaults.TransactionHistory,
+		Value:    zondconfig.Defaults.TransactionHistory,
 		Category: flags.StateCategory,
 	}
 	// Transaction pool settings
@@ -279,75 +279,56 @@ var (
 	TxPoolJournalFlag = &cli.StringFlag{
 		Name:     "txpool.journal",
 		Usage:    "Disk journal for local transaction to survive node restarts",
-		Value:    ethconfig.Defaults.TxPool.Journal,
+		Value:    zondconfig.Defaults.TxPool.Journal,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolRejournalFlag = &cli.DurationFlag{
 		Name:     "txpool.rejournal",
 		Usage:    "Time interval to regenerate the local transaction journal",
-		Value:    ethconfig.Defaults.TxPool.Rejournal,
+		Value:    zondconfig.Defaults.TxPool.Rejournal,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolPriceLimitFlag = &cli.Uint64Flag{
 		Name:     "txpool.pricelimit",
 		Usage:    "Minimum gas price tip to enforce for acceptance into the pool",
-		Value:    ethconfig.Defaults.TxPool.PriceLimit,
+		Value:    zondconfig.Defaults.TxPool.PriceLimit,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolPriceBumpFlag = &cli.Uint64Flag{
 		Name:     "txpool.pricebump",
 		Usage:    "Price bump percentage to replace an already existing transaction",
-		Value:    ethconfig.Defaults.TxPool.PriceBump,
+		Value:    zondconfig.Defaults.TxPool.PriceBump,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolAccountSlotsFlag = &cli.Uint64Flag{
 		Name:     "txpool.accountslots",
 		Usage:    "Minimum number of executable transaction slots guaranteed per account",
-		Value:    ethconfig.Defaults.TxPool.AccountSlots,
+		Value:    zondconfig.Defaults.TxPool.AccountSlots,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolGlobalSlotsFlag = &cli.Uint64Flag{
 		Name:     "txpool.globalslots",
 		Usage:    "Maximum number of executable transaction slots for all accounts",
-		Value:    ethconfig.Defaults.TxPool.GlobalSlots,
+		Value:    zondconfig.Defaults.TxPool.GlobalSlots,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolAccountQueueFlag = &cli.Uint64Flag{
 		Name:     "txpool.accountqueue",
 		Usage:    "Maximum number of non-executable transaction slots permitted per account",
-		Value:    ethconfig.Defaults.TxPool.AccountQueue,
+		Value:    zondconfig.Defaults.TxPool.AccountQueue,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolGlobalQueueFlag = &cli.Uint64Flag{
 		Name:     "txpool.globalqueue",
 		Usage:    "Maximum number of non-executable transaction slots for all accounts",
-		Value:    ethconfig.Defaults.TxPool.GlobalQueue,
+		Value:    zondconfig.Defaults.TxPool.GlobalQueue,
 		Category: flags.TxPoolCategory,
 	}
 	TxPoolLifetimeFlag = &cli.DurationFlag{
 		Name:     "txpool.lifetime",
 		Usage:    "Maximum amount of time non-executable transaction are queued",
-		Value:    ethconfig.Defaults.TxPool.Lifetime,
+		Value:    zondconfig.Defaults.TxPool.Lifetime,
 		Category: flags.TxPoolCategory,
-	}
-	// Blob transaction pool settings
-	BlobPoolDataDirFlag = &cli.StringFlag{
-		Name:     "blobpool.datadir",
-		Usage:    "Data directory to store blob transactions in",
-		Value:    ethconfig.Defaults.BlobPool.Datadir,
-		Category: flags.BlobPoolCategory,
-	}
-	BlobPoolDataCapFlag = &cli.Uint64Flag{
-		Name:     "blobpool.datacap",
-		Usage:    "Disk space to allocate for pending blob transactions (soft limit)",
-		Value:    ethconfig.Defaults.BlobPool.Datacap,
-		Category: flags.BlobPoolCategory,
-	}
-	BlobPoolPriceBumpFlag = &cli.Uint64Flag{
-		Name:     "blobpool.pricebump",
-		Usage:    "Price bump percentage to replace an already existing blob transaction",
-		Value:    ethconfig.Defaults.BlobPool.PriceBump,
-		Category: flags.BlobPoolCategory,
 	}
 	// Performance tuning settings
 	CacheFlag = &cli.IntFlag{
@@ -394,36 +375,25 @@ var (
 		Name:     "cache.blocklogs",
 		Usage:    "Size (in number of blocks) of the log cache for filtering",
 		Category: flags.PerfCategory,
-		Value:    ethconfig.Defaults.FilterLogCacheSize,
+		Value:    zondconfig.Defaults.FilterLogCacheSize,
 	}
 	FDLimitFlag = &cli.IntFlag{
 		Name:     "fdlimit",
 		Usage:    "Raise the open file descriptor resource limit (default = system fd limit)",
 		Category: flags.PerfCategory,
 	}
-	CryptoKZGFlag = &cli.StringFlag{
-		Name:     "crypto.kzg",
-		Usage:    "KZG library implementation to use; gokzg (recommended) or ckzg",
-		Value:    "gokzg",
-		Category: flags.PerfCategory,
-	}
 
 	// Miner settings
-	MiningEnabledFlag = &cli.BoolFlag{
-		Name:     "mine",
-		Usage:    "Enable mining",
-		Category: flags.MinerCategory,
-	}
 	MinerGasLimitFlag = &cli.Uint64Flag{
 		Name:     "miner.gaslimit",
 		Usage:    "Target gas ceiling for mined blocks",
-		Value:    ethconfig.Defaults.Miner.GasCeil,
+		Value:    zondconfig.Defaults.Miner.GasCeil,
 		Category: flags.MinerCategory,
 	}
 	MinerGasPriceFlag = &flags.BigFlag{
 		Name:     "miner.gasprice",
 		Usage:    "Minimum gas price for mining a transaction",
-		Value:    ethconfig.Defaults.Miner.GasPrice,
+		Value:    zondconfig.Defaults.Miner.GasPrice,
 		Category: flags.MinerCategory,
 	}
 	MinerEtherbaseFlag = &cli.StringFlag{
@@ -439,13 +409,7 @@ var (
 	MinerRecommitIntervalFlag = &cli.DurationFlag{
 		Name:     "miner.recommit",
 		Usage:    "Time interval to recreate the block being mined",
-		Value:    ethconfig.Defaults.Miner.Recommit,
-		Category: flags.MinerCategory,
-	}
-	MinerNewPayloadTimeout = &cli.DurationFlag{
-		Name:     "miner.newpayload-timeout",
-		Usage:    "Specify the maximum time allowance for creating a new payload",
-		Value:    ethconfig.Defaults.Miner.NewPayloadTimeout,
+		Value:    zondconfig.Defaults.Miner.Recommit,
 		Category: flags.MinerCategory,
 	}
 
@@ -485,19 +449,19 @@ var (
 	RPCGlobalGasCapFlag = &cli.Uint64Flag{
 		Name:     "rpc.gascap",
 		Usage:    "Sets a cap on gas that can be used in zond_call/estimateGas (0=infinite)",
-		Value:    ethconfig.Defaults.RPCGasCap,
+		Value:    zondconfig.Defaults.RPCGasCap,
 		Category: flags.APICategory,
 	}
 	RPCGlobalEVMTimeoutFlag = &cli.DurationFlag{
 		Name:     "rpc.evmtimeout",
 		Usage:    "Sets a timeout used for zond_call (0=infinite)",
-		Value:    ethconfig.Defaults.RPCEVMTimeout,
+		Value:    zondconfig.Defaults.RPCEVMTimeout,
 		Category: flags.APICategory,
 	}
 	RPCGlobalTxFeeCapFlag = &cli.Float64Flag{
 		Name:     "rpc.txfeecap",
 		Usage:    "Sets a cap on transaction fee (in ether) that can be sent via the RPC APIs (0 = no cap)",
-		Value:    ethconfig.Defaults.RPCTxFeeCap,
+		Value:    zondconfig.Defaults.RPCTxFeeCap,
 		Category: flags.APICategory,
 	}
 	// Authenticated RPC HTTP settings
@@ -659,11 +623,6 @@ var (
 		Usage:    "Comma separated list of JavaScript files to preload into the console",
 		Category: flags.APICategory,
 	}
-	AllowUnprotectedTxs = &cli.BoolFlag{
-		Name:     "rpc.allow-unprotected-txs",
-		Usage:    "Allow for unprotected (non EIP155 signed) transactions to be submitted via RPC",
-		Category: flags.APICategory,
-	}
 	BatchRequestLimit = &cli.IntFlag{
 		Name:     "rpc.batch-request-limit",
 		Usage:    "Maximum number of requests in a batch",
@@ -763,7 +722,7 @@ var (
 	HttpHeaderFlag = &cli.StringSliceFlag{
 		Name:     "header",
 		Aliases:  []string{"H"},
-		Usage:    "Pass custom headers to the RPC server when using --" + RemoteDBFlag.Name + " or the geth attach console. This flag can be given multiple times.",
+		Usage:    "Pass custom headers to the RPC server when using --" + RemoteDBFlag.Name + " or the gzond attach console. This flag can be given multiple times.",
 		Category: flags.APICategory,
 	}
 
@@ -771,25 +730,25 @@ var (
 	GpoBlocksFlag = &cli.IntFlag{
 		Name:     "gpo.blocks",
 		Usage:    "Number of recent blocks to check for gas prices",
-		Value:    ethconfig.Defaults.GPO.Blocks,
+		Value:    zondconfig.Defaults.GPO.Blocks,
 		Category: flags.GasPriceCategory,
 	}
 	GpoPercentileFlag = &cli.IntFlag{
 		Name:     "gpo.percentile",
 		Usage:    "Suggested gas price is the given percentile of a set of recent transaction gas prices",
-		Value:    ethconfig.Defaults.GPO.Percentile,
+		Value:    zondconfig.Defaults.GPO.Percentile,
 		Category: flags.GasPriceCategory,
 	}
 	GpoMaxGasPriceFlag = &cli.Int64Flag{
 		Name:     "gpo.maxprice",
 		Usage:    "Maximum transaction priority fee (or gasprice before London fork) to be recommended by gpo",
-		Value:    ethconfig.Defaults.GPO.MaxPrice.Int64(),
+		Value:    zondconfig.Defaults.GPO.MaxPrice.Int64(),
 		Category: flags.GasPriceCategory,
 	}
 	GpoIgnoreGasPriceFlag = &cli.Int64Flag{
 		Name:     "gpo.ignoreprice",
 		Usage:    "Gas price below which gpo will ignore transactions",
-		Value:    ethconfig.Defaults.GPO.IgnorePrice.Int64(),
+		Value:    zondconfig.Defaults.GPO.IgnorePrice.Int64(),
 		Category: flags.GasPriceCategory,
 	}
 
@@ -1087,9 +1046,6 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	if ctx.IsSet(HTTPPathPrefixFlag.Name) {
 		cfg.HTTPPathPrefix = ctx.String(HTTPPathPrefixFlag.Name)
 	}
-	if ctx.IsSet(AllowUnprotectedTxs.Name) {
-		cfg.AllowUnprotectedTxs = ctx.Bool(AllowUnprotectedTxs.Name)
-	}
 
 	if ctx.IsSet(BatchRequestLimit.Name) {
 		cfg.BatchRequestLimit = ctx.Int(BatchRequestLimit.Name)
@@ -1150,7 +1106,7 @@ func setIPC(ctx *cli.Context, cfg *node.Config) {
 }
 
 // MakeDatabaseHandles raises out the number of allowed file handles per process
-// for Geth and returns half of the allowance to assign to the database.
+// for Gzond and returns half of the allowance to assign to the database.
 func MakeDatabaseHandles(max int) int {
 	limit, err := fdlimit.Maximum()
 	if err != nil {
@@ -1191,7 +1147,7 @@ func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error
 	log.Warn("-------------------------------------------------------------------")
 	log.Warn("Referring to accounts by order in the keystore folder is dangerous!")
 	log.Warn("This functionality is deprecated and will be removed in the future!")
-	log.Warn("Please use explicit addresses! (can search via `geth account list`)")
+	log.Warn("Please use explicit addresses! (can search via `gzond account list`)")
 	log.Warn("-------------------------------------------------------------------")
 
 	accs := ks.Accounts()
@@ -1202,7 +1158,7 @@ func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error
 }
 
 // setEtherbase retrieves the etherbase from the directly specified command line flags.
-func setEtherbase(ctx *cli.Context, cfg *ethconfig.Config) {
+func setEtherbase(ctx *cli.Context, cfg *zondconfig.Config) {
 	if !ctx.IsSet(MinerEtherbaseFlag.Name) {
 		return
 	}
@@ -1245,7 +1201,6 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 
 	if ctx.IsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.Int(MaxPeersFlag.Name)
-
 	}
 	zondPeers := cfg.MaxPeers
 	log.Info("Maximum peer count", "ZOND", zondPeers, "total", cfg.MaxPeers)
@@ -1426,12 +1381,9 @@ func setMiner(ctx *cli.Context, cfg *miner.Config) {
 	if ctx.IsSet(MinerRecommitIntervalFlag.Name) {
 		cfg.Recommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
 	}
-	if ctx.IsSet(MinerNewPayloadTimeout.Name) {
-		cfg.NewPayloadTimeout = ctx.Duration(MinerNewPayloadTimeout.Name)
-	}
 }
 
-func setRequiredBlocks(ctx *cli.Context, cfg *ethconfig.Config) {
+func setRequiredBlocks(ctx *cli.Context, cfg *zondconfig.Config) {
 	requiredBlocks := ctx.String(ZondRequiredBlocksFlag.Name)
 	if requiredBlocks == "" {
 		return
@@ -1495,8 +1447,8 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 	}
 }
 
-// SetEthConfig applies eth-related command line flags to the config.
-func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
+// SetZondConfig applies zond-related command line flags to the config.
+func SetZondConfig(ctx *cli.Context, stack *node.Node, cfg *zondconfig.Config) {
 	// Avoid conflicting network flags
 	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, BetaNetFlag)
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
@@ -1620,13 +1572,13 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		cfg.RPCTxFeeCap = ctx.Float64(RPCGlobalTxFeeCapFlag.Name)
 	}
 	if ctx.IsSet(NoDiscoverFlag.Name) {
-		cfg.EthDiscoveryURLs, cfg.SnapDiscoveryURLs = []string{}, []string{}
+		cfg.ZondDiscoveryURLs, cfg.SnapDiscoveryURLs = []string{}, []string{}
 	} else if ctx.IsSet(DNSDiscoveryFlag.Name) {
 		urls := ctx.String(DNSDiscoveryFlag.Name)
 		if urls == "" {
-			cfg.EthDiscoveryURLs = []string{}
+			cfg.ZondDiscoveryURLs = []string{}
 		} else {
-			cfg.EthDiscoveryURLs = SplitAndTrim(urls)
+			cfg.ZondDiscoveryURLs = SplitAndTrim(urls)
 		}
 	}
 	// Override any default configs for hard coded networks.
@@ -1708,48 +1660,40 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
-	// Set any dangling config values
-	// if ctx.String(CryptoKZGFlag.Name) != "gokzg" && ctx.String(CryptoKZGFlag.Name) != "ckzg" {
-	// 	Fatalf("--%s flag must be 'gokzg' or 'ckzg'", CryptoKZGFlag.Name)
-	// }
-	// log.Info("Initializing the KZG library", "backend", ctx.String(CryptoKZGFlag.Name))
-	// if err := kzg4844.UseCKZG(ctx.String(CryptoKZGFlag.Name) == "ckzg"); err != nil {
-	// 	Fatalf("Failed to set KZG library implementation to %s: %v", ctx.String(CryptoKZGFlag.Name), err)
-	// }
 }
 
 // SetDNSDiscoveryDefaults configures DNS discovery with the given URL if
 // no URLs are set.
-func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
-	if cfg.EthDiscoveryURLs != nil {
+func SetDNSDiscoveryDefaults(cfg *zondconfig.Config, genesis common.Hash) {
+	if cfg.ZondDiscoveryURLs != nil {
 		return // already set through flags/config
 	}
 	protocol := "all"
 	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
-		cfg.EthDiscoveryURLs = []string{url}
-		cfg.SnapDiscoveryURLs = cfg.EthDiscoveryURLs
+		cfg.ZondDiscoveryURLs = []string{url}
+		cfg.SnapDiscoveryURLs = cfg.ZondDiscoveryURLs
 	}
 }
 
-// RegisterEthService adds an Ethereum client to the stack.
-func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *zond.Ethereum) {
+// RegisterZondService adds a Zond client to the stack.
+func RegisterZondService(stack *node.Node, cfg *zondconfig.Config) (zondapi.Backend, *zond.Zond) {
 	backend, err := zond.New(stack, cfg)
 	if err != nil {
-		Fatalf("Failed to register the Ethereum service: %v", err)
+		Fatalf("Failed to register the Zond service: %v", err)
 	}
 	stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
 	return backend.APIBackend, backend
 }
 
-// RegisterEthStatsService configures the Ethereum Stats daemon and adds it to the node.
-func RegisterEthStatsService(stack *node.Node, backend ethapi.Backend, url string) {
+// RegisterZondStatsService configures the Zond Stats daemon and adds it to the node.
+func RegisterZondStatsService(stack *node.Node, backend zondapi.Backend, url string) {
 	if err := zondstats.New(stack, backend, backend.Engine(), url); err != nil {
-		Fatalf("Failed to register the Ethereum Stats service: %v", err)
+		Fatalf("Failed to register the Zond Stats service: %v", err)
 	}
 }
 
 // RegisterGraphQLService adds the GraphQL API to the node.
-func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, filterSystem *filters.FilterSystem, cfg *node.Config) {
+func RegisterGraphQLService(stack *node.Node, backend zondapi.Backend, filterSystem *filters.FilterSystem, cfg *node.Config) {
 	err := graphql.New(stack, backend, filterSystem, cfg.GraphQLCors, cfg.GraphQLVirtualHosts)
 	if err != nil {
 		Fatalf("Failed to register the GraphQL service: %v", err)
@@ -1757,9 +1701,9 @@ func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, filterSyst
 }
 
 // RegisterFilterAPI adds the zond log filtering RPC API to the node.
-func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconfig.Config) *filters.FilterSystem {
+func RegisterFilterAPI(stack *node.Node, backend zondapi.Backend, zondcfg *zondconfig.Config) *filters.FilterSystem {
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{
-		LogCacheSize: ethcfg.FilterLogCacheSize,
+		LogCacheSize: zondcfg.FilterLogCacheSize,
 	})
 	stack.RegisterAPIs([]rpc.API{{
 		Namespace: "zond",
@@ -1769,7 +1713,7 @@ func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconf
 }
 
 // RegisterFullSyncTester adds the full-sync tester service into node.
-func RegisterFullSyncTester(stack *node.Node, eth *zond.Ethereum, path string) {
+func RegisterFullSyncTester(stack *node.Node, zond *zond.Zond, path string) {
 	blob, err := os.ReadFile(path)
 	if err != nil {
 		Fatalf("Failed to read block file: %v", err)
@@ -1782,7 +1726,7 @@ func RegisterFullSyncTester(stack *node.Node, eth *zond.Ethereum, path string) {
 	if err := rlp.DecodeBytes(rlpBlob, &block); err != nil {
 		Fatalf("Failed to decode block: %v", err)
 	}
-	catalyst.RegisterFullSyncTester(stack, eth, &block)
+	catalyst.RegisterFullSyncTester(stack, zond, &block)
 	log.Info("Registered full-sync tester", "number", block.NumberU64(), "hash", block.Hash())
 }
 
@@ -1917,7 +1861,7 @@ func DialRPCWithHeaders(endpoint string, headers []string) (*rpc.Client, error) 
 		return nil, errors.New("endpoint must be specified")
 	}
 	if strings.HasPrefix(endpoint, "rpc:") || strings.HasPrefix(endpoint, "ipc:") {
-		// Backwards compatibility with geth < 1.5 which required
+		// Backwards compatibility with gzond < 1.5 which required
 		// these prefixes.
 		endpoint = endpoint[4:]
 	}
@@ -1959,7 +1903,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	engine, err := ethconfig.CreateConsensusEngine(config, chainDb)
+	engine, err := zondconfig.CreateConsensusEngine(config, chainDb)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -1971,12 +1915,12 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 		Fatalf("%v", err)
 	}
 	cache := &core.CacheConfig{
-		TrieCleanLimit:      ethconfig.Defaults.TrieCleanCache,
+		TrieCleanLimit:      zondconfig.Defaults.TrieCleanCache,
 		TrieCleanNoPrefetch: ctx.Bool(CacheNoPrefetchFlag.Name),
-		TrieDirtyLimit:      ethconfig.Defaults.TrieDirtyCache,
+		TrieDirtyLimit:      zondconfig.Defaults.TrieDirtyCache,
 		TrieDirtyDisabled:   ctx.String(GCModeFlag.Name) == "archive",
-		TrieTimeLimit:       ethconfig.Defaults.TrieTimeout,
-		SnapshotLimit:       ethconfig.Defaults.SnapshotCache,
+		TrieTimeLimit:       zondconfig.Defaults.TrieTimeout,
+		SnapshotLimit:       zondconfig.Defaults.SnapshotCache,
 		Preimages:           ctx.Bool(CachePreimagesFlag.Name),
 		StateScheme:         scheme,
 		StateHistory:        ctx.Uint64(StateHistoryFlag.Name),
@@ -2002,7 +1946,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 	vmcfg := vm.Config{EnablePreimageRecording: ctx.Bool(VMEnableDebugFlag.Name)}
 
 	// Disable transaction indexing/unindexing by default.
-	chain, err := core.NewBlockChain(chainDb, cache, gspec, nil, engine, vmcfg, nil, nil)
+	chain, err := core.NewBlockChain(chainDb, cache, gspec, engine, vmcfg, nil, nil)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}

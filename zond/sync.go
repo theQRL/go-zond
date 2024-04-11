@@ -222,12 +222,12 @@ func (h *handler) doSync(op *chainSyncOp) error {
 	if op.mode == downloader.SnapSync {
 		// Before launch the snap sync, we have to ensure user uses the same
 		// txlookup limit.
-		// The main concern here is: during the snap sync Geth won't index the
+		// The main concern here is: during the snap sync Gzond won't index the
 		// block(generate tx indices) before the HEAD-limit. But if user changes
-		// the limit in the next snap sync(e.g. user kill Geth manually and
-		// restart) then it will be hard for Geth to figure out the oldest block
+		// the limit in the next snap sync(e.g. user kill Gzond manually and
+		// restart) then it will be hard for Gzond to figure out the oldest block
 		// has been indexed. So here for the user-experience wise, it's non-optimal
-		// that user can't change limit during the snap sync. If changed, Geth
+		// that user can't change limit during the snap sync. If changed, Gzond
 		// will just blindly use the original one.
 		limit := h.chain.TxLookupLimit()
 		if stored := rawdb.ReadFastTxLookupLimit(h.database); stored == nil {

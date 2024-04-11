@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/holiman/uint256"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/params"
-	"github.com/holiman/uint256"
 )
 
 var activators = map[int]func(*JumpTable){
@@ -268,29 +268,6 @@ func opMcopy(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]by
 	// (the memorySize function on the opcode).
 	scope.Memory.Copy(dst.Uint64(), src.Uint64(), length.Uint64())
 	return nil, nil
-}
-
-// opBlobHash implements the BLOBHASH opcode
-func opBlobHash(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	index := scope.Stack.peek()
-	if index.LtUint64(uint64(len(interpreter.evm.TxContext.BlobHashes))) {
-		blobHash := interpreter.evm.TxContext.BlobHashes[index.Uint64()]
-		index.SetBytes32(blobHash[:])
-	} else {
-		index.Clear()
-	}
-	return nil, nil
-}
-
-// enable4844 applies EIP-4844 (DATAHASH opcode)
-func enable4844(jt *JumpTable) {
-	// New opcode
-	jt[BLOBHASH] = &operation{
-		execute:     opBlobHash,
-		constantGas: GasFastestStep,
-		minStack:    minStack(1, 1),
-		maxStack:    maxStack(1, 1),
-	}
 }
 
 // enable6780 applies EIP-6780 (deactivate SELFDESTRUCT)

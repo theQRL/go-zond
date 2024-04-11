@@ -28,7 +28,7 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 	"golang.org/x/crypto/sha3"
@@ -614,7 +614,7 @@ func BenchmarkWriteAncientBlocks(b *testing.B) {
 
 // makeTestBlocks creates fake blocks for the ancient write benchmark.
 func makeTestBlocks(nblock int, txsPerBlock int) []*types.Block {
-	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	signer := types.LatestSignerForChainID(big.NewInt(8))
 
 	// Create transactions.

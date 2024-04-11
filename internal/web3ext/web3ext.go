@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package web3ext contains geth specific web3.js extensions.
+// Package web3ext contains gzond specific web3.js extensions.
 package web3ext
 
 var Modules = map[string]string{
@@ -164,18 +164,6 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'stopHTTP',
 			call: 'admin_stopHTTP'
-		}),
-		// This method is deprecated.
-		new web3._extend.Method({
-			name: 'startRPC',
-			call: 'admin_startRPC',
-			params: 5,
-			inputFormatter: [null, null, null, null, null]
-		}),
-		// This method is deprecated.
-		new web3._extend.Method({
-			name: 'stopRPC',
-			call: 'admin_stopRPC'
 		}),
 		new web3._extend.Method({
 			name: 'startWS',
@@ -647,14 +635,6 @@ web3._extend({
 	property: 'miner',
 	methods: [
 		new web3._extend.Method({
-			name: 'start',
-			call: 'miner_start',
-		}),
-		new web3._extend.Method({
-			name: 'stop',
-			call: 'miner_stop'
-		}),
-		new web3._extend.Method({
 			name: 'setEtherbase',
 			call: 'miner_setEtherbase',
 			params: 1,
@@ -681,10 +661,6 @@ web3._extend({
 			name: 'setRecommitInterval',
 			call: 'miner_setRecommitInterval',
 			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getHashrate',
-			call: 'miner_getHashrate'
 		}),
 	],
 	properties: []

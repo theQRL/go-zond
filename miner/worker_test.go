@@ -55,8 +55,8 @@ var (
 	cliqueChainConfig *params.ChainConfig
 
 	// Test accounts
-	testBankKey, _  = crypto.GenerateKey()
-	testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
+	testBankKey, _  = crypto.GenerateDilithiumKey()
+	testBankAddress = testBankKey.GetAddress()
 	testBankFunds   = big.NewInt(1000000000000000000)
 
 	testUserKey, _  = crypto.GenerateKey()
@@ -178,7 +178,7 @@ func TestGenerateAndImportBlock(t *testing.T) {
 	defer w.close()
 
 	// This test chain imports the mined blocks.
-	chain, _ := core.NewBlockChain(rawdb.NewMemoryDatabase(), nil, b.genesis, nil, engine, vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(rawdb.NewMemoryDatabase(), nil, b.genesis, engine, vm.Config{}, nil, nil)
 	defer chain.Stop()
 
 	// Ignore empty commit here for less noise.
@@ -458,7 +458,6 @@ func testGetSealingWork(t *testing.T, chainConfig *params.ChainConfig, engine co
 			coinbase:    c.coinbase,
 			random:      c.random,
 			withdrawals: nil,
-			beaconRoot:  nil,
 			noTxs:       false,
 			forceTime:   true,
 		})
@@ -483,7 +482,6 @@ func testGetSealingWork(t *testing.T, chainConfig *params.ChainConfig, engine co
 			coinbase:    c.coinbase,
 			random:      c.random,
 			withdrawals: nil,
-			beaconRoot:  nil,
 			noTxs:       false,
 			forceTime:   true,
 		})

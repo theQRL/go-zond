@@ -26,9 +26,9 @@ import (
 	"strings"
 	"testing"
 
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/theQRL/go-zond/metrics"
 	"github.com/theQRL/go-zond/metrics/internal"
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
 func TestMain(m *testing.M) {

@@ -337,7 +337,7 @@ func (ec *Client) SyncProgress(ctx context.Context) (*zond.SyncProgress, error) 
 // SubscribeNewHead subscribes to notifications about the current blockchain head
 // on the given channel.
 func (ec *Client) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (zond.Subscription, error) {
-	sub, err := ec.c.EthSubscribe(ctx, ch, "newHeads")
+	sub, err := ec.c.ZondSubscribe(ctx, ch, "newHeads")
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
 		// of letting default golang behavior wrap it with non-nil interface that stores
@@ -413,7 +413,7 @@ func (ec *Client) SubscribeFilterLogs(ctx context.Context, q zond.FilterQuery, c
 	if err != nil {
 		return nil, err
 	}
-	sub, err := ec.c.EthSubscribe(ctx, ch, "logs", arg)
+	sub, err := ec.c.ZondSubscribe(ctx, ch, "logs", arg)
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
 		// of letting default golang behavior wrap it with non-nil interface that stores

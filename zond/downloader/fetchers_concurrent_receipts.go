@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
 	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 // receiptQueue implements typedQueue and is a type adapter between the generic

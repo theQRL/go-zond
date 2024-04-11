@@ -31,7 +31,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/internal/ethapi"
+	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/signer/core"
 	"github.com/theQRL/go-zond/signer/core/apitypes"
@@ -50,9 +50,9 @@ func (ui *headlessUi) OnInputRequired(info core.UserInputRequest) (core.UserInpu
 	return core.UserInputResponse{Text: input}, nil
 }
 
-func (ui *headlessUi) OnSignerStartup(info core.StartupInfo)        {}
-func (ui *headlessUi) RegisterUIServer(api *core.UIServerAPI)       {}
-func (ui *headlessUi) OnApprovedTx(tx ethapi.SignTransactionResult) {}
+func (ui *headlessUi) OnSignerStartup(info core.StartupInfo)         {}
+func (ui *headlessUi) RegisterUIServer(api *core.UIServerAPI)        {}
+func (ui *headlessUi) OnApprovedTx(tx zondapi.SignTransactionResult) {}
 
 func (ui *headlessUi) ApproveTx(request *core.SignTxRequest) (core.SignTxResponse, error) {
 	switch <-ui.approveCh {
@@ -237,7 +237,7 @@ func mkTestTx(from common.MixedcaseAddress) apitypes.SendTxArgs {
 func TestSignTx(t *testing.T) {
 	var (
 		list      []common.Address
-		res, res2 *ethapi.SignTransactionResult
+		res, res2 *zondapi.SignTransactionResult
 		err       error
 	)
 
