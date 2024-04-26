@@ -20,18 +20,7 @@
       }
     },
     "config": {
-      "chainId": 1,
-      "daoForkSupport": true,
-      "eip150Block": 0,
-      "eip150Hash": "0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d",
-      "eip155Block": 3000000,
-      "eip158Block": 0,
-      "ethash": {},
-      "homesteadBlock": 1150000,
-      "byzantiumBlock": 8772000,
-      "constantinopleBlock": 9573000,
-      "petersburgBlock": 10500839,
-      "istanbulBlock": 10500839
+      "chainId": 1
     }
   },
   "context": {

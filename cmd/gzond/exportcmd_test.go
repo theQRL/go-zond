@@ -26,7 +26,7 @@ import (
 )
 
 func initGzond(t *testing.T) string {
-	args := []string{"--networkid=42", "init", "./testdata/clique.json"}
+	args := []string{"--networkid=42", "init", "./testdata/genesis.json"}
 	t.Logf("Initializing gzond: %v ", args)
 	g := runGzond(t, args...)
 	datadir := g.Datadir

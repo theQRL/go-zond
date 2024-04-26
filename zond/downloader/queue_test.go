@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
@@ -38,7 +38,7 @@ import (
 // contains a transaction and every 5th an uncle to allow testing correct block
 // reassembly.
 func makeChain(n int, seed byte, parent *types.Block, empty bool) ([]*types.Block, []types.Receipts) {
-	blocks, receipts := core.GenerateChain(params.TestChainConfig, parent, ethash.NewFaker(), testDB, n, func(i int, block *core.BlockGen) {
+	blocks, receipts := core.GenerateChain(params.TestChainConfig, parent, beacon.NewFaker(), testDB, n, func(i int, block *core.BlockGen) {
 		block.SetCoinbase(common.Address{seed})
 		// Add one tx to every secondblock
 		if !empty && i%2 == 0 {

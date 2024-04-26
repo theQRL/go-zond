@@ -23,7 +23,6 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/consensus/beacon"
-	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
@@ -40,7 +39,7 @@ func TestGenerateWithdrawalChain(t *testing.T) {
 		aa      = common.Address{0xaa}
 		bb      = common.Address{0xbb}
 		funds   = big.NewInt(0).Mul(big.NewInt(1337), big.NewInt(params.Ether))
-		config  = *params.AllEthashProtocolChanges
+		config  = *params.AllBeaconProtocolChanges
 		gspec   = &Genesis{
 			Config:     &config,
 			Alloc:      GenesisAlloc{address: {Balance: funds}},
@@ -52,10 +51,6 @@ func TestGenerateWithdrawalChain(t *testing.T) {
 		signer = types.LatestSigner(gspec.Config)
 		db     = rawdb.NewMemoryDatabase()
 	)
-
-	config.TerminalTotalDifficultyPassed = true
-	config.TerminalTotalDifficulty = common.Big0
-	config.ShanghaiTime = u64(0)
 
 	// init 0xaa with some storage elements
 	storage := make(map[common.Hash]common.Hash)
@@ -151,7 +146,7 @@ func ExampleGenerateChain() {
 
 	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Config: &params.ChainConfig{},
 		Alloc:  GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
 	}
 	genesis := gspec.MustCommit(genDb, trie.NewDatabase(genDb, trie.HashDefaults))
@@ -160,7 +155,7 @@ func ExampleGenerateChain() {
 	// each block and adds different features to gen based on the
 	// block index.
 	signer := types.HomesteadSigner{}
-	chain, _ := GenerateChain(gspec.Config, genesis, ethash.NewFaker(), genDb, 5, func(i int, gen *BlockGen) {
+	chain, _ := GenerateChain(gspec.Config, genesis, beacon.NewFaker(), genDb, 5, func(i int, gen *BlockGen) {
 		switch i {
 		case 0:
 			// In block 1, addr1 sends addr2 some ether.
@@ -189,7 +184,7 @@ func ExampleGenerateChain() {
 	})
 
 	// Import the chain. This runs all block validation rules.
-	blockchain, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(rawdb.HashScheme), gspec, ethash.NewFaker(), vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(rawdb.HashScheme), gspec, beacon.NewFaker(), vm.Config{}, nil, nil)
 	defer blockchain.Stop()
 
 	if i, err := blockchain.InsertChain(chain); err != nil {

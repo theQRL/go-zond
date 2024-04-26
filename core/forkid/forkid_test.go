@@ -93,7 +93,6 @@ func TestCreation(t *testing.T) {
 func TestValidation(t *testing.T) {
 	// Config that has not timestamp enabled
 	legacyConfig := *params.MainnetChainConfig
-	legacyConfig.ShanghaiTime = nil
 
 	tests := []struct {
 		config *params.ChainConfig
@@ -365,27 +364,9 @@ func TestTimeBasedForkInGenesis(t *testing.T) {
 		time       = uint64(1690475657)
 		genesis    = types.NewBlockWithHeader(&types.Header{Time: time})
 		forkidHash = checksumToBytes(crc32.ChecksumIEEE(genesis.Hash().Bytes()))
-		config     = func(shanghai, cancun uint64) *params.ChainConfig {
+		config     = func() *params.ChainConfig {
 			return &params.ChainConfig{
-				ChainID:                       big.NewInt(1337),
-				HomesteadBlock:                big.NewInt(0),
-				DAOForkBlock:                  nil,
-				DAOForkSupport:                true,
-				EIP150Block:                   big.NewInt(0),
-				EIP155Block:                   big.NewInt(0),
-				EIP158Block:                   big.NewInt(0),
-				ByzantiumBlock:                big.NewInt(0),
-				ConstantinopleBlock:           big.NewInt(0),
-				PetersburgBlock:               big.NewInt(0),
-				IstanbulBlock:                 big.NewInt(0),
-				MuirGlacierBlock:              big.NewInt(0),
-				BerlinBlock:                   big.NewInt(0),
-				LondonBlock:                   big.NewInt(0),
-				TerminalTotalDifficulty:       big.NewInt(0),
-				TerminalTotalDifficultyPassed: true,
-				MergeNetsplitBlock:            big.NewInt(0),
-				ShanghaiTime:                  &shanghai,
-				Ethash:                        new(params.EthashConfig),
+				ChainID: big.NewInt(1337),
 			}
 		}
 	)
@@ -394,13 +375,13 @@ func TestTimeBasedForkInGenesis(t *testing.T) {
 		want   ID
 	}{
 		// Shanghai active before genesis, skip
-		{config(time-1, time+1), ID{Hash: forkidHash, Next: time + 1}},
+		{config(), ID{Hash: forkidHash, Next: time + 1}},
 
 		// Shanghai active at genesis, skip
-		{config(time, time+1), ID{Hash: forkidHash, Next: time + 1}},
+		{config(), ID{Hash: forkidHash, Next: time + 1}},
 
 		// Shanghai not active, skip
-		{config(time+1, time+2), ID{Hash: forkidHash, Next: time + 1}},
+		{config(), ID{Hash: forkidHash, Next: time + 1}},
 	}
 	for _, tt := range tests {
 		if have := NewID(tt.config, genesis, 0, time); have != tt.want {

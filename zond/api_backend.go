@@ -393,10 +393,6 @@ func (b *ZondAPIBackend) Miner() *miner.Miner {
 	return b.zond.Miner()
 }
 
-func (b *ZondAPIBackend) StartMining() error {
-	return b.zond.StartMining()
-}
-
 func (b *ZondAPIBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, tracers.StateReleaseFunc, error) {
 	return b.zond.stateAtBlock(ctx, block, reexec, base, readOnly, preferDisk)
 }

@@ -30,7 +30,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/bloombits"
 	"github.com/theQRL/go-zond/core/rawdb"
@@ -79,11 +79,11 @@ type SimulatedBackend struct {
 // A simulated backend always uses chainID 1337.
 func NewSimulatedBackendWithDatabase(database zonddb.Database, alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
 	genesis := core.Genesis{
-		Config:   params.AllEthashProtocolChanges,
+		Config:   params.AllBeaconProtocolChanges,
 		GasLimit: gasLimit,
 		Alloc:    alloc,
 	}
-	blockchain, _ := core.NewBlockChain(database, nil, &genesis, ethash.NewFaker(), vm.Config{}, nil, nil)
+	blockchain, _ := core.NewBlockChain(database, nil, &genesis, beacon.NewFaker(), vm.Config{}, nil, nil)
 
 	backend := &SimulatedBackend{
 		database:   database,
@@ -145,7 +145,7 @@ func (b *SimulatedBackend) Rollback() {
 }
 
 func (b *SimulatedBackend) rollback(parent *types.Block) {
-	blocks, _ := core.GenerateChain(b.config, parent, ethash.NewFaker(), b.database, 1, func(int, *core.BlockGen) {})
+	blocks, _ := core.GenerateChain(b.config, parent, beacon.NewFaker(), b.database, 1, func(int, *core.BlockGen) {})
 
 	b.pendingBlock = blocks[0]
 	b.pendingState, _ = state.New(b.pendingBlock.Root(), b.blockchain.StateCache(), nil)
@@ -611,32 +611,25 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call zond.CallMsg, 
 		return nil, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
 	}
 	head := b.blockchain.CurrentHeader()
-	if !b.blockchain.Config().IsLondon(head.Number) {
-		// If there's no basefee, then it must be a non-1559 execution
-		if call.GasPrice == nil {
-			call.GasPrice = new(big.Int)
-		}
+	// A basefee is provided, necessitating 1559-type execution
+	if call.GasPrice != nil {
+		// User specified the legacy gas field, convert to 1559 gas typing
 		call.GasFeeCap, call.GasTipCap = call.GasPrice, call.GasPrice
 	} else {
-		// A basefee is provided, necessitating 1559-type execution
-		if call.GasPrice != nil {
-			// User specified the legacy gas field, convert to 1559 gas typing
-			call.GasFeeCap, call.GasTipCap = call.GasPrice, call.GasPrice
-		} else {
-			// User specified 1559 gas fields (or none), use those
-			if call.GasFeeCap == nil {
-				call.GasFeeCap = new(big.Int)
-			}
-			if call.GasTipCap == nil {
-				call.GasTipCap = new(big.Int)
-			}
-			// Backfill the legacy gasPrice for EVM execution, unless we're all zeroes
-			call.GasPrice = new(big.Int)
-			if call.GasFeeCap.BitLen() > 0 || call.GasTipCap.BitLen() > 0 {
-				call.GasPrice = math.BigMin(new(big.Int).Add(call.GasTipCap, head.BaseFee), call.GasFeeCap)
-			}
+		// User specified 1559 gas fields (or none), use those
+		if call.GasFeeCap == nil {
+			call.GasFeeCap = new(big.Int)
+		}
+		if call.GasTipCap == nil {
+			call.GasTipCap = new(big.Int)
+		}
+		// Backfill the legacy gasPrice for EVM execution, unless we're all zeroes
+		call.GasPrice = new(big.Int)
+		if call.GasFeeCap.BitLen() > 0 || call.GasTipCap.BitLen() > 0 {
+			call.GasPrice = math.BigMin(new(big.Int).Add(call.GasTipCap, head.BaseFee), call.GasFeeCap)
 		}
 	}
+
 	// Ensure message is initialized properly.
 	if call.Gas == 0 {
 		call.Gas = 50000000
@@ -694,7 +687,7 @@ func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 		return fmt.Errorf("invalid transaction nonce: got %d, want %d", tx.Nonce(), nonce)
 	}
 	// Include tx in chain
-	blocks, receipts := core.GenerateChain(b.config, block, ethash.NewFaker(), b.database, 1, func(number int, block *core.BlockGen) {
+	blocks, receipts := core.GenerateChain(b.config, block, beacon.NewFaker(), b.database, 1, func(number int, block *core.BlockGen) {
 		for _, tx := range b.pendingBlock.Transactions() {
 			block.AddTxWithChain(b.blockchain, tx)
 		}
@@ -818,7 +811,7 @@ func (b *SimulatedBackend) AdjustTime(adjustment time.Duration) error {
 		return errors.New("could not find parent")
 	}
 
-	blocks, _ := core.GenerateChain(b.config, block, ethash.NewFaker(), b.database, 1, func(number int, block *core.BlockGen) {
+	blocks, _ := core.GenerateChain(b.config, block, beacon.NewFaker(), b.database, 1, func(number int, block *core.BlockGen) {
 		block.OffsetTime(int64(adjustment.Seconds()))
 	})
 	stateDB, _ := b.blockchain.State()

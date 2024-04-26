@@ -30,7 +30,6 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/consensus/beacon"
-	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
@@ -66,11 +65,11 @@ func TestGraphQLBlockSerialization(t *testing.T) {
 	stack := createNode(t)
 	defer stack.Close()
 	genesis := &core.Genesis{
-		Config:     params.AllEthashProtocolChanges,
+		Config:     params.AllBeaconProtocolChanges,
 		GasLimit:   11500000,
 		Difficulty: big.NewInt(1048576),
 	}
-	newGQLService(t, stack, false, genesis, 10, func(i int, gen *core.BlockGen) {})
+	newGQLService(t, stack, genesis, 10, func(i int, gen *core.BlockGen) {})
 	// start node
 	if err := stack.Start(); err != nil {
 		t.Fatalf("could not start node: %v", err)
@@ -179,7 +178,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 	stack := createNode(t)
 	defer stack.Close()
 	genesis := &core.Genesis{
-		Config:     params.AllEthashProtocolChanges,
+		Config:     params.AllBeaconProtocolChanges,
 		GasLimit:   11500000,
 		Difficulty: big.NewInt(1048576),
 		Alloc: core.GenesisAlloc{
@@ -194,7 +193,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}
 	signer := types.LatestSigner(genesis.Config)
-	newGQLService(t, stack, false, genesis, 1, func(i int, gen *core.BlockGen) {
+	newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
 		gen.SetCoinbase(common.Address{1})
 		tx, _ := types.SignNewTx(key, signer, &types.LegacyTx{
 			Nonce:    uint64(0),
@@ -276,7 +275,7 @@ func TestGraphQLConcurrentResolvers(t *testing.T) {
 		dadStr  = "0x0000000000000000000000000000000000000dad"
 		dad     = common.HexToAddress(dadStr)
 		genesis = &core.Genesis{
-			Config:     params.AllEthashProtocolChanges,
+			Config:     params.AllBeaconProtocolChanges,
 			GasLimit:   11500000,
 			Difficulty: big.NewInt(1048576),
 			Alloc: core.GenesisAlloc{
@@ -295,7 +294,7 @@ func TestGraphQLConcurrentResolvers(t *testing.T) {
 	defer stack.Close()
 
 	var tx *types.Transaction
-	handler, chain := newGQLService(t, stack, false, genesis, 1, func(i int, gen *core.BlockGen) {
+	handler, chain := newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
 		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
 		gen.AddTx(tx)
 		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Nonce: 1, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
@@ -369,7 +368,7 @@ func TestWithdrawals(t *testing.T) {
 		addr   = key.GetAddress()
 
 		genesis = &core.Genesis{
-			Config:     params.AllEthashProtocolChanges,
+			Config:     params.AllBeaconProtocolChanges,
 			GasLimit:   11500000,
 			Difficulty: common.Big1,
 			Alloc: core.GenesisAlloc{
@@ -381,7 +380,7 @@ func TestWithdrawals(t *testing.T) {
 	)
 	defer stack.Close()
 
-	handler, _ := newGQLService(t, stack, true, genesis, 1, func(i int, gen *core.BlockGen) {
+	handler, _ := newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
 		tx, _ := types.SignNewTx(key, signer, &types.LegacyTx{To: &common.Address{}, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
 		gen.AddTx(tx)
 		gen.AddWithdrawal(&types.Withdrawal{
@@ -437,7 +436,7 @@ func createNode(t *testing.T) *node.Node {
 	return stack
 }
 
-func newGQLService(t *testing.T, stack *node.Node, shanghai bool, gspec *core.Genesis, genBlocks int, genfunc func(i int, gen *core.BlockGen)) (*handler, []*types.Block) {
+func newGQLService(t *testing.T, stack *node.Node, gspec *core.Genesis, genBlocks int, genfunc func(i int, gen *core.BlockGen)) (*handler, []*types.Block) {
 	ethConf := &zondconfig.Config{
 		Genesis:        gspec,
 		NetworkId:      1337,
@@ -446,23 +445,13 @@ func newGQLService(t *testing.T, stack *node.Node, shanghai bool, gspec *core.Ge
 		TrieTimeout:    60 * time.Minute,
 		SnapshotCache:  5,
 	}
-	var engine consensus.Engine = ethash.NewFaker()
-	if shanghai {
-		engine = beacon.NewFaker()
-		chainCfg := gspec.Config
-		chainCfg.TerminalTotalDifficultyPassed = true
-		chainCfg.TerminalTotalDifficulty = common.Big0
-		// GenerateChain will increment timestamps by 10.
-		// Shanghai upgrade at block 1.
-		shanghaiTime := uint64(5)
-		chainCfg.ShanghaiTime = &shanghaiTime
-	}
+	var engine consensus.Engine = beacon.NewFaker()
 	zondBackend, err := zond.New(stack, ethConf)
 	if err != nil {
 		t.Fatalf("could not create eth backend: %v", err)
 	}
 	// Create some blocks and import them
-	chain, _ := core.GenerateChain(params.AllEthashProtocolChanges, zondBackend.BlockChain().Genesis(),
+	chain, _ := core.GenerateChain(params.AllBeaconProtocolChanges, zondBackend.BlockChain().Genesis(),
 		engine, zondBackend.ChainDb(), genBlocks, genfunc)
 	_, err = zondBackend.BlockChain().InsertChain(chain)
 	if err != nil {

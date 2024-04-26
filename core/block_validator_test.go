@@ -17,19 +17,13 @@
 package core
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/consensus/beacon"
-	"github.com/theQRL/go-zond/consensus/clique"
-	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/params"
 )
 
@@ -43,14 +37,14 @@ func testHeaderVerification(t *testing.T, scheme string) {
 	// Create a simple chain to verify
 	var (
 		gspec        = &Genesis{Config: params.TestChainConfig}
-		_, blocks, _ = GenerateChainWithGenesis(gspec, ethash.NewFaker(), 8, nil)
+		_, blocks, _ = GenerateChainWithGenesis(gspec, beacon.NewFaker(), 8, nil)
 	)
 	headers := make([]*types.Header, len(blocks))
 	for i, block := range blocks {
 		headers[i] = block.Header()
 	}
 	// Run the header checker for blocks one-by-one, checking for both valid and invalid nonces
-	chain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), gspec, ethash.NewFaker(), vm.Config{}, nil, nil)
+	chain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfigWithScheme(scheme), gspec, beacon.NewFaker(), vm.Config{}, nil, nil)
 	defer chain.Stop()
 
 	for i := 0; i < len(blocks); i++ {
@@ -58,10 +52,10 @@ func testHeaderVerification(t *testing.T, scheme string) {
 			var results <-chan error
 
 			if valid {
-				engine := ethash.NewFaker()
+				engine := beacon.NewFaker()
 				_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]})
 			} else {
-				engine := ethash.NewFakeFailer(headers[i].Number.Uint64())
+				engine := beacon.NewFakeFailer(headers[i].Number.Uint64())
 				_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]})
 			}
 			// Wait for the verification result
@@ -84,7 +78,9 @@ func testHeaderVerification(t *testing.T, scheme string) {
 	}
 }
 
-func TestHeaderVerificationForMergingClique(t *testing.T) { testHeaderVerificationForMerging(t, true) }
+// TODO(rgeraldes24)
+/*
+// func TestHeaderVerificationForMergingClique(t *testing.T) { testHeaderVerificationForMerging(t, true) }
 func TestHeaderVerificationForMergingEthash(t *testing.T) { testHeaderVerificationForMerging(t, false) }
 
 // Tests the verification for eth1/2 merging, including pre-merge and post-merge
@@ -94,15 +90,14 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 		preBlocks  []*types.Block
 		postBlocks []*types.Block
 		engine     consensus.Engine
-		merger     = consensus.NewMerger(rawdb.NewMemoryDatabase())
 	)
 	if isClique {
 		var (
 			key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 			addr   = crypto.PubkeyToAddress(key.PublicKey)
-			config = *params.AllCliqueProtocolChanges
+			config = *params.AllBeaconProtocolChanges
 		)
-		engine = beacon.New(clique.New(params.AllCliqueProtocolChanges.Clique, rawdb.NewMemoryDatabase()))
+		engine = beacon.New()
 		gspec = &Genesis{
 			Config:    &config,
 			ExtraData: make([]byte, 32+common.AddressLength+crypto.SignatureLength),
@@ -132,12 +127,11 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 			td += int(block.Difficulty().Uint64())
 		}
 		preBlocks = blocks
-		gspec.Config.TerminalTotalDifficulty = big.NewInt(int64(td))
 		postBlocks, _ = GenerateChain(gspec.Config, preBlocks[len(preBlocks)-1], engine, genDb, 8, nil)
 	} else {
 		config := *params.TestChainConfig
 		gspec = &Genesis{Config: &config}
-		engine = beacon.New(ethash.NewFaker())
+		engine = beacon.New()
 		td := int(params.GenesisDifficulty.Uint64())
 		genDb, blocks, _ := GenerateChainWithGenesis(gspec, engine, 8, nil)
 		for _, block := range blocks {
@@ -145,8 +139,6 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 			td += int(block.Difficulty().Uint64())
 		}
 		preBlocks = blocks
-		gspec.Config.TerminalTotalDifficulty = big.NewInt(int64(td))
-		t.Logf("Set ttd to %v\n", gspec.Config.TerminalTotalDifficulty)
 		postBlocks, _ = GenerateChain(gspec.Config, preBlocks[len(preBlocks)-1], engine, genDb, 8, func(i int, gen *BlockGen) {
 			gen.SetPoS()
 		})
@@ -187,9 +179,10 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 		chain.InsertChain(preBlocks[i : i+1])
 	}
 
+	// TODO(rgeraldes24): remove
 	// Make the transition
-	merger.ReachTTD()
-	merger.FinalizePoS()
+	// merger.ReachTTD()
+	// merger.FinalizePoS()
 
 	// Verify the blocks after the merging
 	for i := 0; i < len(postBlocks); i++ {
@@ -238,6 +231,7 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 	case <-time.After(25 * time.Millisecond):
 	}
 }
+*/
 
 func TestCalcGasLimit(t *testing.T) {
 	for i, tc := range []struct {

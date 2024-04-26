@@ -25,7 +25,7 @@ import (
 
 	"github.com/theQRL/go-zond"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
@@ -79,7 +79,7 @@ func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
 
 func generateTestChain() (*core.Genesis, []*types.Block) {
 	genesis := &core.Genesis{
-		Config:    params.AllEthashProtocolChanges,
+		Config:    params.AllBeaconProtocolChanges,
 		Alloc:     core.GenesisAlloc{testAddr: {Balance: testBalance, Storage: map[common.Hash]common.Hash{testSlot: testValue}}},
 		ExtraData: []byte("test genesis"),
 		Timestamp: 9000,
@@ -88,7 +88,7 @@ func generateTestChain() (*core.Genesis, []*types.Block) {
 		g.OffsetTime(5)
 		g.SetExtra([]byte("test"))
 	}
-	_, blocks, _ := core.GenerateChainWithGenesis(genesis, ethash.NewFaker(), 1, generate)
+	_, blocks, _ := core.GenerateChainWithGenesis(genesis, beacon.NewFaker(), 1, generate)
 	blocks = append([]*types.Block{genesis.ToBlock()}, blocks...)
 	return genesis, blocks
 }

@@ -17,13 +17,11 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 
 	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/cmd/utils"
-	"github.com/theQRL/go-zond/crypto"
 	"github.com/urfave/cli/v2"
 )
 
@@ -74,11 +72,13 @@ make sure to use this feature with great caution!`,
 		showPrivate := ctx.Bool(privateFlag.Name)
 		out := outputInspect{
 			Address: key.Address.Hex(),
-			PublicKey: hex.EncodeToString(
-				crypto.FromECDSAPub(&key.PrivateKey.PublicKey)),
+			// TODO(rgeraldes24)
+			// PublicKey: hex.EncodeToString(
+			// 	crypto.FromECDSAPub(&key.PrivateKey.PublicKey)),
 		}
 		if showPrivate {
-			out.PrivateKey = hex.EncodeToString(crypto.FromECDSA(key.PrivateKey))
+			// TODO(rgeraldes24)
+			// out.PrivateKey = hex.EncodeToString(crypto.FromECDSA(key.PrivateKey))
 		}
 
 		if ctx.Bool(jsonFlag.Name) {

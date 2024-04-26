@@ -22,8 +22,6 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/consensus/ethash"
-	"github.com/theQRL/go-zond/consensus/misc"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
@@ -154,13 +152,6 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		vmContext.Random = &rnd
 	}
 
-	// If DAO is supported/enabled, we need to handle it here. In gzond 'proper', it's
-	// done in StateProcessor.Process(block, ...), right before transactions are applied.
-	if chainConfig.DAOForkSupport &&
-		chainConfig.DAOForkBlock != nil &&
-		chainConfig.DAOForkBlock.Cmp(new(big.Int).SetUint64(pre.Env.Number)) == 0 {
-		misc.ApplyDAOHardFork(statedb)
-	}
 	for i, tx := range txs {
 		msg, err := core.TransactionToMessage(tx, signer, pre.Env.BaseFee)
 		if err != nil {
@@ -200,11 +191,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		// Receipt:
 		{
 			var root []byte
-			if chainConfig.IsByzantium(vmContext.BlockNumber) {
-				statedb.Finalise(true)
-			} else {
-				root = statedb.IntermediateRoot(chainConfig.IsEIP158(vmContext.BlockNumber)).Bytes()
-			}
+			statedb.Finalise(true)
 
 			// Create a new receipt for the transaction, storing the intermediate root and
 			// gas used by the tx.
@@ -234,7 +221,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 
 		txIndex++
 	}
-	statedb.IntermediateRoot(chainConfig.IsEIP158(vmContext.BlockNumber))
+	statedb.IntermediateRoot(true)
 	// Add mining reward? (-1 means rewards are disabled)
 	if miningReward >= 0 {
 		// Add mining reward. The mining reward may be `0`, which only makes a difference in the cases
@@ -266,7 +253,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		statedb.AddBalance(w.Address, amount)
 	}
 	// Commit block
-	root, err := statedb.Commit(vmContext.BlockNumber.Uint64(), chainConfig.IsEIP158(vmContext.BlockNumber))
+	root, err := statedb.Commit(vmContext.BlockNumber.Uint64(), true)
 	if err != nil {
 		return nil, nil, NewError(ErrorEVM, fmt.Errorf("could not commit state: %v", err))
 	}
@@ -317,24 +304,4 @@ func rlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
-}
-
-// calcDifficulty is based on ethash.CalcDifficulty. This method is used in case
-// the caller does not provide an explicit difficulty, but instead provides only
-// parent timestamp + difficulty.
-// Note: this method only works for ethash engine.
-func calcDifficulty(config *params.ChainConfig, number, currentTime, parentTime uint64,
-	parentDifficulty *big.Int, parentUncleHash common.Hash) *big.Int {
-	uncleHash := parentUncleHash
-	if uncleHash == (common.Hash{}) {
-		uncleHash = types.EmptyUncleHash
-	}
-	parent := &types.Header{
-		ParentHash: common.Hash{},
-		UncleHash:  uncleHash,
-		Difficulty: parentDifficulty,
-		Number:     new(big.Int).SetUint64(number - 1),
-		Time:       parentTime,
-	}
-	return ethash.CalcDifficulty(config, currentTime, parent)
 }

@@ -27,7 +27,7 @@ import (
 
 	"github.com/theQRL/go-zond"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto/pqcrypto"
@@ -186,7 +186,7 @@ var (
 )
 
 var genesis = &core.Genesis{
-	Config:    params.AllEthashProtocolChanges,
+	Config:    params.AllBeaconProtocolChanges,
 	Alloc:     core.GenesisAlloc{testAddr: {Balance: testBalance}},
 	ExtraData: []byte("test genesis"),
 	Timestamp: 9000,
@@ -244,7 +244,7 @@ func generateTestChain() []*types.Block {
 			g.AddTx(testTx2)
 		}
 	}
-	_, blocks, _ := core.GenerateChainWithGenesis(genesis, ethash.NewFaker(), 2, generate)
+	_, blocks, _ := core.GenerateChainWithGenesis(genesis, beacon.NewFaker(), 2, generate)
 	return append([]*types.Block{genesis.ToBlock()}, blocks...)
 }
 
@@ -413,7 +413,7 @@ func testChainID(t *testing.T, client *rpc.Client) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if id == nil || id.Cmp(params.AllEthashProtocolChanges.ChainID) != 0 {
+	if id == nil || id.Cmp(params.AllBeaconProtocolChanges.ChainID) != 0 {
 		t.Fatalf("ChainID returned wrong number: %+v", id)
 	}
 }

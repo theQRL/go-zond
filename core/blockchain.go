@@ -1414,7 +1414,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		log.Crit("Failed to write block into disk", "err", err)
 	}
 	// Commit all cached state changes into underlying memory database.
-	root, err := state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()))
+	root, err := state.Commit(block.NumberU64(), true)
 	if err != nil {
 		return err
 	}
@@ -1746,10 +1746,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 		// its header and body was already in the database). But if the corresponding
 		// snapshot layer is missing, forcibly rerun the execution to build it.
 		if bc.skipBlock(err, it) {
-			logger := log.Debug
-			if bc.chainConfig.Clique == nil {
-				logger = log.Warn
-			}
+			logger := log.Warn
 			logger("Inserted known block", "number", block.Number(), "hash", block.Hash(),
 				"uncles", len(block.Uncles()), "txs", len(block.Transactions()), "gas", block.GasUsed(),
 				"root", block.Root())

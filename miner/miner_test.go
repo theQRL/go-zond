@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/clique"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
@@ -254,11 +254,7 @@ func waitForMiningState(t *testing.T, m *Miner, mining bool) {
 }
 
 func minerTestGenesisBlock(period uint64, gasLimit uint64, faucet common.Address) *core.Genesis {
-	config := *params.AllCliqueProtocolChanges
-	config.Clique = &params.CliqueConfig{
-		Period: period,
-		Epoch:  config.Clique.Epoch,
-	}
+	config := *params.AllBeaconProtocolChanges
 
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &core.Genesis{
@@ -293,7 +289,7 @@ func createMiner(t *testing.T) (*Miner, *event.TypeMux, func(skipMiner bool)) {
 		t.Fatalf("can't create new chain config: %v", err)
 	}
 	// Create consensus engine
-	engine := clique.New(chainConfig.Clique, chainDB)
+	engine := beacon.New()
 	// Create Ethereum backend
 	bc, err := core.NewBlockChain(chainDB, nil, genesis, engine, vm.Config{}, nil, nil)
 	if err != nil {

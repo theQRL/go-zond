@@ -29,29 +29,12 @@ import (
 // do not use e.g. SetInt() on the numbers. For testing only
 func copyConfig(original *params.ChainConfig) *params.ChainConfig {
 	return &params.ChainConfig{
-		ChainID:                 original.ChainID,
-		HomesteadBlock:          original.HomesteadBlock,
-		DAOForkBlock:            original.DAOForkBlock,
-		DAOForkSupport:          original.DAOForkSupport,
-		EIP150Block:             original.EIP150Block,
-		EIP155Block:             original.EIP155Block,
-		EIP158Block:             original.EIP158Block,
-		ByzantiumBlock:          original.ByzantiumBlock,
-		ConstantinopleBlock:     original.ConstantinopleBlock,
-		PetersburgBlock:         original.PetersburgBlock,
-		IstanbulBlock:           original.IstanbulBlock,
-		MuirGlacierBlock:        original.MuirGlacierBlock,
-		BerlinBlock:             original.BerlinBlock,
-		LondonBlock:             original.LondonBlock,
-		TerminalTotalDifficulty: original.TerminalTotalDifficulty,
-		Ethash:                  original.Ethash,
-		Clique:                  original.Clique,
+		ChainID: original.ChainID,
 	}
 }
 
 func config() *params.ChainConfig {
 	config := copyConfig(params.TestChainConfig)
-	config.LondonBlock = big.NewInt(5)
 	return config
 }
 

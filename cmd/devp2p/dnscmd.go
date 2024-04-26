@@ -25,9 +25,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/console/prompt"
 	"github.com/theQRL/go-zond/p2p/dnsdisc"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/urfave/cli/v2"
@@ -253,16 +251,20 @@ func dnsNukeRoute53(ctx *cli.Context) error {
 
 // loadSigningKey loads a private key in Ethereum keystore format.
 func loadSigningKey(keyfile string) *ecdsa.PrivateKey {
-	keyjson, err := os.ReadFile(keyfile)
-	if err != nil {
-		exit(fmt.Errorf("failed to read the keyfile at '%s': %v", keyfile, err))
-	}
-	password, _ := prompt.Stdin.PromptPassword("Please enter the password for '" + keyfile + "': ")
-	key, err := keystore.DecryptKey(keyjson, password)
-	if err != nil {
-		exit(fmt.Errorf("error decrypting key: %v", err))
-	}
-	return key.PrivateKey
+	// TODO(rgeraldes24)
+	/*
+		keyjson, err := os.ReadFile(keyfile)
+		if err != nil {
+			exit(fmt.Errorf("failed to read the keyfile at '%s': %v", keyfile, err))
+		}
+		password, _ := prompt.Stdin.PromptPassword("Please enter the password for '" + keyfile + "': ")
+		key, err := keystore.DecryptKey(keyjson, password)
+		if err != nil {
+			exit(fmt.Errorf("error decrypting key: %v", err))
+		}
+		return key.PrivateKey
+	*/
+	return nil
 }
 
 // dnsClient configures the DNS discovery client from command line flags.

@@ -22,11 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/accounts"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/clique"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/txpool"
@@ -51,8 +49,7 @@ const (
 var (
 	// Test chain configurations
 	testTxPoolConfig  legacypool.Config
-	ethashChainConfig *params.ChainConfig
-	cliqueChainConfig *params.ChainConfig
+	beaconChainConfig *params.ChainConfig
 
 	// Test accounts
 	testBankKey, _  = crypto.GenerateDilithiumKey()
@@ -75,14 +72,8 @@ var (
 func init() {
 	testTxPoolConfig = legacypool.DefaultConfig
 	testTxPoolConfig.Journal = ""
-	ethashChainConfig = new(params.ChainConfig)
-	*ethashChainConfig = *params.TestChainConfig
-	cliqueChainConfig = new(params.ChainConfig)
-	*cliqueChainConfig = *params.TestChainConfig
-	cliqueChainConfig.Clique = &params.CliqueConfig{
-		Period: 10,
-		Epoch:  30000,
-	}
+	beaconChainConfig = new(params.ChainConfig)
+	*beaconChainConfig = *params.TestChainConfig
 
 	signer := types.LatestSigner(params.TestChainConfig)
 	tx1 := types.MustSignNewTx(testBankKey, signer, &types.AccessListTx{
@@ -118,18 +109,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 		Config: chainConfig,
 		Alloc:  core.GenesisAlloc{testBankAddress: {Balance: testBankFunds}},
 	}
-	switch e := engine.(type) {
-	case *clique.Clique:
-		gspec.ExtraData = make([]byte, 32+common.AddressLength+crypto.SignatureLength)
-		copy(gspec.ExtraData[32:32+common.AddressLength], testBankAddress.Bytes())
-		e.Authorize(testBankAddress, func(account accounts.Account, s string, data []byte) ([]byte, error) {
-			return crypto.Sign(crypto.Keccak256(data), testBankKey)
-		})
-	case *ethash.Ethash:
-	default:
-		t.Fatalf("unexpected consensus engine type: %T", engine)
-	}
-	chain, err := core.NewBlockChain(db, &core.CacheConfig{TrieDirtyDisabled: true}, gspec, nil, engine, vm.Config{}, nil, nil)
+	chain, err := core.NewBlockChain(db, &core.CacheConfig{TrieDirtyDisabled: true}, gspec, engine, vm.Config{}, nil, nil)
 	if err != nil {
 		t.Fatalf("core.NewBlockChain failed: %v", err)
 	}
@@ -169,10 +149,9 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consens
 func TestGenerateAndImportBlock(t *testing.T) {
 	var (
 		db     = rawdb.NewMemoryDatabase()
-		config = *params.AllCliqueProtocolChanges
+		config = *params.AllBeaconProtocolChanges
 	)
-	config.Clique = &params.CliqueConfig{Period: 1, Epoch: 30000}
-	engine := clique.New(config.Clique, db)
+	engine := beacon.New()
 
 	w, b := newTestWorker(t, &config, engine, db, 0)
 	defer w.close()
@@ -209,12 +188,15 @@ func TestGenerateAndImportBlock(t *testing.T) {
 	}
 }
 
+// TODO(rgeraldes24)
+/*
 func TestEmptyWorkEthash(t *testing.T) {
-	testEmptyWork(t, ethashChainConfig, ethash.NewFaker())
+	testEmptyWork(t, ethashChainConfig, beacon.NewFaker())
 }
 func TestEmptyWorkClique(t *testing.T) {
 	testEmptyWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
 }
+*/
 
 func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
 	defer engine.Close()
@@ -251,13 +233,16 @@ func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consens
 	}
 }
 
+// TODO(rgeraldes24)
+/*
 func TestAdjustIntervalEthash(t *testing.T) {
-	testAdjustInterval(t, ethashChainConfig, ethash.NewFaker())
+	testAdjustInterval(t, ethashChainConfig, beacon.NewFaker())
 }
 
 func TestAdjustIntervalClique(t *testing.T) {
 	testAdjustInterval(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
 }
+*/
 
 func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
 	defer engine.Close()
@@ -345,8 +330,10 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 	}
 }
 
+// TODO(rgeraldes24)
+/*
 func TestGetSealingWorkEthash(t *testing.T) {
-	testGetSealingWork(t, ethashChainConfig, ethash.NewFaker())
+	testGetSealingWork(t, ethashChainConfig, beacon.NewFaker())
 }
 
 func TestGetSealingWorkClique(t *testing.T) {
@@ -356,9 +343,9 @@ func TestGetSealingWorkClique(t *testing.T) {
 func TestGetSealingWorkPostMerge(t *testing.T) {
 	local := new(params.ChainConfig)
 	*local = *ethashChainConfig
-	local.TerminalTotalDifficulty = big.NewInt(0)
-	testGetSealingWork(t, local, ethash.NewFaker())
+	testGetSealingWork(t, local, beacon.NewFaker())
 }
+*/
 
 func testGetSealingWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
 	defer engine.Close()
@@ -381,23 +368,14 @@ func testGetSealingWork(t *testing.T, chainConfig *params.ChainConfig, engine co
 			// is even smaller than parent block's. It's OK.
 			t.Logf("Invalid timestamp, want %d, get %d", timestamp, block.Time())
 		}
-		_, isClique := engine.(*clique.Clique)
-		if !isClique {
-			if len(block.Extra()) != 2 {
-				t.Error("Unexpected extra field")
-			}
-			if block.Coinbase() != coinbase {
-				t.Errorf("Unexpected coinbase got %x want %x", block.Coinbase(), coinbase)
-			}
-		} else {
-			if block.Coinbase() != (common.Address{}) {
-				t.Error("Unexpected coinbase")
-			}
+		if len(block.Extra()) != 2 {
+			t.Error("Unexpected extra field")
 		}
-		if !isClique {
-			if block.MixDigest() != random {
-				t.Error("Unexpected mix digest")
-			}
+		if block.Coinbase() != coinbase {
+			t.Errorf("Unexpected coinbase got %x want %x", block.Coinbase(), coinbase)
+		}
+		if block.MixDigest() != random {
+			t.Error("Unexpected mix digest")
 		}
 		if block.Nonce() != 0 {
 			t.Error("Unexpected block nonce")

@@ -49,24 +49,6 @@
         67,
         66
       ],
-      "homesteadBlock": 0,
-      "daoForkSupport": true,
-      "eip150Block": 0,
-      "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "eip155Block": 0,
-      "eip158Block": 0,
-      "byzantiumBlock": 0,
-      "constantinopleBlock": 0,
-      "petersburgBlock": 0,
-      "istanbulBlock": 1561651,
-      "berlinBlock": 4460644,
-      "londonBlock": 5062605,
-      "terminalTotalDifficulty": 10790000,
-      "terminalTotalDifficultyPassed": true,
-      "clique": {
-        "period": 15,
-        "epoch": 30000
-      },
       "trustedCheckpoint": {
         "sectionIndex": 210,
         "sectionHead": "0xbb11eaf551a6c06f74a6c7bbfe1699cbf64b8f248b64691da916dd443176db2f",

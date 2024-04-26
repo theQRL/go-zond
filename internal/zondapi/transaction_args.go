@@ -150,22 +150,11 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b Backend) erro
 	}
 	// Now attempt to fill in default value depending on whether London is active or not.
 	head := b.CurrentHeader()
-	if b.ChainConfig().IsLondon(head.Number) {
-		// London is active, set maxPriorityFeePerGas and maxFeePerGas.
-		if err := args.setLondonFeeDefaults(ctx, head, b); err != nil {
-			return err
-		}
-	} else {
-		if args.MaxFeePerGas != nil || args.MaxPriorityFeePerGas != nil {
-			return errors.New("maxFeePerGas and maxPriorityFeePerGas are not valid before London is active")
-		}
-		// London not active, set gas price.
-		price, err := b.SuggestGasTipCap(ctx)
-		if err != nil {
-			return err
-		}
-		args.GasPrice = (*hexutil.Big)(price)
+	// London is active, set maxPriorityFeePerGas and maxFeePerGas.
+	if err := args.setLondonFeeDefaults(ctx, head, b); err != nil {
+		return err
 	}
+
 	return nil
 }
 

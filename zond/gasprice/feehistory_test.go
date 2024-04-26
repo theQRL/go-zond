@@ -19,7 +19,6 @@ package gasprice
 import (
 	"context"
 	"errors"
-	"math/big"
 	"testing"
 
 	"github.com/theQRL/go-zond/rpc"
@@ -58,7 +57,7 @@ func TestFeeHistory(t *testing.T) {
 			MaxHeaderHistory: c.maxHeader,
 			MaxBlockHistory:  c.maxBlock,
 		}
-		backend := newTestBackend(t, big.NewInt(16), c.pending)
+		backend := newTestBackend(t, c.pending)
 		oracle := NewOracle(backend, config)
 
 		first, reward, baseFee, ratio, err := oracle.FeeHistory(context.Background(), c.count, c.last, c.percent)

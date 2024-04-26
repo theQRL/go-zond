@@ -18,7 +18,6 @@ package zond
 
 import (
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/common/hexutil"
 )
 
 // ZondAPI provides an API to access Zond full node-related information.
@@ -39,11 +38,6 @@ func (api *ZondAPI) Etherbase() (common.Address, error) {
 // Coinbase is the address that mining rewards will be sent to (alias for Etherbase).
 func (api *ZondAPI) Coinbase() (common.Address, error) {
 	return api.Etherbase()
-}
-
-// Hashrate returns the POW hashrate.
-func (api *ZondAPI) Hashrate() hexutil.Uint64 {
-	return hexutil.Uint64(api.z.Miner().Hashrate())
 }
 
 // Mining returns an indication if this node is currently mining.

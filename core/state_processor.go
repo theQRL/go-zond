@@ -17,13 +17,11 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/misc"
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
@@ -67,10 +65,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs     []*types.Log
 		gp          = new(GasPool).AddGas(block.GasLimit())
 	)
-	// Mutate the block and state according to any hard-fork specs
-	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
-		misc.ApplyDAOHardFork(statedb)
-	}
 	var (
 		context = NewEVMBlockContext(header, p.bc, nil)
 		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
@@ -90,13 +84,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
-	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
-	withdrawals := block.Withdrawals()
-	if len(withdrawals) > 0 && !p.config.IsShanghai(block.Number(), block.Time()) {
-		return nil, nil, 0, errors.New("withdrawals before shanghai")
-	}
+
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), withdrawals)
+	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), block.Withdrawals())
 
 	return receipts, allLogs, *usedGas, nil
 }
@@ -114,11 +104,7 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 
 	// Update the state with pending changes.
 	var root []byte
-	if config.IsByzantium(blockNumber) {
-		statedb.Finalise(true)
-	} else {
-		root = statedb.IntermediateRoot(config.IsEIP158(blockNumber)).Bytes()
-	}
+	statedb.Finalise(true)
 	*usedGas += result.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used

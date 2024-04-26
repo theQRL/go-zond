@@ -89,7 +89,6 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
-	blobs    int
 }
 
 // copy creates a deep copy of environment.
@@ -454,7 +453,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If sealing is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			if w.isRunning() && (w.chainConfig.Clique == nil || w.chainConfig.Clique.Period > 0) {
+			if w.isRunning() {
 				// Short circuit if no new transaction arrives.
 				if w.newTxs.Load() == 0 {
 					timer.Reset(recommit)
@@ -550,13 +549,6 @@ func (w *worker) mainLoop() {
 				// to the pending block
 				if tcount != w.current.tcount {
 					w.updateSnapshot(w.current)
-				}
-			} else {
-				// Special case, if the consensus engine is 0 period clique(dev mode),
-				// submit sealing work here since all empty submission will be rejected
-				// by clique. Of course the advance sealing(empty submission) is disabled.
-				if w.chainConfig.Clique != nil && w.chainConfig.Clique.Period == 0 {
-					w.commitWork(nil, time.Now().Unix())
 				}
 			}
 			w.newTxs.Add(int32(len(ev.Txs)))
@@ -790,14 +782,6 @@ func (w *worker) commitTransactions(env *environment, txs *transactionsByPriceAn
 		// during transaction acceptance is the transaction pool.
 		from, _ := types.Sender(env.signer, tx)
 
-		// Check whether the tx is replay protected. If we're not in the EIP155 hf
-		// phase, start ignoring the sender until we do.
-		if !w.chainConfig.IsEIP155(env.header.Number) {
-			log.Trace("Ignoring replay protected transaction", "hash", tx.Hash(), "eip155", w.chainConfig.EIP155Block)
-			txs.Pop()
-			continue
-		}
-
 		// Start executing the transaction
 		env.state.SetTxContext(tx.Hash(), env.tcount)
 
@@ -892,13 +876,8 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		header.MixDigest = genParams.random
 	}
 	// Set baseFee and GasLimit if we are on an EIP-1559 chain
-	if w.chainConfig.IsLondon(header.Number) {
-		header.BaseFee = eip1559.CalcBaseFee(w.chainConfig, parent)
-		if !w.chainConfig.IsLondon(parent.Number) {
-			parentGasLimit := parent.GasLimit * w.chainConfig.ElasticityMultiplier()
-			header.GasLimit = core.CalcGasLimit(parentGasLimit, w.config.GasCeil)
-		}
-	}
+	header.BaseFee = eip1559.CalcBaseFee(w.chainConfig, parent)
+
 	// Run the consensus preparation with the default or customized consensus engine.
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for sealing", "err", err)
@@ -1050,28 +1029,6 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		if interval != nil {
 			interval()
 		}
-		// Create a local environment copy, avoid the data race with snapshot state.
-		// https://github.com/theQRL/go-zond/issues/24299
-		env := env.copy()
-		// Withdrawals are set to nil here, because this is only called in PoW.
-		block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.state, env.txs, nil, env.receipts, nil)
-		if err != nil {
-			return err
-		}
-		// If we're post merge, just ignore
-		if !w.isTTDReached(block.Header()) {
-			select {
-			case w.taskCh <- &task{receipts: env.receipts, state: env.state, block: block, createdAt: time.Now()}:
-				fees := totalFees(block, env.receipts)
-				feesInEther := new(big.Float).Quo(new(big.Float).SetInt(fees), big.NewFloat(params.Ether))
-				log.Info("Commit new sealing work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
-					"txs", env.tcount, "gas", block.GasUsed(), "fees", feesInEther,
-					"elapsed", common.PrettyDuration(time.Since(start)))
-
-			case <-w.exitCh:
-				log.Info("Worker has exited")
-			}
-		}
 	}
 	if update {
 		w.updateSnapshot(env)
@@ -1093,13 +1050,6 @@ func (w *worker) getSealingBlock(params *generateParams) *newPayloadResult {
 	case <-w.exitCh:
 		return &newPayloadResult{err: errors.New("miner closed")}
 	}
-}
-
-// isTTDReached returns the indicator if the given block has reached the total
-// terminal difficulty for The Merge transition.
-func (w *worker) isTTDReached(header *types.Header) bool {
-	td, ttd := w.chain.GetTd(header.ParentHash, header.Number.Uint64()-1), w.chain.Config().TerminalTotalDifficulty
-	return td != nil && ttd != nil && td.Cmp(ttd) >= 0
 }
 
 // copyReceipts makes a deep copy of the given receipts.

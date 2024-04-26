@@ -244,6 +244,7 @@ func (t *txWithKey) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
+// TODO(rgeraldes24)
 // signUnsignedTransactions converts the input txs to canonical transactions.
 //
 // The transactions can have two forms, either
@@ -256,6 +257,7 @@ func (t *txWithKey) UnmarshalJSON(input []byte) error {
 //
 // To manage this, we read the transactions twice, first trying to read the secretKeys,
 // and secondly to read them with the standard tx json format
+/*
 func signUnsignedTransactions(txs []*txWithKey, signer types.Signer) (types.Transactions, error) {
 	var signedTxs []*types.Transaction
 	for i, tx := range txs {
@@ -282,6 +284,7 @@ func signUnsignedTransactions(txs []*txWithKey, signer types.Signer) (types.Tran
 	}
 	return signedTxs, nil
 }
+*/
 
 func loadTransactions(txStr string, inputData *input, env stEnv, chainConfig *params.ChainConfig) (types.Transactions, error) {
 	var txsWithKeys []*txWithKey
@@ -319,14 +322,13 @@ func loadTransactions(txStr string, inputData *input, env stEnv, chainConfig *pa
 		txsWithKeys = inputData.Txs
 	}
 	// We may have to sign the transactions.
-	signer := types.MakeSigner(chainConfig, big.NewInt(int64(env.Number)), env.Timestamp)
-	return signUnsignedTransactions(txsWithKeys, signer)
+	// TODO(rgeraldes24)
+	// signer := types.MakeSigner(chainConfig, big.NewInt(int64(env.Number)), env.Timestamp)
+	// return signUnsignedTransactions(txsWithKeys, signer)
+	return nil, nil
 }
 
 func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
-	if !chainConfig.IsLondon(big.NewInt(int64(env.Number))) {
-		return nil
-	}
 	// Sanity check, to not `panic` in state_transition
 	if env.BaseFee != nil {
 		// Already set, base fee has precedent over parent base fee.
@@ -345,9 +347,6 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 }
 
 func applyShanghaiChecks(env *stEnv, chainConfig *params.ChainConfig) error {
-	if !chainConfig.IsShanghai(big.NewInt(int64(env.Number)), env.Timestamp) {
-		return nil
-	}
 	if env.Withdrawals == nil {
 		return NewError(ErrorConfig, errors.New("Shanghai config but missing 'withdrawals' in env section"))
 	}
@@ -355,26 +354,6 @@ func applyShanghaiChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 }
 
 func applyMergeChecks(env *stEnv, chainConfig *params.ChainConfig) error {
-	isMerged := chainConfig.TerminalTotalDifficulty != nil && chainConfig.TerminalTotalDifficulty.BitLen() == 0
-	if !isMerged {
-		// pre-merge: If difficulty was not provided by caller, we need to calculate it.
-		if env.Difficulty != nil {
-			// already set
-			return nil
-		}
-		switch {
-		case env.ParentDifficulty == nil:
-			return NewError(ErrorConfig, errors.New("currentDifficulty was not provided, and cannot be calculated due to missing parentDifficulty"))
-		case env.Number == 0:
-			return NewError(ErrorConfig, errors.New("currentDifficulty needs to be provided for block number 0"))
-		case env.Timestamp <= env.ParentTimestamp:
-			return NewError(ErrorConfig, fmt.Errorf("currentDifficulty cannot be calculated -- currentTime (%d) needs to be after parent time (%d)",
-				env.Timestamp, env.ParentTimestamp))
-		}
-		env.Difficulty = calcDifficulty(chainConfig, env.Number, env.Timestamp,
-			env.ParentTimestamp, env.ParentDifficulty, env.ParentUncleHash)
-		return nil
-	}
 	// post-merge:
 	// - random must be supplied
 	// - difficulty must be zero

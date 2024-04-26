@@ -20,7 +20,6 @@ package catalyst
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
@@ -136,9 +135,6 @@ func NewConsensusAPI(zond *zond.Zond) *ConsensusAPI {
 
 // newConsensusAPIWithoutHeartbeat creates a new consensus api for the SimulatedBeacon Node.
 func newConsensusAPIWithoutHeartbeat(zond *zond.Zond) *ConsensusAPI {
-	if zond.BlockChain().Config().TerminalTotalDifficulty == nil {
-		log.Warn("Engine API started but chain not configured for merge yet")
-	}
 	api := &ConsensusAPI{
 		zond:              zond,
 		remoteBlocks:      newHeaderQueue(),
@@ -150,6 +146,7 @@ func newConsensusAPIWithoutHeartbeat(zond *zond.Zond) *ConsensusAPI {
 	return api
 }
 
+// TODO(rgeraldes24): desc
 // ForkchoiceUpdatedV1 has several responsibilities:
 //
 // We try to set our blockchain to the headBlock.
@@ -164,18 +161,6 @@ func newConsensusAPIWithoutHeartbeat(zond *zond.Zond) *ConsensusAPI {
 //
 // If there are payloadAttributes: we try to assemble a block with the payloadAttributes
 // and return its payloadID.
-func (api *ConsensusAPI) ForkchoiceUpdatedV1(update engine.ForkchoiceStateV1, payloadAttributes *engine.PayloadAttributes) (engine.ForkChoiceResponse, error) {
-	if payloadAttributes != nil {
-		if payloadAttributes.Withdrawals != nil {
-			return engine.STATUS_INVALID, engine.InvalidParams.With(errors.New("withdrawals not supported in V1"))
-		}
-		if api.zond.BlockChain().Config().IsShanghai(api.zond.BlockChain().Config().LondonBlock, payloadAttributes.Timestamp) {
-			return engine.STATUS_INVALID, engine.InvalidParams.With(errors.New("forkChoiceUpdateV1 called post-shanghai"))
-		}
-	}
-	return api.forkchoiceUpdated(update, payloadAttributes)
-}
-
 // ForkchoiceUpdatedV2 is equivalent to V1 with the addition of withdrawals in the payload attributes.
 func (api *ConsensusAPI) ForkchoiceUpdatedV2(update engine.ForkchoiceStateV1, payloadAttributes *engine.PayloadAttributes) (engine.ForkChoiceResponse, error) {
 	if payloadAttributes != nil {
@@ -186,31 +171,19 @@ func (api *ConsensusAPI) ForkchoiceUpdatedV2(update engine.ForkchoiceStateV1, pa
 	return api.forkchoiceUpdated(update, payloadAttributes)
 }
 
-// ForkchoiceUpdatedV3 is equivalent to V2 with the addition of parent beacon block root in the payload attributes.
-func (api *ConsensusAPI) ForkchoiceUpdatedV3(update engine.ForkchoiceStateV1, payloadAttributes *engine.PayloadAttributes) (engine.ForkChoiceResponse, error) {
-	if payloadAttributes != nil {
-		if err := api.verifyPayloadAttributes(payloadAttributes); err != nil {
-			return engine.STATUS_INVALID, engine.InvalidParams.With(err)
-		}
-	}
-	return api.forkchoiceUpdated(update, payloadAttributes)
-}
-
 func (api *ConsensusAPI) verifyPayloadAttributes(attr *engine.PayloadAttributes) error {
-	c := api.zond.BlockChain().Config()
-
 	// Verify withdrawals attribute for Shanghai.
-	if err := checkAttribute(c.IsShanghai, attr.Withdrawals != nil, c.LondonBlock, attr.Timestamp); err != nil {
+	if err := checkAttribute(func(uint64) bool { return true }, attr.Withdrawals != nil, attr.Timestamp); err != nil {
 		return fmt.Errorf("invalid withdrawals: %w", err)
 	}
 	return nil
 }
 
-func checkAttribute(active func(*big.Int, uint64) bool, exists bool, block *big.Int, time uint64) error {
-	if active(block, time) && !exists {
+func checkAttribute(active func(uint64) bool, exists bool, time uint64) error {
+	if active(time) && !exists {
 		return errors.New("fork active, missing expected attribute")
 	}
-	if !active(block, time) && exists {
+	if !active(time) && exists {
 		return errors.New("fork inactive, unexpected attribute set")
 	}
 	return nil
@@ -253,12 +226,6 @@ func (api *ConsensusAPI) forkchoiceUpdated(update engine.ForkchoiceStateV1, payl
 		finalized := api.remoteBlocks.get(update.FinalizedBlockHash)
 
 		// Header advertised via a past newPayload request. Start syncing to it.
-		// Before we do however, make sure any legacy sync in switched off so we
-		// don't accidentally have 2 cycles running.
-		if merger := api.zond.Merger(); !merger.TDDReached() {
-			merger.ReachTTD()
-			api.zond.Downloader().Cancel()
-		}
 		context := []interface{}{"number", header.Number, "hash", header.Hash()}
 		if update.FinalizedBlockHash != (common.Hash{}) {
 			if finalized == nil {
@@ -273,27 +240,7 @@ func (api *ConsensusAPI) forkchoiceUpdated(update engine.ForkchoiceStateV1, payl
 		}
 		return engine.STATUS_SYNCING, nil
 	}
-	// Block is known locally, just sanity check that the beacon client does not
-	// attempt to push us back to before the merge.
-	if block.Difficulty().BitLen() > 0 || block.NumberU64() == 0 {
-		var (
-			td  = api.zond.BlockChain().GetTd(update.HeadBlockHash, block.NumberU64())
-			ptd = api.zond.BlockChain().GetTd(block.ParentHash(), block.NumberU64()-1)
-			ttd = api.zond.BlockChain().Config().TerminalTotalDifficulty
-		)
-		if td == nil || (block.NumberU64() > 0 && ptd == nil) {
-			log.Error("TDs unavailable for TTD check", "number", block.NumberU64(), "hash", update.HeadBlockHash, "td", td, "parent", block.ParentHash(), "ptd", ptd)
-			return engine.STATUS_INVALID, errors.New("TDs unavailable for TDD check")
-		}
-		if td.Cmp(ttd) < 0 {
-			log.Error("Refusing beacon update to pre-merge", "number", block.NumberU64(), "hash", update.HeadBlockHash, "diff", block.Difficulty(), "age", common.PrettyAge(time.Unix(int64(block.Time()), 0)))
-			return engine.ForkChoiceResponse{PayloadStatus: engine.INVALID_TERMINAL_BLOCK, PayloadID: nil}, nil
-		}
-		if block.NumberU64() > 0 && ptd.Cmp(ttd) >= 0 {
-			log.Error("Parent block is already post-ttd", "number", block.NumberU64(), "hash", update.HeadBlockHash, "diff", block.Difficulty(), "age", common.PrettyAge(time.Unix(int64(block.Time()), 0)))
-			return engine.ForkChoiceResponse{PayloadStatus: engine.INVALID_TERMINAL_BLOCK, PayloadID: nil}, nil
-		}
-	}
+
 	valid := func(id *engine.PayloadID) engine.ForkChoiceResponse {
 		return engine.ForkChoiceResponse{
 			PayloadStatus: engine.PayloadStatusV1{Status: engine.VALID, LatestValidHash: &update.HeadBlockHash},
@@ -320,9 +267,6 @@ func (api *ConsensusAPI) forkchoiceUpdated(update engine.ForkchoiceStateV1, payl
 	// If the beacon client also advertised a finalized block, mark the local
 	// chain final and completely in PoS mode.
 	if update.FinalizedBlockHash != (common.Hash{}) {
-		if merger := api.zond.Merger(); !merger.PoSFinalized() {
-			merger.FinalizePoS()
-		}
 		// If the finalized block is not in our canonical tree, somethings wrong
 		finalBlock := api.zond.BlockChain().GetBlockByHash(update.FinalizedBlockHash)
 		if finalBlock == nil {
@@ -377,36 +321,6 @@ func (api *ConsensusAPI) forkchoiceUpdated(update engine.ForkchoiceStateV1, payl
 	return valid(nil), nil
 }
 
-// ExchangeTransitionConfigurationV1 checks the given configuration against
-// the configuration of the node.
-func (api *ConsensusAPI) ExchangeTransitionConfigurationV1(config engine.TransitionConfigurationV1) (*engine.TransitionConfigurationV1, error) {
-	log.Trace("Engine API request received", "method", "ExchangeTransitionConfiguration", "ttd", config.TerminalTotalDifficulty)
-	if config.TerminalTotalDifficulty == nil {
-		return nil, errors.New("invalid terminal total difficulty")
-	}
-	// Stash away the last update to warn the user if the beacon client goes offline
-	api.lastTransitionLock.Lock()
-	api.lastTransitionUpdate = time.Now()
-	api.lastTransitionLock.Unlock()
-
-	ttd := api.zond.BlockChain().Config().TerminalTotalDifficulty
-	if ttd == nil || ttd.Cmp(config.TerminalTotalDifficulty.ToInt()) != 0 {
-		log.Warn("Invalid TTD configured", "gzond", ttd, "beacon", config.TerminalTotalDifficulty)
-		return nil, fmt.Errorf("invalid ttd: execution %v consensus %v", ttd, config.TerminalTotalDifficulty)
-	}
-	if config.TerminalBlockHash != (common.Hash{}) {
-		if hash := api.zond.BlockChain().GetCanonicalHash(uint64(config.TerminalBlockNumber)); hash == config.TerminalBlockHash {
-			return &engine.TransitionConfigurationV1{
-				TerminalTotalDifficulty: (*hexutil.Big)(ttd),
-				TerminalBlockHash:       config.TerminalBlockHash,
-				TerminalBlockNumber:     config.TerminalBlockNumber,
-			}, nil
-		}
-		return nil, errors.New("invalid terminal block hash")
-	}
-	return &engine.TransitionConfigurationV1{TerminalTotalDifficulty: (*hexutil.Big)(ttd)}, nil
-}
-
 // GetPayloadV2 returns a cached payload by id.
 func (api *ConsensusAPI) GetPayloadV2(payloadID engine.PayloadID) (*engine.ExecutionPayloadEnvelope, error) {
 	return api.getPayload(payloadID, false)
@@ -423,12 +337,8 @@ func (api *ConsensusAPI) getPayload(payloadID engine.PayloadID, full bool) (*eng
 
 // NewPayloadV2 creates an Eth1 block, inserts it in the chain, and returns the status of the chain.
 func (api *ConsensusAPI) NewPayloadV2(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
-	if api.zond.BlockChain().Config().IsShanghai(new(big.Int).SetUint64(params.Number), params.Timestamp) {
-		if params.Withdrawals == nil {
-			return engine.PayloadStatusV1{Status: engine.INVALID}, engine.InvalidParams.With(errors.New("nil withdrawals post-shanghai"))
-		}
-	} else if params.Withdrawals != nil {
-		return engine.PayloadStatusV1{Status: engine.INVALID}, engine.InvalidParams.With(errors.New("non-nil withdrawals pre-shanghai"))
+	if params.Withdrawals == nil {
+		return engine.PayloadStatusV1{Status: engine.INVALID}, engine.InvalidParams.With(errors.New("nil withdrawals post-shanghai"))
 	}
 
 	return api.newPayload(params, nil, nil)
@@ -485,19 +395,6 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 	}
 	// We have an existing parent, do some sanity checks to avoid the beacon client
 	// triggering too early
-	var (
-		ptd  = api.zond.BlockChain().GetTd(parent.Hash(), parent.NumberU64())
-		ttd  = api.zond.BlockChain().Config().TerminalTotalDifficulty
-		gptd = api.zond.BlockChain().GetTd(parent.ParentHash(), parent.NumberU64()-1)
-	)
-	if ptd.Cmp(ttd) < 0 {
-		log.Warn("Ignoring pre-merge payload", "number", params.Number, "hash", params.BlockHash, "td", ptd, "ttd", ttd)
-		return engine.INVALID_TERMINAL_BLOCK, nil
-	}
-	if parent.Difficulty().BitLen() > 0 && gptd != nil && gptd.Cmp(ttd) >= 0 {
-		log.Error("Ignoring pre-merge parent block", "number", params.Number, "hash", params.BlockHash, "td", ptd, "ttd", ttd)
-		return engine.INVALID_TERMINAL_BLOCK, nil
-	}
 	if block.Time() <= parent.Time() {
 		log.Warn("Invalid timestamp", "parent", block.Time(), "block", block.Time())
 		return api.invalid(errors.New("invalid timestamp"), parent.Header()), nil
@@ -524,13 +421,6 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 		api.invalidLock.Unlock()
 
 		return api.invalid(err, parent.Header()), nil
-	}
-	// We've accepted a valid payload from the beacon client. Mark the local
-	// chain transitions to notify other subsystems (e.g. downloader) of the
-	// behavioral change.
-	if merger := api.zond.Merger(); !merger.TDDReached() {
-		merger.ReachTTD()
-		api.zond.Downloader().Cancel()
 	}
 	hash := block.Hash()
 	return engine.PayloadStatusV1{Status: engine.VALID, LatestValidHash: &hash}, nil
@@ -662,11 +552,6 @@ func (api *ConsensusAPI) heartbeat() {
 	// attached, so no need to print scary warnings to the user.
 	time.Sleep(beaconUpdateStartupTimeout)
 
-	// If the network is not yet merged/merging, don't bother continuing.
-	if api.zond.BlockChain().Config().TerminalTotalDifficulty == nil {
-		return
-	}
-
 	var offlineLogged time.Time
 
 	for {
@@ -687,26 +572,24 @@ func (api *ConsensusAPI) heartbeat() {
 
 		// If there have been no updates for the past while, warn the user
 		// that the beacon client is probably offline
-		if api.zond.BlockChain().Config().TerminalTotalDifficultyPassed || api.zond.Merger().TDDReached() {
-			if time.Since(lastForkchoiceUpdate) <= beaconUpdateConsensusTimeout || time.Since(lastNewPayloadUpdate) <= beaconUpdateConsensusTimeout {
-				offlineLogged = time.Time{}
-				continue
-			}
-
-			if time.Since(offlineLogged) > beaconUpdateWarnFrequency {
-				if lastForkchoiceUpdate.IsZero() && lastNewPayloadUpdate.IsZero() {
-					if lastTransitionUpdate.IsZero() {
-						log.Warn("Post-merge network, but no beacon client seen. Please launch one to follow the chain!")
-					} else {
-						log.Warn("Beacon client online, but never received consensus updates. Please ensure your beacon client is operational to follow the chain!")
-					}
-				} else {
-					log.Warn("Beacon client online, but no consensus updates received in a while. Please fix your beacon client to follow the chain!")
-				}
-				offlineLogged = time.Now()
-			}
+		if time.Since(lastForkchoiceUpdate) <= beaconUpdateConsensusTimeout || time.Since(lastNewPayloadUpdate) <= beaconUpdateConsensusTimeout {
+			offlineLogged = time.Time{}
 			continue
 		}
+
+		if time.Since(offlineLogged) > beaconUpdateWarnFrequency {
+			if lastForkchoiceUpdate.IsZero() && lastNewPayloadUpdate.IsZero() {
+				if lastTransitionUpdate.IsZero() {
+					log.Warn("Post-merge network, but no beacon client seen. Please launch one to follow the chain!")
+				} else {
+					log.Warn("Beacon client online, but never received consensus updates. Please ensure your beacon client is operational to follow the chain!")
+				}
+			} else {
+				log.Warn("Beacon client online, but no consensus updates received in a while. Please fix your beacon client to follow the chain!")
+			}
+			offlineLogged = time.Now()
+		}
+		continue
 	}
 }
 

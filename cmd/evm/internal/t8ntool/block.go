@@ -17,9 +17,7 @@
 package t8ntool
 
 import (
-	"crypto/ecdsa"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -27,9 +25,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/consensus/clique"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/urfave/cli/v2"
@@ -71,43 +67,10 @@ type bbInput struct {
 	OmmersRlp   []string            `json:"ommers,omitempty"`
 	TxRlp       string              `json:"txs,omitempty"`
 	Withdrawals []*types.Withdrawal `json:"withdrawals,omitempty"`
-	Clique      *cliqueInput        `json:"clique,omitempty"`
 
 	Ethash bool                 `json:"-"`
 	Txs    []*types.Transaction `json:"-"`
 	Ommers []*types.Header      `json:"-"`
-}
-
-type cliqueInput struct {
-	Key       *ecdsa.PrivateKey
-	Voted     *common.Address
-	Authorize *bool
-	Vanity    common.Hash
-}
-
-// UnmarshalJSON implements json.Unmarshaler interface.
-func (c *cliqueInput) UnmarshalJSON(input []byte) error {
-	var x struct {
-		Key       *common.Hash    `json:"secretKey"`
-		Voted     *common.Address `json:"voted"`
-		Authorize *bool           `json:"authorize"`
-		Vanity    common.Hash     `json:"vanity"`
-	}
-	if err := json.Unmarshal(input, &x); err != nil {
-		return err
-	}
-	if x.Key == nil {
-		return errors.New("missing required field 'secretKey' for cliqueInput")
-	}
-	if ecdsaKey, err := crypto.ToECDSA(x.Key[:]); err != nil {
-		return err
-	} else {
-		c.Key = ecdsaKey
-	}
-	c.Voted = x.Voted
-	c.Authorize = x.Authorize
-	c.Vanity = x.Vanity
-	return nil
 }
 
 // ToBlock converts i into a *types.Block
@@ -159,50 +122,9 @@ func (i *bbInput) ToBlock() *types.Block {
 // SealBlock seals the given block using the configured engine.
 func (i *bbInput) SealBlock(block *types.Block) (*types.Block, error) {
 	switch {
-	case i.Clique != nil:
-		return i.sealClique(block)
 	default:
 		return block, nil
 	}
-}
-
-// sealClique seals the given block using clique.
-func (i *bbInput) sealClique(block *types.Block) (*types.Block, error) {
-	// If any clique value overwrites an explicit header value, fail
-	// to avoid silently building a block with unexpected values.
-	if i.Header.Extra != nil {
-		return nil, NewError(ErrorConfig, errors.New("sealing with clique will overwrite provided extra data"))
-	}
-	header := block.Header()
-	if i.Clique.Voted != nil {
-		if i.Header.Coinbase != nil {
-			return nil, NewError(ErrorConfig, errors.New("sealing with clique and voting will overwrite provided coinbase"))
-		}
-		header.Coinbase = *i.Clique.Voted
-	}
-	if i.Clique.Authorize != nil {
-		if i.Header.Nonce != nil {
-			return nil, NewError(ErrorConfig, errors.New("sealing with clique and voting will overwrite provided nonce"))
-		}
-		if *i.Clique.Authorize {
-			header.Nonce = [8]byte{}
-		} else {
-			header.Nonce = [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-		}
-	}
-	// Extra is fixed 32 byte vanity and 65 byte signature
-	header.Extra = make([]byte, 32+65)
-	copy(header.Extra[0:32], i.Clique.Vanity.Bytes()[:])
-
-	// Sign the seal hash and fill in the rest of the extra data
-	h := clique.SealHash(header)
-	sighash, err := crypto.Sign(h[:], i.Clique.Key)
-	if err != nil {
-		return nil, err
-	}
-	copy(header.Extra[32:], sighash)
-	block = block.WithSeal(header)
-	return block, nil
 }
 
 // BuildBlock constructs a block from the given inputs.
@@ -234,21 +156,13 @@ func readInput(ctx *cli.Context) (*bbInput, error) {
 		ommersStr      = ctx.String(InputOmmersFlag.Name)
 		withdrawalsStr = ctx.String(InputWithdrawalsFlag.Name)
 		txsStr         = ctx.String(InputTxsRlpFlag.Name)
-		cliqueStr      = ctx.String(SealCliqueFlag.Name)
 		inputData      = &bbInput{}
 	)
-	if headerStr == stdinSelector || ommersStr == stdinSelector || txsStr == stdinSelector || cliqueStr == stdinSelector {
+	if headerStr == stdinSelector || ommersStr == stdinSelector || txsStr == stdinSelector {
 		decoder := json.NewDecoder(os.Stdin)
 		if err := decoder.Decode(inputData); err != nil {
 			return nil, NewError(ErrorJson, fmt.Errorf("failed unmarshaling stdin: %v", err))
 		}
-	}
-	if cliqueStr != stdinSelector && cliqueStr != "" {
-		var clique cliqueInput
-		if err := readFile(cliqueStr, "clique", &clique); err != nil {
-			return nil, err
-		}
-		inputData.Clique = &clique
 	}
 	if headerStr != stdinSelector {
 		var env header

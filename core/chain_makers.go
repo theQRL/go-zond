@@ -22,7 +22,6 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/misc"
 	"github.com/theQRL/go-zond/consensus/misc/eip1559"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
@@ -202,13 +201,7 @@ func (b *BlockGen) AddUncle(h *types.Header) {
 
 	// The gas limit and price should be derived from the parent
 	h.GasLimit = parent.GasLimit
-	if b.config.IsLondon(h.Number) {
-		h.BaseFee = eip1559.CalcBaseFee(b.config, parent)
-		if !b.config.IsLondon(parent.Number) {
-			parentGasLimit := parent.GasLimit * b.config.ElasticityMultiplier()
-			h.GasLimit = CalcGasLimit(parentGasLimit, parentGasLimit)
-		}
-	}
+	h.BaseFee = eip1559.CalcBaseFee(b.config, parent)
 	b.uncles = append(b.uncles, h)
 }
 
@@ -291,25 +284,8 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		// to a chain, so the difficulty will be left unset (nil). Set it here to the
 		// correct value.
 		if b.header.Difficulty == nil {
-			if config.TerminalTotalDifficulty == nil {
-				// Clique chain
-				b.header.Difficulty = big.NewInt(2)
-			} else {
-				// Post-merge chain
-				b.header.Difficulty = big.NewInt(0)
-			}
-		}
-		// Mutate the state and block according to any hard-fork specs
-		if daoBlock := config.DAOForkBlock; daoBlock != nil {
-			limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
-			if b.header.Number.Cmp(daoBlock) >= 0 && b.header.Number.Cmp(limit) < 0 {
-				if config.DAOForkSupport {
-					b.header.Extra = common.CopyBytes(params.DAOForkBlockExtra)
-				}
-			}
-		}
-		if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
-			misc.ApplyDAOHardFork(statedb)
+			// Post-merge chain
+			b.header.Difficulty = big.NewInt(0)
 		}
 		// Execute any user modifications to the block
 		if gen != nil {
@@ -322,7 +298,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			}
 
 			// Write state changes to db
-			root, err := statedb.Commit(b.header.Number.Uint64(), config.IsEIP158(b.header.Number))
+			root, err := statedb.Commit(b.header.Number.Uint64(), true)
 			if err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
@@ -373,7 +349,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		time = parent.Time() + 10 // block time is fixed at 10 seconds
 	}
 	header := &types.Header{
-		Root:       state.IntermediateRoot(chain.Config().IsEIP158(parent.Number())),
+		Root:       state.IntermediateRoot(true),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
 		Difficulty: engine.CalcDifficulty(chain, time, &types.Header{
@@ -385,14 +361,9 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		GasLimit: parent.GasLimit(),
 		Number:   new(big.Int).Add(parent.Number(), common.Big1),
 		Time:     time,
+		BaseFee:  eip1559.CalcBaseFee(chain.Config(), parent.Header()),
 	}
-	if chain.Config().IsLondon(header.Number) {
-		header.BaseFee = eip1559.CalcBaseFee(chain.Config(), parent.Header())
-		if !chain.Config().IsLondon(parent.Number()) {
-			parentGasLimit := parent.GasLimit() * chain.Config().ElasticityMultiplier()
-			header.GasLimit = CalcGasLimit(parentGasLimit, parentGasLimit)
-		}
-	}
+
 	return header
 }
 

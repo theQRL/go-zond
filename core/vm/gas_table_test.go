@@ -94,7 +94,7 @@ func TestEIP2200(t *testing.T) {
 			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 		}
-		vmenv := NewEVM(vmctx, TxContext{}, statedb, params.AllEthashProtocolChanges, Config{ExtraEips: []int{2200}})
+		vmenv := NewEVM(vmctx, TxContext{}, statedb, params.AllBeaconProtocolChanges, Config{ExtraEips: []int{2200}})
 
 		_, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
 		if err != tt.failure {
@@ -150,7 +150,7 @@ func TestCreateGas(t *testing.T) {
 				config.ExtraEips = []int{3860}
 			}
 
-			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.AllEthashProtocolChanges, config)
+			vmenv := NewEVM(vmctx, TxContext{}, statedb, params.AllBeaconProtocolChanges, config)
 			var startGas = uint64(testGas)
 			ret, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, startGas, new(big.Int))
 			if err != nil {

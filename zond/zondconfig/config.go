@@ -18,14 +18,11 @@
 package zondconfig
 
 import (
-	"errors"
 	"time"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/consensus/beacon"
-	"github.com/theQRL/go-zond/consensus/clique"
-	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/txpool/legacypool"
@@ -138,18 +135,6 @@ type Config struct {
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain config.
-// Clique is allowed for now to live standalone, but ethash is forbidden and can
-// only exist on already merged networks.
 func CreateConsensusEngine(config *params.ChainConfig, db zonddb.Database) (consensus.Engine, error) {
-	// If proof-of-authority is requested, set it up
-	if config.Clique != nil {
-		return beacon.New(clique.New(config.Clique, db)), nil
-	}
-	// If defaulting to proof-of-work, enforce an already merged network since
-	// we cannot run PoW algorithms and more, so we cannot even follow a chain
-	// not coordinated by a beacon node.
-	if !config.TerminalTotalDifficultyPassed {
-		return nil, errors.New("ethash is only supported as a historical component of already merged networks")
-	}
-	return beacon.New(ethash.NewFaker()), nil
+	return beacon.New(), nil
 }

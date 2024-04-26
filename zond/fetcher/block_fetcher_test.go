@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
@@ -53,7 +53,7 @@ var (
 // contains a transaction and every 5th an uncle to allow testing correct block
 // reassembly.
 func makeChain(n int, seed byte, parent *types.Block) ([]common.Hash, map[common.Hash]*types.Block) {
-	blocks, _ := core.GenerateChain(gspec.Config, parent, ethash.NewFaker(), testdb, n, func(i int, block *core.BlockGen) {
+	blocks, _ := core.GenerateChain(gspec.Config, parent, beacon.NewFaker(), testdb, n, func(i int, block *core.BlockGen) {
 		block.SetCoinbase(common.Address{seed})
 
 		// If the block number is multiple of 3, send a bonus transaction to the miner
@@ -101,7 +101,7 @@ func newTester(light bool) *fetcherTester {
 		blocks:  map[common.Hash]*types.Block{genesis.Hash(): genesis},
 		drops:   make(map[string]bool),
 	}
-	tester.fetcher = NewBlockFetcher(light, tester.getHeader, tester.getBlock, tester.verifyHeader, tester.broadcastBlock, tester.chainHeight, tester.insertHeaders, tester.insertChain, tester.dropPeer)
+	tester.fetcher = NewBlockFetcher(light, tester.getHeader, tester.getBlock, tester.verifyHeader, tester.chainHeight, tester.insertHeaders, tester.insertChain, tester.dropPeer)
 	tester.fetcher.Start()
 
 	return tester
@@ -126,10 +126,6 @@ func (f *fetcherTester) getBlock(hash common.Hash) *types.Block {
 // verifyHeader is a nop placeholder for the block header verification.
 func (f *fetcherTester) verifyHeader(header *types.Header) error {
 	return nil
-}
-
-// broadcastBlock is a nop placeholder for the block broadcasting.
-func (f *fetcherTester) broadcastBlock(block *types.Block, propagate bool) {
 }
 
 // chainHeight retrieves the current height (block number) of the chain.

@@ -33,7 +33,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
@@ -49,7 +48,6 @@ import (
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/signer/core"
 	"github.com/theQRL/go-zond/signer/core/apitypes"
@@ -773,7 +771,8 @@ func signer(c *cli.Context) error {
 	}
 	if c.Bool(testFlag.Name) {
 		log.Info("Performing UI test")
-		go testExternalUI(apiImpl)
+		// TODO(rgeraldes24)
+		// go testExternalUI(apiImpl)
 	}
 	ui.OnSignerStartup(core.StartupInfo{
 		Info: map[string]interface{}{
@@ -892,6 +891,8 @@ func confirm(text string) bool {
 	return false
 }
 
+// TODO(rgeraldes24)
+/*
 func testExternalUI(api *core.SignerAPI) {
 	ctx := context.WithValue(context.Background(), "remote", "clef binary")
 	ctx = context.WithValue(ctx, "scheme", "in-proc")
@@ -1035,6 +1036,7 @@ func testExternalUI(api *core.SignerAPI) {
 	result := fmt.Sprintf("Tests completed. %d errors:\n%s\n", len(errs), strings.Join(errs, "\n"))
 	api.UI.ShowInfo(result)
 }
+*/
 
 type encryptedSeedStorage struct {
 	Description string              `json:"description"`

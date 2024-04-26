@@ -22,7 +22,6 @@ import (
 	"os"
 
 	"github.com/theQRL/go-zond/accounts"
-	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/cmd/utils"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/crypto"
@@ -53,32 +52,35 @@ To sign a message contained in a file, use the --msgfile flag.
 		msgfileFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		message := getMessage(ctx, 1)
+		// TODO(rgeraldes24)
+		/*
+			message := getMessage(ctx, 1)
 
-		// Load the keyfile.
-		keyfilepath := ctx.Args().First()
-		keyjson, err := os.ReadFile(keyfilepath)
-		if err != nil {
-			utils.Fatalf("Failed to read the keyfile at '%s': %v", keyfilepath, err)
-		}
+			// Load the keyfile.
+			keyfilepath := ctx.Args().First()
+			keyjson, err := os.ReadFile(keyfilepath)
+			if err != nil {
+				utils.Fatalf("Failed to read the keyfile at '%s': %v", keyfilepath, err)
+			}
 
-		// Decrypt key with passphrase.
-		passphrase := getPassphrase(ctx, false)
-		key, err := keystore.DecryptKey(keyjson, passphrase)
-		if err != nil {
-			utils.Fatalf("Error decrypting key: %v", err)
-		}
+			// Decrypt key with passphrase.
+			passphrase := getPassphrase(ctx, false)
+			key, err := keystore.DecryptKey(keyjson, passphrase)
+			if err != nil {
+				utils.Fatalf("Error decrypting key: %v", err)
+			}
 
-		signature, err := crypto.Sign(accounts.TextHash(message), key.PrivateKey)
-		if err != nil {
-			utils.Fatalf("Failed to sign message: %v", err)
-		}
-		out := outputSign{Signature: hex.EncodeToString(signature)}
-		if ctx.Bool(jsonFlag.Name) {
-			mustPrintJSON(out)
-		} else {
-			fmt.Println("Signature:", out.Signature)
-		}
+			signature, err := crypto.Sign(accounts.TextHash(message), key.PrivateKey)
+			if err != nil {
+				utils.Fatalf("Failed to sign message: %v", err)
+			}
+			out := outputSign{Signature: hex.EncodeToString(signature)}
+			if ctx.Bool(jsonFlag.Name) {
+				mustPrintJSON(out)
+			} else {
+				fmt.Println("Signature:", out.Signature)
+			}
+		*/
 		return nil
 	},
 }

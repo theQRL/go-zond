@@ -95,9 +95,10 @@ If you want to encrypt an existing private key, it can be specified by setting
 			utils.Fatalf("Failed to generate random uuid: %v", err)
 		}
 		key := &keystore.Key{
-			Id:         UUID,
-			Address:    crypto.PubkeyToAddress(privateKey.PublicKey),
-			PrivateKey: privateKey,
+			Id:      UUID,
+			Address: crypto.PubkeyToAddress(privateKey.PublicKey),
+			// TODO(rgeraldes24)
+			// PrivateKey: privateKey,
 		}
 
 		// Encrypt key with passphrase.

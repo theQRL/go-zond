@@ -150,7 +150,7 @@ func (zond *Zond) hashState(ctx context.Context, block *types.Block, reexec uint
 			return nil, nil, fmt.Errorf("processing block %d failed: %v", current.NumberU64(), err)
 		}
 		// Finalize the state so any modifications are written to the trie
-		root, err := statedb.Commit(current.NumberU64(), zond.blockchain.Config().IsEIP158(current.Number()))
+		root, err := statedb.Commit(current.NumberU64(), true)
 		if err != nil {
 			return nil, nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
 				current.NumberU64(), current.Root().Hex(), err)
@@ -253,7 +253,7 @@ func (zond *Zond) stateAtTransaction(ctx context.Context, block *types.Block, tx
 		}
 		// Ensure any modifications are committed to the state
 		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
-		statedb.Finalise(vmenv.ChainConfig().IsEIP158(block.Number()))
+		statedb.Finalise(true)
 	}
 	return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash())
 }

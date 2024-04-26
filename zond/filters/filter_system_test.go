@@ -29,7 +29,7 @@ import (
 
 	"github.com/theQRL/go-zond"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/bloombits"
 	"github.com/theQRL/go-zond/core/rawdb"
@@ -201,7 +201,7 @@ func TestBlockSubscription(t *testing.T) {
 			Config:  params.TestChainConfig,
 			BaseFee: big.NewInt(params.InitialBaseFee),
 		}
-		_, chain, _ = core.GenerateChainWithGenesis(genesis, ethash.NewFaker(), 10, func(i int, gen *core.BlockGen) {})
+		_, chain, _ = core.GenerateChainWithGenesis(genesis, beacon.NewFaker(), 10, func(i int, gen *core.BlockGen) {})
 		chainEvents = []core.ChainEvent{}
 	)
 

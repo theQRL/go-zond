@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/params"
@@ -71,17 +71,17 @@ func testInsert(t *testing.T, hc *HeaderChain, chain []*types.Header, wantStatus
 func TestHeaderInsertion(t *testing.T) {
 	var (
 		db    = rawdb.NewMemoryDatabase()
-		gspec = &Genesis{BaseFee: big.NewInt(params.InitialBaseFee), Config: params.AllEthashProtocolChanges}
+		gspec = &Genesis{BaseFee: big.NewInt(params.InitialBaseFee), Config: params.AllBeaconProtocolChanges}
 	)
 	gspec.Commit(db, trie.NewDatabase(db, nil))
-	hc, err := NewHeaderChain(db, gspec.Config, ethash.NewFaker(), func() bool { return false })
+	hc, err := NewHeaderChain(db, gspec.Config, beacon.NewFaker(), func() bool { return false })
 	if err != nil {
 		t.Fatal(err)
 	}
 	// chain A: G->A1->A2...A128
-	genDb, chainA := makeHeaderChainWithGenesis(gspec, 128, ethash.NewFaker(), 10)
+	genDb, chainA := makeHeaderChainWithGenesis(gspec, 128, beacon.NewFaker(), 10)
 	// chain B: G->A1->B1...B128
-	chainB := makeHeaderChain(gspec.Config, chainA[0], 128, ethash.NewFaker(), genDb, 10)
+	chainB := makeHeaderChain(gspec.Config, chainA[0], 128, beacon.NewFaker(), genDb, 10)
 
 	forker := NewForkChoice(hc, nil)
 	// Inserting 64 headers on an empty chain, expecting

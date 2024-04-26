@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/crypto/pqcrypto"
@@ -34,7 +34,7 @@ import (
 func getBlock(transactions int, uncles int, dataSize int) *types.Block {
 	var (
 		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
-		engine = ethash.NewFaker()
+		engine = beacon.NewFaker()
 
 		// A sender who makes transactions, has some funds
 		d, _    = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")

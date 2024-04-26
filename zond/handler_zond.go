@@ -19,7 +19,6 @@ package zond
 import (
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
@@ -89,26 +88,9 @@ func (h *zondHandler) handleBlockAnnounces(peer *zond.Peer, hashes []common.Hash
 	// Drop all incoming block announces from the p2p network if
 	// the chain already entered the pos stage and disconnect the
 	// remote peer.
-	if h.merger.PoSFinalized() {
-		// TODO (MariusVanDerWijden) drop non-updated peers after the merge
-		return nil
-		// return errors.New("unexpected block announces")
-	}
-	// Schedule all the unknown hashes for retrieval
-	var (
-		unknownHashes  = make([]common.Hash, 0, len(hashes))
-		unknownNumbers = make([]uint64, 0, len(numbers))
-	)
-	for i := 0; i < len(hashes); i++ {
-		if !h.chain.HasBlock(hashes[i], numbers[i]) {
-			unknownHashes = append(unknownHashes, hashes[i])
-			unknownNumbers = append(unknownNumbers, numbers[i])
-		}
-	}
-	for i := 0; i < len(unknownHashes); i++ {
-		h.blockFetcher.Notify(peer.ID(), unknownHashes[i], unknownNumbers[i], time.Now(), peer.RequestOneHeader, peer.RequestBodies)
-	}
+	// TODO (MariusVanDerWijden) drop non-updated peers after the merge
 	return nil
+	// return errors.New("unexpected block announces")
 }
 
 // handleBlockBroadcast is invoked from a peer's message handler when it transmits a
@@ -117,24 +99,7 @@ func (h *zondHandler) handleBlockBroadcast(peer *zond.Peer, block *types.Block, 
 	// Drop all incoming block announces from the p2p network if
 	// the chain already entered the pos stage and disconnect the
 	// remote peer.
-	if h.merger.PoSFinalized() {
-		// TODO (MariusVanDerWijden) drop non-updated peers after the merge
-		return nil
-		// return errors.New("unexpected block announces")
-	}
-	// Schedule the block for import
-	h.blockFetcher.Enqueue(peer.ID(), block)
-
-	// Assuming the block is importable by the peer, but possibly not yet done so,
-	// calculate the head hash and TD that the peer truly must have.
-	var (
-		trueHead = block.ParentHash()
-		trueTD   = new(big.Int).Sub(td, block.Difficulty())
-	)
-	// Update the peer's total difficulty if better than the previous
-	if _, td := peer.Head(); trueTD.Cmp(td) > 0 {
-		peer.SetHead(trueHead, trueTD)
-		h.chainSync.handlePeerEvent()
-	}
+	// TODO (MariusVanDerWijden) drop non-updated peers after the merge
 	return nil
+	// return errors.New("unexpected block announces")
 }

@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
@@ -75,9 +75,9 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 	var (
 		gspec = &Genesis{
 			BaseFee: big.NewInt(params.InitialBaseFee),
-			Config:  params.AllEthashProtocolChanges,
+			Config:  params.AllBeaconProtocolChanges,
 		}
-		engine = ethash.NewFullFaker()
+		engine = beacon.NewFullFaker()
 	)
 	chain, err := NewBlockChain(db, DefaultCacheConfigWithScheme(basic.scheme), gspec, engine, vm.Config{}, nil, nil)
 	if err != nil {

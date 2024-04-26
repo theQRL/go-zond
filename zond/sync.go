@@ -149,39 +149,7 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 	// An alternative would be to check the local chain for exceeding the TTD and
 	// avoid triggering a sync in that case, but that could also miss sibling or
 	// other family TTD block being accepted.
-	if cs.handler.chain.Config().TerminalTotalDifficultyPassed || cs.handler.merger.TDDReached() {
-		return nil
-	}
-	// Ensure we're at minimum peer count.
-	minPeers := defaultMinSyncPeers
-	if cs.forced {
-		minPeers = 1
-	} else if minPeers > cs.handler.maxPeers {
-		minPeers = cs.handler.maxPeers
-	}
-	if cs.handler.peers.len() < minPeers {
-		return nil
-	}
-	// We have enough peers, pick the one with the highest TD, but avoid going
-	// over the terminal total difficulty. Above that we expect the consensus
-	// clients to direct the chain head to sync to.
-	peer := cs.handler.peers.peerWithHighestTD()
-	if peer == nil {
-		return nil
-	}
-	mode, ourTD := cs.modeAndLocalHead()
-	op := peerToSyncOp(mode, peer)
-	if op.td.Cmp(ourTD) <= 0 {
-		// We seem to be in sync according to the legacy rules. In the merge
-		// world, it can also mean we're stuck on the merge block, waiting for
-		// a beacon client. In the latter case, notify the user.
-		if ttd := cs.handler.chain.Config().TerminalTotalDifficulty; ttd != nil && ourTD.Cmp(ttd) >= 0 && time.Since(cs.warned) > 10*time.Second {
-			log.Warn("Local chain is post-merge, waiting for beacon client sync switch-over...")
-			cs.warned = time.Now()
-		}
-		return nil // We're in sync
-	}
-	return op
+	return nil
 }
 
 func peerToSyncOp(mode downloader.SyncMode, p *zond.Peer) *chainSyncOp {
@@ -237,8 +205,9 @@ func (h *handler) doSync(op *chainSyncOp) error {
 			log.Warn("Update txLookup limit", "provided", limit, "updated", *stored)
 		}
 	}
+	// TODO(rgeraldes24): ttd common.Big0
 	// Run the sync cycle, and disable snap sync if we're past the pivot block
-	err := h.downloader.LegacySync(op.peer.ID(), op.head, op.td, h.chain.Config().TerminalTotalDifficulty, op.mode)
+	err := h.downloader.LegacySync(op.peer.ID(), op.head, op.td, common.Big0, op.mode)
 	if err != nil {
 		return err
 	}
@@ -250,17 +219,5 @@ func (h *handler) doSync(op *chainSyncOp) error {
 	// from the network.
 	h.acceptTxs.Store(true)
 
-	head := h.chain.CurrentBlock()
-	if head.Number.Uint64() > 0 {
-		// We've completed a sync cycle, notify all peers of new state. This path is
-		// essential in star-topology networks where a gateway node needs to notify
-		// all its out-of-date peers of the availability of a new block. This failure
-		// scenario will most often crop up in private and hackathon networks with
-		// degenerate connectivity, but it should be healthy for the mainnet too to
-		// more reliably update peers or the local TD state.
-		if block := h.chain.GetBlock(head.Hash(), head.Number.Uint64()); block != nil {
-			h.BroadcastBlock(block, false)
-		}
-	}
 	return nil
 }

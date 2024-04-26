@@ -28,7 +28,7 @@ import (
 
 	"github.com/theQRL/go-zond"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
@@ -72,7 +72,7 @@ func newTesterWithNotification(t *testing.T, success func()) *downloadTester {
 		Alloc:   core.GenesisAlloc{testAddress: {Balance: big.NewInt(1000000000000000)}},
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}
-	chain, err := core.NewBlockChain(db, nil, gspec, ethash.NewFaker(), vm.Config{}, nil, nil)
+	chain, err := core.NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil, nil)
 	if err != nil {
 		panic(err)
 	}

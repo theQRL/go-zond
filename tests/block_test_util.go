@@ -30,7 +30,6 @@ import (
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/common/math"
 	"github.com/theQRL/go-zond/consensus/beacon"
-	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
@@ -134,7 +133,7 @@ func (t *BlockTest) Run(snapshotter bool, scheme string, tracer vm.EVMLogger) er
 		return fmt.Errorf("genesis block state root does not match test: computed=%x, test=%x", gblock.Root().Bytes()[:6], t.json.Genesis.StateRoot[:6])
 	}
 	// Wrap the original engine within the beacon-engine
-	engine := beacon.New(ethash.NewFaker())
+	engine := beacon.New()
 
 	cache := &core.CacheConfig{TrieCleanLimit: 0, StateScheme: scheme}
 	if snapshotter {

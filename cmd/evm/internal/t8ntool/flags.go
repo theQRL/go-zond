@@ -111,10 +111,6 @@ var (
 		Usage: "`stdin` or file name of where to find the transactions list in RLP form.",
 		Value: "txs.rlp",
 	}
-	SealCliqueFlag = &cli.StringFlag{
-		Name:  "seal.clique",
-		Usage: "Seal block with Clique. `stdin` or file name of where to find the Clique sealing data.",
-	}
 	RewardFlag = &cli.Int64Flag{
 		Name:  "state.reward",
 		Usage: "Mining reward. Set to -1 to disable",
@@ -135,7 +131,7 @@ var (
 			"\n\tSyntax <forkname>(+ExtraEip)",
 			strings.Join(tests.AvailableForks(), "\n\t    "),
 			strings.Join(vm.ActivateableEips(), ", ")),
-		Value: "GrayGlacier",
+		Value: "GrayGlacier", // TODO(rgeraldes24)
 	}
 	VerbosityFlag = &cli.IntFlag{
 		Name:  "verbosity",

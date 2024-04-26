@@ -26,7 +26,7 @@ import (
 
 	"github.com/theQRL/go-zond/accounts/abi"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
@@ -64,7 +64,7 @@ func BenchmarkFilters(b *testing.B) {
 		}
 	)
 	defer db.Close()
-	_, chain, receipts := core.GenerateChainWithGenesis(gspec, ethash.NewFaker(), 100010, func(i int, gen *core.BlockGen) {
+	_, chain, receipts := core.GenerateChainWithGenesis(gspec, beacon.NewFaker(), 100010, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 2403:
 			receipt := makeReceipt(addr1)
@@ -185,7 +185,7 @@ func TestFilters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	chain, _ := core.GenerateChain(gspec.Config, gspec.ToBlock(), ethash.NewFaker(), db, 1000, func(i int, gen *core.BlockGen) {
+	chain, _ := core.GenerateChain(gspec.Config, gspec.ToBlock(), beacon.NewFaker(), db, 1000, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 1:
 			data, err := contractABI.Pack("log1", hash1.Big())
@@ -250,7 +250,7 @@ func TestFilters(t *testing.T) {
 		}
 	})
 	var l uint64
-	bc, err := core.NewBlockChain(db, nil, gspec, ethash.NewFaker(), vm.Config{}, nil, &l)
+	bc, err := core.NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil, &l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestFilters(t *testing.T) {
 	bc.SetFinalized(chain[998].Header())
 
 	// Generate pending block
-	pchain, preceipts := core.GenerateChain(gspec.Config, chain[len(chain)-1], ethash.NewFaker(), db, 1, func(i int, gen *core.BlockGen) {
+	pchain, preceipts := core.GenerateChain(gspec.Config, chain[len(chain)-1], beacon.NewFaker(), db, 1, func(i int, gen *core.BlockGen) {
 		data, err := contractABI.Pack("log1", hash5.Big())
 		if err != nil {
 			t.Fatal(err)

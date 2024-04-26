@@ -23,7 +23,7 @@ import (
 
 	"github.com/theQRL/go-zond/beacon/engine"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/params"
@@ -34,7 +34,7 @@ func TestBuildPayload(t *testing.T) {
 		db        = rawdb.NewMemoryDatabase()
 		recipient = common.HexToAddress("0xdeadbeef")
 	)
-	w, b := newTestWorker(t, params.TestChainConfig, ethash.NewFaker(), db, 0)
+	w, b := newTestWorker(t, params.TestChainConfig, beacon.NewFaker(), db, 0)
 	defer w.close()
 
 	timestamp := uint64(time.Now().Unix())

@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
@@ -119,7 +119,7 @@ func (b *testBackend) teardown() {
 
 // newTestBackend creates a test backend. OBS: don't forget to invoke tearDown
 // after use, otherwise the blockchain instance will mem-leak via goroutines.
-func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBackend {
+func newTestBackend(t *testing.T, pending bool) *testBackend {
 	var (
 		key, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr   = key.GetAddress()
@@ -130,36 +130,21 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 		}
 		signer = types.LatestSigner(gspec.Config)
 	)
-	config.LondonBlock = londonBlock
-	config.ArrowGlacierBlock = londonBlock
-	config.GrayGlacierBlock = londonBlock
-	config.TerminalTotalDifficulty = common.Big0
-	engine := ethash.NewFaker()
+
+	engine := beacon.NewFaker()
 
 	// Generate testing blocks
 	_, blocks, _ := core.GenerateChainWithGenesis(gspec, engine, testHead+1, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
-		var txdata types.TxData
-		if londonBlock != nil && b.Number().Cmp(londonBlock) >= 0 {
-			txdata = &types.DynamicFeeTx{
-				ChainID:   gspec.Config.ChainID,
-				Nonce:     b.TxNonce(addr),
-				To:        &common.Address{},
-				Gas:       30000,
-				GasFeeCap: big.NewInt(100 * params.GWei),
-				GasTipCap: big.NewInt(int64(i+1) * params.GWei),
-				Data:      []byte{},
-			}
-		} else {
-			txdata = &types.LegacyTx{
-				Nonce:    b.TxNonce(addr),
-				To:       &common.Address{},
-				Gas:      21000,
-				GasPrice: big.NewInt(int64(i+1) * params.GWei),
-				Value:    big.NewInt(100),
-				Data:     []byte{},
-			}
+		txdata := &types.DynamicFeeTx{
+			ChainID:   gspec.Config.ChainID,
+			Nonce:     b.TxNonce(addr),
+			To:        &common.Address{},
+			Gas:       30000,
+			GasFeeCap: big.NewInt(100 * params.GWei),
+			GasTipCap: big.NewInt(int64(i+1) * params.GWei),
+			Data:      []byte{},
 		}
 		b.AddTx(types.MustSignNewTx(key, signer, txdata))
 	})
@@ -199,7 +184,7 @@ func TestSuggestTipCap(t *testing.T) {
 		{big.NewInt(33), big.NewInt(params.GWei * int64(30))}, // Fork point in the future
 	}
 	for _, c := range cases {
-		backend := newTestBackend(t, c.fork, false)
+		backend := newTestBackend(t, false)
 		oracle := NewOracle(backend, config)
 
 		// The gas price sampled is: 32G, 31G, 30G, 29G, 28G, 27G

@@ -22,8 +22,7 @@ import (
 	"sync"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/txpool"
@@ -149,9 +148,9 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 		Config: params.TestChainConfig,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
 	}
-	chain, _ := core.NewBlockChain(db, nil, gspec, ethash.NewFaker(), vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil, nil)
 
-	_, bs, _ := core.GenerateChainWithGenesis(gspec, ethash.NewFaker(), blocks, nil)
+	_, bs, _ := core.GenerateChainWithGenesis(gspec, beacon.NewFaker(), blocks, nil)
 	if _, err := chain.InsertChain(bs); err != nil {
 		panic(err)
 	}
@@ -161,7 +160,6 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 		Database:   db,
 		Chain:      chain,
 		TxPool:     txpool,
-		Merger:     consensus.NewMerger(rawdb.NewMemoryDatabase()),
 		Network:    1,
 		Sync:       downloader.SnapSync,
 		BloomCache: 1,

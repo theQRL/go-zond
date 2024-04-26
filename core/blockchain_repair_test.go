@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
@@ -1778,9 +1778,9 @@ func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme s
 	var (
 		gspec = &Genesis{
 			BaseFee: big.NewInt(params.InitialBaseFee),
-			Config:  params.AllEthashProtocolChanges,
+			Config:  params.AllBeaconProtocolChanges,
 		}
-		engine = ethash.NewFullFaker()
+		engine = beacon.NewFullFaker()
 		config = &CacheConfig{
 			TrieCleanLimit: 256,
 			TrieDirtyLimit: 256,
@@ -1925,7 +1925,7 @@ func testIssue23496(t *testing.T, scheme string) {
 			Config:  params.TestChainConfig,
 			BaseFee: big.NewInt(params.InitialBaseFee),
 		}
-		engine = ethash.NewFullFaker()
+		engine = beacon.NewFullFaker()
 	)
 	chain, err := NewBlockChain(db, DefaultCacheConfigWithScheme(scheme), gspec, engine, vm.Config{}, nil, nil)
 	if err != nil {

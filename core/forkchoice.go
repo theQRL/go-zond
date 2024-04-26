@@ -81,32 +81,6 @@ func (f *ForkChoice) ReorgNeeded(current *types.Header, extern *types.Header) (b
 	if localTD == nil || externTd == nil {
 		return false, errors.New("missing td")
 	}
-	// Accept the new header as the chain head if the transition
-	// is already triggered. We assume all the headers after the
-	// transition come from the trusted consensus layer.
-	if ttd := f.chain.Config().TerminalTotalDifficulty; ttd != nil && ttd.Cmp(externTd) <= 0 {
-		return true, nil
-	}
 
-	// If the total difficulty is higher than our known, add it to the canonical chain
-	if diff := externTd.Cmp(localTD); diff > 0 {
-		return true, nil
-	} else if diff < 0 {
-		return false, nil
-	}
-	// Local and external difficulty is identical.
-	// Second clause in the if statement reduces the vulnerability to selfish mining.
-	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
-	reorg := false
-	externNum, localNum := extern.Number.Uint64(), current.Number.Uint64()
-	if externNum < localNum {
-		reorg = true
-	} else if externNum == localNum {
-		var currentPreserve, externPreserve bool
-		if f.preserve != nil {
-			currentPreserve, externPreserve = f.preserve(current), f.preserve(extern)
-		}
-		reorg = !currentPreserve && (externPreserve || f.rand.Float64() < 0.5)
-	}
-	return reorg, nil
+	return true, nil
 }

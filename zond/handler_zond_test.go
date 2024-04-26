@@ -23,8 +23,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/forkid"
 	"github.com/theQRL/go-zond/core/rawdb"
@@ -41,7 +40,7 @@ import (
 // testEthHandler is a mock event handler to listen for inbound network requests
 // on the `zond` protocol and convert them into a more easily testable form.
 type testEthHandler struct {
-	blockBroadcasts event.Feed
+	blockBroadcasts event.Feed // TODO(rgeraldes24)
 	txAnnounces     event.Feed
 	txBroadcasts    event.Feed
 }
@@ -87,18 +86,12 @@ func testForkIDSplit(t *testing.T, protocol uint) {
 	t.Parallel()
 
 	var (
-		engine = ethash.NewFaker()
+		engine = beacon.NewFaker()
 
-		configNoFork  = &params.ChainConfig{HomesteadBlock: big.NewInt(1)}
-		configProFork = &params.ChainConfig{
-			HomesteadBlock: big.NewInt(1),
-			EIP150Block:    big.NewInt(2),
-			EIP155Block:    big.NewInt(2),
-			EIP158Block:    big.NewInt(2),
-			ByzantiumBlock: big.NewInt(3),
-		}
-		dbNoFork  = rawdb.NewMemoryDatabase()
-		dbProFork = rawdb.NewMemoryDatabase()
+		configNoFork  = &params.ChainConfig{}
+		configProFork = &params.ChainConfig{}
+		dbNoFork      = rawdb.NewMemoryDatabase()
+		dbProFork     = rawdb.NewMemoryDatabase()
 
 		gspecNoFork  = &core.Genesis{Config: configNoFork}
 		gspecProFork = &core.Genesis{Config: configProFork}
@@ -113,7 +106,6 @@ func testForkIDSplit(t *testing.T, protocol uint) {
 			Database:   dbNoFork,
 			Chain:      chainNoFork,
 			TxPool:     newTestTxPool(),
-			Merger:     consensus.NewMerger(rawdb.NewMemoryDatabase()),
 			Network:    1,
 			Sync:       downloader.FullSync,
 			BloomCache: 1,
@@ -122,7 +114,6 @@ func testForkIDSplit(t *testing.T, protocol uint) {
 			Database:   dbProFork,
 			Chain:      chainProFork,
 			TxPool:     newTestTxPool(),
-			Merger:     consensus.NewMerger(rawdb.NewMemoryDatabase()),
 			Network:    1,
 			Sync:       downloader.FullSync,
 			BloomCache: 1,
@@ -446,93 +437,6 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 				t.Errorf("sink %d: transaction propagation timed out: have %d, want %d", i, arrived, len(txs))
 				timeout = true
 			}
-		}
-	}
-}
-
-// Tests that blocks are broadcast to a sqrt number of peers only.
-func TestBroadcastBlock1Peer(t *testing.T)    { testBroadcastBlock(t, 1, 1) }
-func TestBroadcastBlock2Peers(t *testing.T)   { testBroadcastBlock(t, 2, 1) }
-func TestBroadcastBlock3Peers(t *testing.T)   { testBroadcastBlock(t, 3, 1) }
-func TestBroadcastBlock4Peers(t *testing.T)   { testBroadcastBlock(t, 4, 2) }
-func TestBroadcastBlock5Peers(t *testing.T)   { testBroadcastBlock(t, 5, 2) }
-func TestBroadcastBlock8Peers(t *testing.T)   { testBroadcastBlock(t, 9, 3) }
-func TestBroadcastBlock12Peers(t *testing.T)  { testBroadcastBlock(t, 12, 3) }
-func TestBroadcastBlock16Peers(t *testing.T)  { testBroadcastBlock(t, 16, 4) }
-func TestBroadcastBloc26Peers(t *testing.T)   { testBroadcastBlock(t, 26, 5) }
-func TestBroadcastBlock100Peers(t *testing.T) { testBroadcastBlock(t, 100, 10) }
-
-func testBroadcastBlock(t *testing.T, peers, bcasts int) {
-	t.Parallel()
-
-	// Create a source handler to broadcast blocks from and a number of sinks
-	// to receive them.
-	source := newTestHandlerWithBlocks(1)
-	defer source.close()
-
-	sinks := make([]*testEthHandler, peers)
-	for i := 0; i < len(sinks); i++ {
-		sinks[i] = new(testEthHandler)
-	}
-	// Interconnect all the sink handlers with the source handler
-	var (
-		genesis = source.chain.Genesis()
-		td      = source.chain.GetTd(genesis.Hash(), genesis.NumberU64())
-	)
-	for i, sink := range sinks {
-		sink := sink // Closure for gorotuine below
-
-		sourcePipe, sinkPipe := p2p.MsgPipe()
-		defer sourcePipe.Close()
-		defer sinkPipe.Close()
-
-		sourcePeer := zond.NewPeer(zond.ETH68, p2p.NewPeerPipe(enode.ID{byte(i)}, "", nil, sourcePipe), sourcePipe, nil)
-		sinkPeer := zond.NewPeer(zond.ETH68, p2p.NewPeerPipe(enode.ID{0}, "", nil, sinkPipe), sinkPipe, nil)
-		defer sourcePeer.Close()
-		defer sinkPeer.Close()
-
-		go source.handler.runZondPeer(sourcePeer, func(peer *zond.Peer) error {
-			return zond.Handle((*zondHandler)(source.handler), peer)
-		})
-		if err := sinkPeer.Handshake(1, td, genesis.Hash(), genesis.Hash(), forkid.NewIDWithChain(source.chain), forkid.NewFilter(source.chain)); err != nil {
-			t.Fatalf("failed to run protocol handshake")
-		}
-		go zond.Handle(sink, sinkPeer)
-	}
-	// Subscribe to all the transaction pools
-	blockChs := make([]chan *types.Block, len(sinks))
-	for i := 0; i < len(sinks); i++ {
-		blockChs[i] = make(chan *types.Block, 1)
-		defer close(blockChs[i])
-
-		sub := sinks[i].blockBroadcasts.Subscribe(blockChs[i])
-		defer sub.Unsubscribe()
-	}
-	// Initiate a block propagation across the peers
-	time.Sleep(100 * time.Millisecond)
-	header := source.chain.CurrentBlock()
-	source.handler.BroadcastBlock(source.chain.GetBlock(header.Hash(), header.Number.Uint64()), true)
-
-	// Iterate through all the sinks and ensure the correct number got the block
-	done := make(chan struct{}, peers)
-	for _, ch := range blockChs {
-		ch := ch
-		go func() {
-			<-ch
-			done <- struct{}{}
-		}()
-	}
-	var received int
-	for {
-		select {
-		case <-done:
-			received++
-
-		case <-time.After(100 * time.Millisecond):
-			if received != bcasts {
-				t.Errorf("broadcast count mismatch: have %d, want %d", received, bcasts)
-			}
-			return
 		}
 	}
 }
