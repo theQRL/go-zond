@@ -193,7 +193,7 @@ var genesis = &core.Genesis{
 	BaseFee:   big.NewInt(params.InitialBaseFee),
 }
 
-var testTx1 = types.MustSignNewTx(testKey, types.LatestSigner(genesis.Config), &types.LegacyTx{
+var testTx1 = types.MustSignNewTx(testKey, types.ShanghaiSigner{ChainId: genesis.Config.ChainID}, &types.LegacyTx{
 	Nonce:    0,
 	Value:    big.NewInt(12),
 	GasPrice: big.NewInt(params.InitialBaseFee),
@@ -201,7 +201,7 @@ var testTx1 = types.MustSignNewTx(testKey, types.LatestSigner(genesis.Config), &
 	To:       &common.Address{2},
 })
 
-var testTx2 = types.MustSignNewTx(testKey, types.LatestSigner(genesis.Config), &types.LegacyTx{
+var testTx2 = types.MustSignNewTx(testKey, types.ShanghaiSigner{ChainId: genesis.Config.ChainID}, &types.LegacyTx{
 	Nonce:    1,
 	Value:    big.NewInt(8),
 	GasPrice: big.NewInt(params.InitialBaseFee),

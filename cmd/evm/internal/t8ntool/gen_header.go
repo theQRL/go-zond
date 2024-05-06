@@ -19,39 +19,33 @@ var _ = (*headerMarshaling)(nil)
 func (h header) MarshalJSON() ([]byte, error) {
 	type header struct {
 		ParentHash      common.Hash           `json:"parentHash"`
-		OmmerHash       *common.Hash          `json:"sha3Uncles"`
 		Coinbase        *common.Address       `json:"miner"`
 		Root            common.Hash           `json:"stateRoot"        gencodec:"required"`
 		TxHash          *common.Hash          `json:"transactionsRoot"`
 		ReceiptHash     *common.Hash          `json:"receiptsRoot"`
 		Bloom           types.Bloom           `json:"logsBloom"`
-		Difficulty      *math.HexOrDecimal256 `json:"difficulty"`
 		Number          *math.HexOrDecimal256 `json:"number"           gencodec:"required"`
 		GasLimit        math.HexOrDecimal64   `json:"gasLimit"         gencodec:"required"`
 		GasUsed         math.HexOrDecimal64   `json:"gasUsed"`
 		Time            math.HexOrDecimal64   `json:"timestamp"        gencodec:"required"`
 		Extra           hexutil.Bytes         `json:"extraData"`
-		MixDigest       common.Hash           `json:"mixHash"`
-		Nonce           *types.BlockNonce     `json:"nonce"`
+		Random       common.Hash           `json:"prevRandao"`
 		BaseFee         *math.HexOrDecimal256 `json:"baseFeePerGas" rlp:"optional"`
 		WithdrawalsHash *common.Hash          `json:"withdrawalsRoot" rlp:"optional"`
 	}
 	var enc header
 	enc.ParentHash = h.ParentHash
-	enc.OmmerHash = h.OmmerHash
 	enc.Coinbase = h.Coinbase
 	enc.Root = h.Root
 	enc.TxHash = h.TxHash
 	enc.ReceiptHash = h.ReceiptHash
 	enc.Bloom = h.Bloom
-	enc.Difficulty = (*math.HexOrDecimal256)(h.Difficulty)
 	enc.Number = (*math.HexOrDecimal256)(h.Number)
 	enc.GasLimit = math.HexOrDecimal64(h.GasLimit)
 	enc.GasUsed = math.HexOrDecimal64(h.GasUsed)
 	enc.Time = math.HexOrDecimal64(h.Time)
 	enc.Extra = h.Extra
-	enc.MixDigest = h.MixDigest
-	enc.Nonce = h.Nonce
+	enc.Random = h.Random
 	enc.BaseFee = (*math.HexOrDecimal256)(h.BaseFee)
 	enc.WithdrawalsHash = h.WithdrawalsHash
 	return json.Marshal(&enc)
@@ -61,20 +55,17 @@ func (h header) MarshalJSON() ([]byte, error) {
 func (h *header) UnmarshalJSON(input []byte) error {
 	type header struct {
 		ParentHash      *common.Hash          `json:"parentHash"`
-		OmmerHash       *common.Hash          `json:"sha3Uncles"`
 		Coinbase        *common.Address       `json:"miner"`
 		Root            *common.Hash          `json:"stateRoot"        gencodec:"required"`
 		TxHash          *common.Hash          `json:"transactionsRoot"`
 		ReceiptHash     *common.Hash          `json:"receiptsRoot"`
 		Bloom           *types.Bloom          `json:"logsBloom"`
-		Difficulty      *math.HexOrDecimal256 `json:"difficulty"`
 		Number          *math.HexOrDecimal256 `json:"number"           gencodec:"required"`
 		GasLimit        *math.HexOrDecimal64  `json:"gasLimit"         gencodec:"required"`
 		GasUsed         *math.HexOrDecimal64  `json:"gasUsed"`
 		Time            *math.HexOrDecimal64  `json:"timestamp"        gencodec:"required"`
 		Extra           *hexutil.Bytes        `json:"extraData"`
-		MixDigest       *common.Hash          `json:"mixHash"`
-		Nonce           *types.BlockNonce     `json:"nonce"`
+		Random       *common.Hash          `json:"prevRandao"`
 		BaseFee         *math.HexOrDecimal256 `json:"baseFeePerGas" rlp:"optional"`
 		WithdrawalsHash *common.Hash          `json:"withdrawalsRoot" rlp:"optional"`
 	}
@@ -84,9 +75,6 @@ func (h *header) UnmarshalJSON(input []byte) error {
 	}
 	if dec.ParentHash != nil {
 		h.ParentHash = *dec.ParentHash
-	}
-	if dec.OmmerHash != nil {
-		h.OmmerHash = dec.OmmerHash
 	}
 	if dec.Coinbase != nil {
 		h.Coinbase = dec.Coinbase
@@ -103,9 +91,6 @@ func (h *header) UnmarshalJSON(input []byte) error {
 	}
 	if dec.Bloom != nil {
 		h.Bloom = *dec.Bloom
-	}
-	if dec.Difficulty != nil {
-		h.Difficulty = (*big.Int)(dec.Difficulty)
 	}
 	if dec.Number == nil {
 		return errors.New("missing required field 'number' for header")
@@ -125,11 +110,8 @@ func (h *header) UnmarshalJSON(input []byte) error {
 	if dec.Extra != nil {
 		h.Extra = *dec.Extra
 	}
-	if dec.MixDigest != nil {
-		h.MixDigest = *dec.MixDigest
-	}
-	if dec.Nonce != nil {
-		h.Nonce = dec.Nonce
+	if dec.Random != nil {
+		h.Random = *dec.Random
 	}
 	if dec.BaseFee != nil {
 		h.BaseFee = (*big.Int)(dec.BaseFee)

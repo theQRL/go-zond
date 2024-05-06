@@ -18,9 +18,7 @@ var _ = (*stEnvMarshaling)(nil)
 func (s stEnv) MarshalJSON() ([]byte, error) {
 	type stEnv struct {
 		Coinbase              common.UnprefixedAddress            `json:"currentCoinbase"   gencodec:"required"`
-		Difficulty            *math.HexOrDecimal256               `json:"currentDifficulty"`
 		Random                *math.HexOrDecimal256               `json:"currentRandom"`
-		ParentDifficulty      *math.HexOrDecimal256               `json:"parentDifficulty"`
 		ParentBaseFee         *math.HexOrDecimal256               `json:"parentBaseFee,omitempty"`
 		ParentGasUsed         math.HexOrDecimal64                 `json:"parentGasUsed,omitempty"`
 		ParentGasLimit        math.HexOrDecimal64                 `json:"parentGasLimit,omitempty"`
@@ -29,16 +27,12 @@ func (s stEnv) MarshalJSON() ([]byte, error) {
 		Timestamp             math.HexOrDecimal64                 `json:"currentTimestamp"  gencodec:"required"`
 		ParentTimestamp       math.HexOrDecimal64                 `json:"parentTimestamp,omitempty"`
 		BlockHashes           map[math.HexOrDecimal64]common.Hash `json:"blockHashes,omitempty"`
-		Ommers                []ommer                             `json:"ommers,omitempty"`
 		Withdrawals           []*types.Withdrawal                 `json:"withdrawals,omitempty"`
 		BaseFee               *math.HexOrDecimal256               `json:"currentBaseFee,omitempty"`
-		ParentUncleHash       common.Hash                         `json:"parentUncleHash"`
 	}
 	var enc stEnv
 	enc.Coinbase = common.UnprefixedAddress(s.Coinbase)
-	enc.Difficulty = (*math.HexOrDecimal256)(s.Difficulty)
 	enc.Random = (*math.HexOrDecimal256)(s.Random)
-	enc.ParentDifficulty = (*math.HexOrDecimal256)(s.ParentDifficulty)
 	enc.ParentBaseFee = (*math.HexOrDecimal256)(s.ParentBaseFee)
 	enc.ParentGasUsed = math.HexOrDecimal64(s.ParentGasUsed)
 	enc.ParentGasLimit = math.HexOrDecimal64(s.ParentGasLimit)
@@ -47,10 +41,8 @@ func (s stEnv) MarshalJSON() ([]byte, error) {
 	enc.Timestamp = math.HexOrDecimal64(s.Timestamp)
 	enc.ParentTimestamp = math.HexOrDecimal64(s.ParentTimestamp)
 	enc.BlockHashes = s.BlockHashes
-	enc.Ommers = s.Ommers
 	enc.Withdrawals = s.Withdrawals
 	enc.BaseFee = (*math.HexOrDecimal256)(s.BaseFee)
-	enc.ParentUncleHash = s.ParentUncleHash
 	return json.Marshal(&enc)
 }
 
@@ -58,9 +50,7 @@ func (s stEnv) MarshalJSON() ([]byte, error) {
 func (s *stEnv) UnmarshalJSON(input []byte) error {
 	type stEnv struct {
 		Coinbase              *common.UnprefixedAddress           `json:"currentCoinbase"   gencodec:"required"`
-		Difficulty            *math.HexOrDecimal256               `json:"currentDifficulty"`
 		Random                *math.HexOrDecimal256               `json:"currentRandom"`
-		ParentDifficulty      *math.HexOrDecimal256               `json:"parentDifficulty"`
 		ParentBaseFee         *math.HexOrDecimal256               `json:"parentBaseFee,omitempty"`
 		ParentGasUsed         *math.HexOrDecimal64                `json:"parentGasUsed,omitempty"`
 		ParentGasLimit        *math.HexOrDecimal64                `json:"parentGasLimit,omitempty"`
@@ -69,10 +59,8 @@ func (s *stEnv) UnmarshalJSON(input []byte) error {
 		Timestamp             *math.HexOrDecimal64                `json:"currentTimestamp"  gencodec:"required"`
 		ParentTimestamp       *math.HexOrDecimal64                `json:"parentTimestamp,omitempty"`
 		BlockHashes           map[math.HexOrDecimal64]common.Hash `json:"blockHashes,omitempty"`
-		Ommers                []ommer                             `json:"ommers,omitempty"`
 		Withdrawals           []*types.Withdrawal                 `json:"withdrawals,omitempty"`
 		BaseFee               *math.HexOrDecimal256               `json:"currentBaseFee,omitempty"`
-		ParentUncleHash       *common.Hash                        `json:"parentUncleHash"`
 	}
 	var dec stEnv
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -82,14 +70,8 @@ func (s *stEnv) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'currentCoinbase' for stEnv")
 	}
 	s.Coinbase = common.Address(*dec.Coinbase)
-	if dec.Difficulty != nil {
-		s.Difficulty = (*big.Int)(dec.Difficulty)
-	}
 	if dec.Random != nil {
 		s.Random = (*big.Int)(dec.Random)
-	}
-	if dec.ParentDifficulty != nil {
-		s.ParentDifficulty = (*big.Int)(dec.ParentDifficulty)
 	}
 	if dec.ParentBaseFee != nil {
 		s.ParentBaseFee = (*big.Int)(dec.ParentBaseFee)
@@ -118,17 +100,11 @@ func (s *stEnv) UnmarshalJSON(input []byte) error {
 	if dec.BlockHashes != nil {
 		s.BlockHashes = dec.BlockHashes
 	}
-	if dec.Ommers != nil {
-		s.Ommers = dec.Ommers
-	}
 	if dec.Withdrawals != nil {
 		s.Withdrawals = dec.Withdrawals
 	}
 	if dec.BaseFee != nil {
 		s.BaseFee = (*big.Int)(dec.BaseFee)
-	}
-	if dec.ParentUncleHash != nil {
-		s.ParentUncleHash = *dec.ParentUncleHash
 	}
 	return nil
 }

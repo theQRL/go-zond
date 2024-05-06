@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	// bloomServiceThreads is the number of goroutines used globally by an Ethereum
+	// bloomServiceThreads is the number of goroutines used globally by a Zond
 	// instance to service bloombits lookups for all running filters.
 	bloomServiceThreads = 16
 

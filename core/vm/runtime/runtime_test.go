@@ -44,10 +44,6 @@ func TestDefaults(t *testing.T) {
 	cfg := new(Config)
 	setDefaults(cfg)
 
-	if cfg.Difficulty == nil {
-		t.Error("expected difficulty to be non nil")
-	}
-
 	if cfg.GasLimit == 0 {
 		t.Error("didn't expect gaslimit to be zero")
 	}
@@ -73,7 +69,8 @@ func TestEVM(t *testing.T) {
 	}()
 
 	Execute([]byte{
-		byte(vm.DIFFICULTY),
+		byte(vm.RANDOM),
+		byte(vm.PREVRANDAO),
 		byte(vm.TIMESTAMP),
 		byte(vm.GASLIMIT),
 		byte(vm.PUSH1),
@@ -170,7 +167,6 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 		Origin:      sender,
 		State:       statedb,
 		GasLimit:    10000000,
-		Difficulty:  big.NewInt(0x200000),
 		Time:        0,
 		Coinbase:    common.Address{},
 		BlockNumber: new(big.Int).SetUint64(1),
@@ -210,9 +206,7 @@ func fakeHeader(n uint64, parentHash common.Hash) *types.Header {
 		Number:     big.NewInt(int64(n)),
 		ParentHash: parentHash,
 		Time:       1000,
-		Nonce:      types.BlockNonce{0x1},
 		Extra:      []byte{},
-		Difficulty: big.NewInt(0),
 		GasLimit:   100000,
 	}
 	return &header

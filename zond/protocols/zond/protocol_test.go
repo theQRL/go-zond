@@ -127,12 +127,11 @@ func TestMessages(t *testing.T) {
 		err error
 	)
 	header = &types.Header{
-		Difficulty: big.NewInt(2222),
-		Number:     big.NewInt(3333),
-		GasLimit:   4444,
-		GasUsed:    5555,
-		Time:       6666,
-		Extra:      []byte{0x77, 0x88},
+		Number:   big.NewInt(3333),
+		GasLimit: 4444,
+		GasUsed:  5555,
+		Time:     6666,
+		Extra:    []byte{0x77, 0x88},
 	}
 	// Init the transactions, taken from a different test
 	{
@@ -152,7 +151,6 @@ func TestMessages(t *testing.T) {
 	// init the block body data, both object and rlp form
 	blockBody = &BlockBody{
 		Transactions: txs,
-		Uncles:       []*types.Header{header},
 	}
 	blockBodyRlp, err = rlp.EncodeToBytes(blockBody)
 	if err != nil {

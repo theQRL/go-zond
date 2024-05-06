@@ -406,8 +406,8 @@ func initInternalApi(c *cli.Context) (*core.UIServerAPI, core.UIClientAPI, error
 		ksLoc                     = c.String(keystoreFlag.Name)
 		lightKdf                  = c.Bool(utils.LightKDFFlag.Name)
 	)
-	am := core.StartClefAccountManager(ksLoc, true, lightKdf, "")
-	api := core.NewSignerAPI(am, 0, true, ui, nil, false, pwStorage)
+	am := core.StartClefAccountManager(ksLoc /*false,*/, lightKdf /*""*/)
+	api := core.NewSignerAPI(am, 0 /*false,*/, ui, nil, false, pwStorage)
 	internalApi := core.NewUIServerAPI(api)
 	return internalApi, ui, nil
 }
@@ -694,13 +694,13 @@ func signer(c *cli.Context) error {
 		ksLoc    = c.String(keystoreFlag.Name)
 		lightKdf = c.Bool(utils.LightKDFFlag.Name)
 		advanced = c.Bool(advancedMode.Name)
-		usb      = c.Bool(utils.USBFlag.Name)
-		scpath   = c.String(utils.SmartCardDaemonPathFlag.Name)
+		// usbEnabled = c.Bool(utils.USBFlag.Name)
+		// scpath = c.String(utils.SmartCardDaemonPathFlag.Name)
 	)
 	log.Info("Starting signer", "chainid", chainId, "keystore", ksLoc,
 		"light-kdf", lightKdf, "advanced", advanced)
-	am := core.StartClefAccountManager(ksLoc, !usb, lightKdf, scpath)
-	apiImpl := core.NewSignerAPI(am, chainId, !usb, ui, db, advanced, pwStorage)
+	am := core.StartClefAccountManager(ksLoc /*usbEnabled,*/, lightKdf /*, scpath*/)
+	apiImpl := core.NewSignerAPI(am, chainId /*usbEnabled,*/, ui, db, advanced, pwStorage)
 
 	// Establish the bidirectional communication, by creating a new UI backend and registering
 	// it with the UI.
@@ -946,18 +946,16 @@ func testExternalUI(api *core.SignerAPI) {
 		time.Sleep(delay)
 		cliqueHeader := types.Header{
 			ParentHash:  common.HexToHash("0000H45H"),
-			UncleHash:   common.HexToHash("0000H45H"),
 			Coinbase:    common.HexToAddress("0000H45H"),
 			Root:        common.HexToHash("0000H00H"),
 			TxHash:      common.HexToHash("0000H45H"),
 			ReceiptHash: common.HexToHash("0000H45H"),
-			Difficulty:  big.NewInt(1337),
 			Number:      big.NewInt(1337),
 			GasLimit:    1338,
 			GasUsed:     1338,
 			Time:        1338,
 			Extra:       []byte("Extra data Extra data Extra data  Extra data  Extra data  Extra data  Extra data Extra data"),
-			MixDigest:   common.HexToHash("0x0000H45H"),
+			Random:   common.HexToHash("0x0000H45H"),
 		}
 		cliqueRlp, err := rlp.EncodeToBytes(cliqueHeader)
 		if err != nil {

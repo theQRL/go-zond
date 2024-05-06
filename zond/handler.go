@@ -57,7 +57,7 @@ var (
 )
 
 // txPool defines the methods needed from a transaction pool implementation to
-// support all the operations needed by the Ethereum chain protocols.
+// support all the operations needed by the Zond chain protocols.
 type txPool interface {
 	// Has returns an indicator whether txpool has a transaction
 	// cached with the given hash.
@@ -104,29 +104,26 @@ type handler struct {
 	chain    *core.BlockChain
 	maxPeers int
 
-	downloader   *downloader.Downloader
-	blockFetcher *fetcher.BlockFetcher
-	txFetcher    *fetcher.TxFetcher
-	peers        *peerSet
+	downloader *downloader.Downloader
+	txFetcher  *fetcher.TxFetcher
+	peers      *peerSet
 
-	eventMux      *event.TypeMux
-	txsCh         chan core.NewTxsEvent
-	txsSub        event.Subscription
-	minedBlockSub *event.TypeMuxSubscription
+	eventMux *event.TypeMux
+	txsCh    chan core.NewTxsEvent
+	txsSub   event.Subscription
 
 	requiredBlocks map[uint64]common.Hash
 
 	// channels for fetcher, syncer, txsyncLoop
 	quitSync chan struct{}
 
-	chainSync *chainSyncer
-	wg        sync.WaitGroup
+	wg sync.WaitGroup
 
 	handlerStartCh chan struct{}
 	handlerDoneCh  chan struct{}
 }
 
-// newHandler returns a handler for all Ethereum chain management protocol.
+// newHandler returns a handler for all Zond chain management protocol.
 func newHandler(config *handlerConfig) (*handler, error) {
 	// Create the protocol manager with the base fields
 	if config.EventMux == nil {
@@ -183,31 +180,6 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	}
 	// Construct the downloader (long sync)
 	h.downloader = downloader.New(config.Database, h.eventMux, h.chain, nil, h.removePeer, success)
-	// Construct the fetcher (short sync)
-	validator := func(header *types.Header) error {
-		// All the block fetcher activities should be disabled
-		// after the transition. Print the warning log.
-		log.Warn("Unexpected validation activity", "hash", header.Hash(), "number", header.Number)
-		return errors.New("unexpected behavior after transition")
-	}
-	heighter := func() uint64 {
-		return h.chain.CurrentBlock().Number.Uint64()
-	}
-	inserter := func(blocks types.Blocks) (int, error) {
-		// All the block fetcher activities should be disabled
-		// after the transition. Print the warning log.
-		var ctx []interface{}
-		ctx = append(ctx, "blocks", len(blocks))
-		if len(blocks) > 0 {
-			ctx = append(ctx, "firsthash", blocks[0].Hash())
-			ctx = append(ctx, "firstnumber", blocks[0].Number())
-			ctx = append(ctx, "lasthash", blocks[len(blocks)-1].Hash())
-			ctx = append(ctx, "lastnumber", blocks[len(blocks)-1].Number())
-		}
-		log.Warn("Unexpected insertion activity", ctx...)
-		return 0, errors.New("unexpected behavior after transition")
-	}
-	h.blockFetcher = fetcher.NewBlockFetcher(false, nil, h.chain.GetBlockByHash, validator, heighter, nil, inserter, h.removePeer)
 
 	fetchTx := func(peer string, hashes []common.Hash) error {
 		p := h.peers.peer(peer)
@@ -220,7 +192,6 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		return h.txpool.Add(txs, false, false)
 	}
 	h.txFetcher = fetcher.NewTxFetcher(h.txpool.Has, addTxs, fetchTx)
-	h.chainSync = newChainSyncer(h)
 	return h, nil
 }
 
@@ -276,17 +247,16 @@ func (h *handler) runZondPeer(peer *zond.Peer, handler zond.Handler) error {
 		return err
 	}
 
-	// Execute the Ethereum handshake
+	// Execute the Zond handshake
 	var (
 		genesis = h.chain.Genesis()
 		head    = h.chain.CurrentHeader()
 		hash    = head.Hash()
 		number  = head.Number.Uint64()
-		td      = h.chain.GetTd(hash, number)
 	)
 	forkID := forkid.NewID(h.chain.Config(), genesis, number, head.Time)
-	if err := peer.Handshake(h.networkID, td, hash, genesis.Hash(), forkID, h.forkFilter); err != nil {
-		peer.Log().Debug("Ethereum handshake failed", "err", err)
+	if err := peer.Handshake(h.networkID, hash, genesis.Hash(), forkID, h.forkFilter); err != nil {
+		peer.Log().Debug("Zond handshake failed", "err", err)
 		return err
 	}
 	reject := false // reserved peer slots
@@ -306,11 +276,11 @@ func (h *handler) runZondPeer(peer *zond.Peer, handler zond.Handler) error {
 			return p2p.DiscTooManyPeers
 		}
 	}
-	peer.Log().Debug("Ethereum peer connected", "name", peer.Name())
+	peer.Log().Debug("Zond peer connected", "name", peer.Name())
 
 	// Register the peer locally
 	if err := h.peers.registerPeer(peer, snap); err != nil {
-		peer.Log().Error("Ethereum peer registration failed", "err", err)
+		peer.Log().Error("Zond peer registration failed", "err", err)
 		return err
 	}
 	defer h.unregisterPeer(peer.ID())
@@ -330,7 +300,6 @@ func (h *handler) runZondPeer(peer *zond.Peer, handler zond.Handler) error {
 			return err
 		}
 	}
-	h.chainSync.handlePeerEvent()
 
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
@@ -431,11 +400,11 @@ func (h *handler) unregisterPeer(id string) {
 	// Abort if the peer does not exist
 	peer := h.peers.peer(id)
 	if peer == nil {
-		logger.Error("Ethereum peer removal failed", "err", errPeerNotRegistered)
+		logger.Error("Zond peer removal failed", "err", errPeerNotRegistered)
 		return
 	}
 	// Remove the `zond` peer if it exists
-	logger.Debug("Removing Ethereum peer", "snap", peer.snapExt != nil)
+	logger.Debug("Removing Zond peer", "snap", peer.snapExt != nil)
 
 	// Remove the `snap` extension if it exists
 	if peer.snapExt != nil {
@@ -445,7 +414,7 @@ func (h *handler) unregisterPeer(id string) {
 	h.txFetcher.Drop(id)
 
 	if err := h.peers.unregisterPeer(id); err != nil {
-		logger.Error("Ethereum peer removal failed", "err", err)
+		logger.Error("Zond peer removal failed", "err", err)
 	}
 }
 
@@ -459,8 +428,7 @@ func (h *handler) Start(maxPeers int) {
 	go h.txBroadcastLoop()
 
 	// start sync handlers
-	h.wg.Add(1)
-	go h.chainSync.loop()
+	h.txFetcher.Start()
 
 	// start peer handler tracker
 	h.wg.Add(1)
@@ -468,8 +436,9 @@ func (h *handler) Start(maxPeers int) {
 }
 
 func (h *handler) Stop() {
-	h.txsSub.Unsubscribe()        // quits txBroadcastLoop
-	h.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
+	h.txsSub.Unsubscribe() // quits txBroadcastLoop
+	h.txFetcher.Stop()
+	h.downloader.Terminate()
 
 	// Quit chainSync and txsync64.
 	// After this is done, no new peers will be accepted.
@@ -482,7 +451,7 @@ func (h *handler) Stop() {
 	h.peers.close()
 	h.wg.Wait()
 
-	log.Info("Ethereum protocol stopped")
+	log.Info("Zond protocol stopped")
 }
 
 // BroadcastTransactions will propagate a batch of transactions

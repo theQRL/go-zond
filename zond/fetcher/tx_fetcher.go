@@ -97,6 +97,8 @@ var (
 	txFetcherFetchingHashes = metrics.NewRegisteredGauge("zond/fetcher/transaction/fetching/hashes", nil)
 )
 
+var errTerminated = errors.New("terminated")
+
 // txAnnounce is the notification of the availability of a batch
 // of new transactions in the network.
 type txAnnounce struct {
@@ -717,7 +719,7 @@ func (f *TxFetcher) rescheduleWait(timer *mclock.Timer, trigger chan struct{}) {
 	for _, instance := range f.waittime {
 		if earliest > instance {
 			earliest = instance
-			if txArriveTimeout-time.Duration(now-earliest) < gatherSlack {
+			if txArriveTimeout-time.Duration(now-earliest) < txGatherSlack {
 				break
 			}
 		}
@@ -755,7 +757,7 @@ func (f *TxFetcher) rescheduleTimeout(timer *mclock.Timer, trigger chan struct{}
 		}
 		if earliest > req.time {
 			earliest = req.time
-			if txFetchTimeout-time.Duration(now-earliest) < gatherSlack {
+			if txFetchTimeout-time.Duration(now-earliest) < txGatherSlack {
 				break
 			}
 		}

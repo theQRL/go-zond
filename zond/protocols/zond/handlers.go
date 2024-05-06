@@ -274,46 +274,6 @@ func ServiceGetReceiptsQuery(chain *core.BlockChain, query GetReceiptsPacket) []
 	return receipts
 }
 
-func handleNewBlockhashes(backend Backend, msg Decoder, peer *Peer) error {
-	// A batch of new block announcements just arrived
-	ann := new(NewBlockHashesPacket)
-	if err := msg.Decode(ann); err != nil {
-		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
-	}
-	// Mark the hashes as present at the remote node
-	for _, block := range *ann {
-		peer.markBlock(block.Hash)
-	}
-	// Deliver them all to the backend for queuing
-	return backend.Handle(peer, ann)
-}
-
-func handleNewBlock(backend Backend, msg Decoder, peer *Peer) error {
-	// Retrieve and decode the propagated block
-	ann := new(NewBlockPacket)
-	if err := msg.Decode(ann); err != nil {
-		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
-	}
-	if err := ann.sanityCheck(); err != nil {
-		return err
-	}
-	if hash := types.CalcUncleHash(ann.Block.Uncles()); hash != ann.Block.UncleHash() {
-		log.Warn("Propagated block has invalid uncles", "have", hash, "exp", ann.Block.UncleHash())
-		return nil // TODO(karalabe): return error eventually, but wait a few releases
-	}
-	if hash := types.DeriveSha(ann.Block.Transactions(), trie.NewStackTrie(nil)); hash != ann.Block.TxHash() {
-		log.Warn("Propagated block has invalid body", "have", hash, "exp", ann.Block.TxHash())
-		return nil // TODO(karalabe): return error eventually, but wait a few releases
-	}
-	ann.Block.ReceivedAt = msg.Time()
-	ann.Block.ReceivedFrom = peer
-
-	// Mark the peer as owning the block
-	peer.markBlock(ann.Block.Hash())
-
-	return backend.Handle(peer, ann)
-}
-
 func handleBlockHeaders66(backend Backend, msg Decoder, peer *Peer) error {
 	// A batch of headers arrived to one of our previous requests
 	res := new(BlockHeadersPacket66)
@@ -343,18 +303,16 @@ func handleBlockBodies66(backend Backend, msg Decoder, peer *Peer) error {
 	metadata := func() interface{} {
 		var (
 			txsHashes        = make([]common.Hash, len(res.BlockBodiesPacket))
-			uncleHashes      = make([]common.Hash, len(res.BlockBodiesPacket))
 			withdrawalHashes = make([]common.Hash, len(res.BlockBodiesPacket))
 		)
 		hasher := trie.NewStackTrie(nil)
 		for i, body := range res.BlockBodiesPacket {
 			txsHashes[i] = types.DeriveSha(types.Transactions(body.Transactions), hasher)
-			uncleHashes[i] = types.CalcUncleHash(body.Uncles)
 			if body.Withdrawals != nil {
 				withdrawalHashes[i] = types.DeriveSha(types.Withdrawals(body.Withdrawals), hasher)
 			}
 		}
-		return [][]common.Hash{txsHashes, uncleHashes, withdrawalHashes}
+		return [][]common.Hash{txsHashes, withdrawalHashes}
 	}
 	return peer.dispatchResponse(&Response{
 		id:   res.RequestId,
@@ -410,11 +368,11 @@ func handleGetPooledTransactions66(backend Backend, msg Decoder, peer *Peer) err
 	if err := msg.Decode(&query); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
-	hashes, txs := answerGetPooledTransactions(backend, query.GetPooledTransactionsPacket, peer)
+	hashes, txs := answerGetPooledTransactions(backend, query.GetPooledTransactionsPacket)
 	return peer.ReplyPooledTransactionsRLP(query.RequestId, hashes, txs)
 }
 
-func answerGetPooledTransactions(backend Backend, query GetPooledTransactionsPacket, peer *Peer) ([]common.Hash, []rlp.RawValue) {
+func answerGetPooledTransactions(backend Backend, query GetPooledTransactionsPacket) ([]common.Hash, []rlp.RawValue) {
 	// Gather transactions until the fetch or network limits is reached
 	var (
 		bytes  int

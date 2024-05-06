@@ -26,11 +26,11 @@ import (
 	"github.com/theQRL/go-zond/rlp"
 )
 
-func TestEIP155Signing(t *testing.T) {
+func TestShaghaiSigning(t *testing.T) {
 	key, _ := crypto.GenerateDilithiumKey()
 	addr := key.GetAddress()
 
-	signer := NewEIP155Signer(big.NewInt(18))
+	signer := NewShanghaiSigner(big.NewInt(18))
 	tx, err := SignTx(NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil), signer, key)
 	if err != nil {
 		t.Fatal(err)
@@ -49,18 +49,18 @@ func TestEIP155ChainId(t *testing.T) {
 	key, _ := crypto.GenerateDilithiumKey()
 	addr := key.GetAddress()
 
-	signer := NewEIP155Signer(big.NewInt(18))
+	signer := NewShanghaiSigner(big.NewInt(18))
 	tx, err := SignTx(NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil), signer, key)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if tx.ChainId().Cmp(signer.chainId) != 0 {
-		t.Error("expected chainId to be", signer.chainId, "got", tx.ChainId())
+	if tx.ChainId().Cmp(signer.ChainID()) != 0 {
+		t.Error("expected chainId to be", signer.ChainID(), "got", tx.ChainId())
 	}
 }
 
-func TestEIP155SigningVitalik(t *testing.T) {
+func TestShaghaiSigningVitalik(t *testing.T) {
 	// Test vectors come from http://vitalik.ca/files/eip155_testvec.txt
 	for i, test := range []struct {
 		txRlp, addr string
@@ -76,7 +76,7 @@ func TestEIP155SigningVitalik(t *testing.T) {
 		{"f867088504a817c8088302e2489435353535353535353535353535353535353535358202008025a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c12a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c10", "0x9bddad43f934d313c2b79ca28a432dd2b7281029"},
 		{"f867098504a817c809830334509435353535353535353535353535353535353535358202d98025a052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afba052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afb", "0x3c24d7329e92f84f08556ceb6df1cdb0104ca49f"},
 	} {
-		signer := NewEIP155Signer(big.NewInt(1))
+		signer := NewShanghaiSigner(big.NewInt(1))
 
 		var tx *Transaction
 		err := rlp.DecodeBytes(common.Hex2Bytes(test.txRlp), &tx)
@@ -104,17 +104,17 @@ func TestChainId(t *testing.T) {
 	tx := NewTransaction(0, common.Address{}, new(big.Int), 0, new(big.Int), nil)
 
 	var err error
-	tx, err = SignTx(tx, NewEIP155Signer(big.NewInt(1)), key)
+	tx, err = SignTx(tx, NewShanghaiSigner(big.NewInt(1)), key)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = Sender(NewEIP155Signer(big.NewInt(2)), tx)
+	_, err = Sender(NewShanghaiSigner(big.NewInt(2)), tx)
 	if !errors.Is(err, ErrInvalidChainId) {
 		t.Error("expected error:", ErrInvalidChainId, err)
 	}
 
-	_, err = Sender(NewEIP155Signer(big.NewInt(1)), tx)
+	_, err = Sender(NewShanghaiSigner(big.NewInt(1)), tx)
 	if err != nil {
 		t.Error("expected no error")
 	}

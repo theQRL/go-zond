@@ -18,7 +18,6 @@ package zond
 
 import (
 	"errors"
-	"math/big"
 	"sync"
 
 	"github.com/theQRL/go-zond/common"
@@ -40,9 +39,9 @@ var (
 	// a peer set, but no peer with the given id exists.
 	errPeerNotRegistered = errors.New("peer not registered")
 
-	// errSnapWithoutEth is returned if a peer attempts to connect only on the
+	// errSnapWithoutZond is returned if a peer attempts to connect only on the
 	// snap protocol without advertising the zond main protocol.
-	errSnapWithoutEth = errors.New("peer connected on snap without compatible zond support")
+	errSnapWithoutZond = errors.New("peer connected on snap without compatible zond support")
 )
 
 // peerSet represents the collection of active peers currently participating in
@@ -74,7 +73,7 @@ func (ps *peerSet) registerSnapExtension(peer *snap.Peer) error {
 	// Reject the peer if it advertises `snap` without `zond` as `snap` is only a
 	// satellite protocol meaningful with the chain selection of `zond`
 	if !peer.RunningCap(zond.ProtocolName, zond.ProtocolVersions) {
-		return errSnapWithoutEth
+		return errSnapWithoutZond
 	}
 	// Ensure nobody can double connect
 	ps.lock.Lock()
@@ -212,24 +211,6 @@ func (ps *peerSet) snapLen() int {
 	defer ps.lock.RUnlock()
 
 	return ps.snapPeers
-}
-
-// peerWithHighestTD retrieves the known peer with the currently highest total
-// difficulty, but below the given PoS switchover threshold.
-func (ps *peerSet) peerWithHighestTD() *zond.Peer {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	var (
-		bestPeer *zond.Peer
-		bestTd   *big.Int
-	)
-	for _, p := range ps.peers {
-		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
-			bestPeer, bestTd = p.Peer, td
-		}
-	}
-	return bestPeer
 }
 
 // close disconnects all peers.

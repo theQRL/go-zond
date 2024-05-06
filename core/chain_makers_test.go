@@ -41,11 +41,10 @@ func TestGenerateWithdrawalChain(t *testing.T) {
 		funds   = big.NewInt(0).Mul(big.NewInt(1337), big.NewInt(params.Ether))
 		config  = *params.AllBeaconProtocolChanges
 		gspec   = &Genesis{
-			Config:     &config,
-			Alloc:      GenesisAlloc{address: {Balance: funds}},
-			BaseFee:    big.NewInt(params.InitialBaseFee),
-			Difficulty: common.Big1,
-			GasLimit:   5_000_000,
+			Config:   &config,
+			Alloc:    GenesisAlloc{address: {Balance: funds}},
+			BaseFee:  big.NewInt(params.InitialBaseFee),
+			GasLimit: 5_000_000,
 		}
 		gendb  = rawdb.NewMemoryDatabase()
 		signer = types.LatestSigner(gspec.Config)
@@ -154,7 +153,7 @@ func ExampleGenerateChain() {
 	// This call generates a chain of 5 blocks. The function runs for
 	// each block and adds different features to gen based on the
 	// block index.
-	signer := types.HomesteadSigner{}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
 	chain, _ := GenerateChain(gspec.Config, genesis, beacon.NewFaker(), genDb, 5, func(i int, gen *BlockGen) {
 		switch i {
 		case 0:
@@ -176,10 +175,8 @@ func ExampleGenerateChain() {
 			// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
 			b2 := gen.PrevBlock(1).Header()
 			b2.Extra = []byte("foo")
-			gen.AddUncle(b2)
 			b3 := gen.PrevBlock(2).Header()
 			b3.Extra = []byte("foo")
-			gen.AddUncle(b3)
 		}
 	})
 

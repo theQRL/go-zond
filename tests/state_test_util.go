@@ -83,23 +83,21 @@ type stPostState struct {
 //go:generate go run github.com/fjl/gencodec -type stEnv -field-override stEnvMarshaling -out gen_stenv.go
 
 type stEnv struct {
-	Coinbase   common.Address `json:"currentCoinbase"   gencodec:"required"`
-	Difficulty *big.Int       `json:"currentDifficulty" gencodec:"optional"`
-	Random     *big.Int       `json:"currentRandom"     gencodec:"optional"`
-	GasLimit   uint64         `json:"currentGasLimit"   gencodec:"required"`
-	Number     uint64         `json:"currentNumber"     gencodec:"required"`
-	Timestamp  uint64         `json:"currentTimestamp"  gencodec:"required"`
-	BaseFee    *big.Int       `json:"currentBaseFee"    gencodec:"optional"`
+	Coinbase  common.Address `json:"currentCoinbase"   gencodec:"required"`
+	Random    *big.Int       `json:"currentRandom"     gencodec:"optional"`
+	GasLimit  uint64         `json:"currentGasLimit"   gencodec:"required"`
+	Number    uint64         `json:"currentNumber"     gencodec:"required"`
+	Timestamp uint64         `json:"currentTimestamp"  gencodec:"required"`
+	BaseFee   *big.Int       `json:"currentBaseFee"    gencodec:"optional"`
 }
 
 type stEnvMarshaling struct {
-	Coinbase   common.UnprefixedAddress
-	Difficulty *math.HexOrDecimal256
-	Random     *math.HexOrDecimal256
-	GasLimit   math.HexOrDecimal64
-	Number     math.HexOrDecimal64
-	Timestamp  math.HexOrDecimal64
-	BaseFee    *math.HexOrDecimal256
+	Coinbase  common.UnprefixedAddress
+	Random    *math.HexOrDecimal256
+	GasLimit  math.HexOrDecimal64
+	Number    math.HexOrDecimal64
+	Timestamp math.HexOrDecimal64
+	BaseFee   *math.HexOrDecimal256
 }
 
 //go:generate go run github.com/fjl/gencodec -type stTransaction -field-override stTransactionMarshaling -out gen_sttransaction.go
@@ -268,13 +266,9 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
 	context.Random = nil
-	if t.json.Env.Difficulty != nil {
-		context.Difficulty = new(big.Int).Set(t.json.Env.Difficulty)
-	}
 	if t.json.Env.Random != nil {
 		rnd := common.BigToHash(t.json.Env.Random)
 		context.Random = &rnd
-		context.Difficulty = big.NewInt(0)
 	}
 	evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
 
@@ -339,18 +333,16 @@ func MakePreState(db zonddb.Database, accounts core.GenesisAlloc, snapshotter bo
 
 func (t *StateTest) genesis(config *params.ChainConfig) *core.Genesis {
 	genesis := &core.Genesis{
-		Config:     config,
-		Coinbase:   t.json.Env.Coinbase,
-		Difficulty: t.json.Env.Difficulty,
-		GasLimit:   t.json.Env.GasLimit,
-		Number:     t.json.Env.Number,
-		Timestamp:  t.json.Env.Timestamp,
-		Alloc:      t.json.Pre,
+		Config:    config,
+		Coinbase:  t.json.Env.Coinbase,
+		GasLimit:  t.json.Env.GasLimit,
+		Number:    t.json.Env.Number,
+		Timestamp: t.json.Env.Timestamp,
+		Alloc:     t.json.Pre,
 	}
 	if t.json.Env.Random != nil {
 		// Post-Merge
 		genesis.Mixhash = common.BigToHash(t.json.Env.Random)
-		genesis.Difficulty = big.NewInt(0)
 	}
 	return genesis
 }

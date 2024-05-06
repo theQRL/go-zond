@@ -6,8 +6,6 @@
     "mixHash": "0xf73d2ff3c16599c3b8a24b9ebde6c09583b5ee3f747d3cd37845d564f4c8d87a",
     "stateRoot": "0x40b5f53d610108947688a04fb68838ff9c0aa0dd6e54156b682537192171ff5c",
     "miner": "0x774c398d763161f55b66a646f17edda4addad2ca",
-    "difficulty": "1928226",
-    "totalDifficulty": "457857582215",
     "extraData": "0xd983010907846765746888676f312e31332e358664617277696e",
     "gasLimit": "7999473",
     "timestamp": "1577392669",
@@ -33,7 +31,6 @@
   },
   "context": {
     "number": "553154",
-    "difficulty": "1929167",
     "timestamp": "1577392670",
     "gasLimit": "8000000",
     "miner": "0x877bd459c9b7d8576b44e59e09d076c25946f443"

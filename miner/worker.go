@@ -697,7 +697,7 @@ func (w *worker) makeEnv(parent *types.Header, header *types.Header, coinbase co
 
 	// Note the passed coinbase may be different with header.Coinbase.
 	env := &environment{
-		signer:   types.MakeSigner(w.chainConfig, header.Number, header.Time),
+		signer:   types.MakeSigner(w.chainConfig),
 		state:    state,
 		coinbase: coinbase,
 		header:   header,
@@ -715,7 +715,6 @@ func (w *worker) updateSnapshot(env *environment) {
 	w.snapshotBlock = types.NewBlock(
 		env.header,
 		env.txs,
-		nil,
 		env.receipts,
 		trie.NewStackTrie(nil),
 	)
@@ -873,7 +872,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	}
 	// Set the randomness field from the beacon chain if it's available.
 	if genParams.random != (common.Hash{}) {
-		header.MixDigest = genParams.random
+		header.Random = genParams.random
 	}
 	// Set baseFee and GasLimit if we are on an EIP-1559 chain
 	header.BaseFee = eip1559.CalcBaseFee(w.chainConfig, parent)
@@ -945,7 +944,7 @@ func (w *worker) generateWork(params *generateParams) *newPayloadResult {
 			log.Warn("Block building is interrupted", "allowance", common.PrettyDuration(w.newpayloadTimeout))
 		}
 	}
-	block, err := w.engine.FinalizeAndAssemble(w.chain, work.header, work.state, work.txs, nil, work.receipts, params.withdrawals)
+	block, err := w.engine.FinalizeAndAssemble(w.chain, work.header, work.state, work.txs, work.receipts, params.withdrawals)
 	if err != nil {
 		return &newPayloadResult{err: err}
 	}

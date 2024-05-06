@@ -64,7 +64,6 @@ type fetchResult struct {
 	pending atomic.Int32 // Flag telling what deliveries are outstanding
 
 	Header       *types.Header
-	Uncles       []*types.Header
 	Transactions types.Transactions
 	Receipts     types.Receipts
 	Withdrawals  types.Withdrawals
@@ -365,9 +364,6 @@ func (q *queue) Results(block bool) []*fetchResult {
 	for _, result := range results {
 		// Recalculate the result item weights to prevent memory exhaustion
 		size := result.Header.Size()
-		for _, uncle := range result.Uncles {
-			size += uncle.Size()
-		}
 		for _, receipt := range result.Receipts {
 			size += receipt.Size()
 		}
@@ -771,16 +767,12 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, hashes []comm
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
 func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListHashes []common.Hash,
-	uncleLists [][]*types.Header, uncleListHashes []common.Hash,
 	withdrawalLists [][]*types.Withdrawal, withdrawalListHashes []common.Hash) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	validate := func(index int, header *types.Header) error {
 		if txListHashes[index] != header.TxHash {
-			return errInvalidBody
-		}
-		if uncleListHashes[index] != header.UncleHash {
 			return errInvalidBody
 		}
 		if header.WithdrawalsHash == nil {
@@ -802,7 +794,6 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 
 	reconstruct := func(index int, result *fetchResult) {
 		result.Transactions = txLists[index]
-		result.Uncles = uncleLists[index]
 		result.Withdrawals = withdrawalLists[index]
 		result.SetBodyDone()
 	}

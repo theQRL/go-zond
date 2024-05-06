@@ -289,8 +289,6 @@ func (a OverrideAccount) MarshalJSON() ([]byte, error) {
 type BlockOverrides struct {
 	// Number overrides the block number.
 	Number *big.Int
-	// Difficulty overrides the block difficulty.
-	Difficulty *big.Int
 	// Time overrides the block timestamp. Time is applied only when
 	// it is non-zero.
 	Time uint64
@@ -309,21 +307,19 @@ type BlockOverrides struct {
 
 func (o BlockOverrides) MarshalJSON() ([]byte, error) {
 	type override struct {
-		Number     *hexutil.Big    `json:"number,omitempty"`
-		Difficulty *hexutil.Big    `json:"difficulty,omitempty"`
-		Time       hexutil.Uint64  `json:"time,omitempty"`
-		GasLimit   hexutil.Uint64  `json:"gasLimit,omitempty"`
-		Coinbase   *common.Address `json:"coinbase,omitempty"`
-		Random     *common.Hash    `json:"random,omitempty"`
-		BaseFee    *hexutil.Big    `json:"baseFee,omitempty"`
+		Number   *hexutil.Big    `json:"number,omitempty"`
+		Time     hexutil.Uint64  `json:"time,omitempty"`
+		GasLimit hexutil.Uint64  `json:"gasLimit,omitempty"`
+		Coinbase *common.Address `json:"coinbase,omitempty"`
+		Random   *common.Hash    `json:"random,omitempty"`
+		BaseFee  *hexutil.Big    `json:"baseFee,omitempty"`
 	}
 
 	output := override{
-		Number:     (*hexutil.Big)(o.Number),
-		Difficulty: (*hexutil.Big)(o.Difficulty),
-		Time:       hexutil.Uint64(o.Time),
-		GasLimit:   hexutil.Uint64(o.GasLimit),
-		BaseFee:    (*hexutil.Big)(o.BaseFee),
+		Number:   (*hexutil.Big)(o.Number),
+		Time:     hexutil.Uint64(o.Time),
+		GasLimit: hexutil.Uint64(o.GasLimit),
+		BaseFee:  (*hexutil.Big)(o.BaseFee),
 	}
 	if o.Coinbase != (common.Address{}) {
 		output.Coinbase = &o.Coinbase

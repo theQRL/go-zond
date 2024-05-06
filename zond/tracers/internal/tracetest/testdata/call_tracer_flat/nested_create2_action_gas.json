@@ -1,16 +1,13 @@
 {
   "genesis": {
-    "difficulty": "4635413",
     "extraData": "0xd683010b05846765746886676f312e3133856c696e7578",
     "gasLimit": "9289294",
     "hash": "0x359775cf1a2ae2400e26ec68bf33bcfe38b7979c76b7e616f42c4ca7e7605e39",
     "miner": "0x877bd459c9b7d8576b44e59e09d076c25946f443",
     "mixHash": "0x4b2a0ef121a9c7d732fa0fbd4166a0e1041d2da2b8cb677c61edabf8b7183b64",
-    "nonce": "0x2a8a64ad9757be55",
     "number": "1555160",
     "stateRoot": "0x95067c12148e2362fcd4a89df286ff0b1739ef097a40ca42ae7f698af9a9d913",
     "timestamp": "1590793999",
-    "totalDifficulty": "2242063623471",
     "alloc": {
       "0x8785e369f0ef0a4e5c5a5f929680427dc75273a5": {
         "balance": "0x0",
@@ -31,7 +28,6 @@
   },
   "context": {
     "number": "1555161",
-    "difficulty": "4633150",
     "timestamp": "1590794020",
     "gasLimit": "9298364",
     "miner": "0x877bd459c9b7d8576b44e59e09d076c25946f443"

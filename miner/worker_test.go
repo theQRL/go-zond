@@ -131,9 +131,9 @@ func (b *testWorkerBackend) newRandomTx(creation bool) *types.Transaction {
 	var tx *types.Transaction
 	gasPrice := big.NewInt(10 * params.InitialBaseFee)
 	if creation {
-		tx, _ = types.SignTx(types.NewContractCreation(b.txPool.Nonce(testBankAddress), big.NewInt(0), testGas, gasPrice, common.FromHex(testCode)), types.HomesteadSigner{}, testBankKey)
+		tx, _ = types.SignTx(types.NewContractCreation(b.txPool.Nonce(testBankAddress), big.NewInt(0), testGas, gasPrice, common.FromHex(testCode)), types.ShanghaiSigner{ChainId: big.NewInt(0)}, testBankKey)
 	} else {
-		tx, _ = types.SignTx(types.NewTransaction(b.txPool.Nonce(testBankAddress), testUserAddress, big.NewInt(1000), params.TxGas, gasPrice, nil), types.HomesteadSigner{}, testBankKey)
+		tx, _ = types.SignTx(types.NewTransaction(b.txPool.Nonce(testBankAddress), testUserAddress, big.NewInt(1000), params.TxGas, gasPrice, nil), types.ShanghaiSigner{ChainId: big.NewInt(0)}, testBankKey)
 	}
 	return tx
 }
@@ -374,11 +374,8 @@ func testGetSealingWork(t *testing.T, chainConfig *params.ChainConfig, engine co
 		if block.Coinbase() != coinbase {
 			t.Errorf("Unexpected coinbase got %x want %x", block.Coinbase(), coinbase)
 		}
-		if block.MixDigest() != random {
-			t.Error("Unexpected mix digest")
-		}
-		if block.Nonce() != 0 {
-			t.Error("Unexpected block nonce")
+		if block.Random() != random {
+			t.Error("Unexpected random field")
 		}
 		if block.NumberU64() != number {
 			t.Errorf("Mismatched block number, want %d got %d", number, block.NumberU64())

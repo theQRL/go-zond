@@ -90,8 +90,10 @@ func (tx *LegacyTx) copy() TxData {
 }
 
 // accessors for innerTx.
-func (tx *LegacyTx) txType() byte           { return LegacyTxType }
-func (tx *LegacyTx) chainID() *big.Int      { return deriveChainId(big.NewInt(100)) }
+func (tx *LegacyTx) txType() byte { return LegacyTxType }
+
+// TODO(rgeraldes24): include chain id in the legacy tx
+func (tx *LegacyTx) chainID() *big.Int      { return /*deriveChainId(big.NewInt(100))*/ big.NewInt(1) }
 func (tx *LegacyTx) accessList() AccessList { return nil }
 func (tx *LegacyTx) data() []byte           { return tx.Data }
 func (tx *LegacyTx) gas() uint64            { return tx.Gas }

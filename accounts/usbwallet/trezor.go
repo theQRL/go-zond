@@ -20,6 +20,7 @@
 
 package usbwallet
 
+/*
 import (
 	"encoding/binary"
 	"errors"
@@ -370,3 +371,4 @@ func (w *trezorDriver) trezorExchange(req proto.Message, results ...proto.Messag
 	}
 	return 0, fmt.Errorf("trezor: expected reply types %s, got %s", expected, trezor.Name(kind))
 }
+*/

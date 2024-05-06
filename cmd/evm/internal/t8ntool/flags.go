@@ -98,10 +98,6 @@ var (
 		Usage: "`stdin` or file name of where to find the block header to use.",
 		Value: "header.json",
 	}
-	InputOmmersFlag = &cli.StringFlag{
-		Name:  "input.ommers",
-		Usage: "`stdin` or file name of where to find the list of ommer header RLPs to use.",
-	}
 	InputWithdrawalsFlag = &cli.StringFlag{
 		Name:  "input.withdrawals",
 		Usage: "`stdin` or file name of where to find the list of withdrawals to use.",

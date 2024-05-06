@@ -1,6 +1,5 @@
 {
   "context": {
-    "difficulty": "3956606365",
     "gasLimit": "5413248",
     "miner": "0x00d8ae40d9a06d0e7a2877b62e32eb959afbe16d",
     "number": "2295104",
@@ -35,17 +34,14 @@
     "config": {
       "chainId": 3
     },
-    "difficulty": "3956606365",
     "extraData": "0x566961425443",
     "gasLimit": "5418523",
     "hash": "0x6f37eb930a25da673ea1bb80fd9e32ddac19cdf7cd4bb2eac62cc13598624077",
     "miner": "0xd049bfd667cb46aa3ef5df0da3e57db3be39e511",
     "mixHash": "0x10971cde68c587c750c23b8589ae868ce82c2c646636b97e7d9856470c5297c7",
-    "nonce": "0x810f923ff4b450a1",
     "number": "2295103",
     "stateRoot": "0xff403612573d76dfdaf4fea2429b77dbe9764021ae0e38dc8ac79a3cf551179e",
-    "timestamp": "1513681246",
-    "totalDifficulty": "7162347056825919"
+    "timestamp": "1513681246"
   },
   "input": "0xf86d808504e3b292008307dfa69433056b5dcac09a9b4becad0e1dcf92c19bd0af76880e92596fd62900008029a0e5f27bb66431f7081bb7f1f242003056d7f3f35414c352cd3d1848b52716dac2a07d0be78980edb0bd2a0678fc53aa90ea9558ce346b0d947967216918ac74ccea",
   "result": {

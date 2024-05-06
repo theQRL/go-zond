@@ -75,7 +75,7 @@ type driver interface {
 // wallets to prevent reimplementing the same complex maintenance mechanisms
 // for different vendors.
 type wallet struct {
-	hub    *Hub          // USB hub scanning
+	// hub    *Hub          // USB hub scanning
 	driver driver        // Hardware implementation of the low level device operations
 	url    *accounts.URL // Textual URL uniquely identifying this wallet
 
@@ -170,8 +170,9 @@ func (w *wallet) Open(passphrase string) error {
 	go w.heartbeat()
 	go w.selfDerive()
 
+	// TODO(rgeraldes24)
 	// Notify anyone listening for wallet events that a new device is accessible
-	go w.hub.updateFeed.Send(accounts.WalletEvent{Wallet: w, Kind: accounts.WalletOpened})
+	// go w.hub.updateFeed.Send(accounts.WalletEvent{Wallet: w, Kind: accounts.WalletOpened})
 
 	return nil
 }
@@ -548,17 +549,19 @@ func (w *wallet) SignData(account accounts.Account, mimeType string, data []byte
 	<-w.commsLock
 	defer func() { w.commsLock <- struct{}{} }()
 
+	// TODO(rgeraldes24)
 	// Ensure the device isn't screwed with while user confirmation is pending
 	// TODO(karalabe): remove if hotplug lands on Windows
-	w.hub.commsLock.Lock()
-	w.hub.commsPend++
-	w.hub.commsLock.Unlock()
+	// w.hub.commsLock.Lock()
+	// w.hub.commsPend++
+	// w.hub.commsLock.Unlock()
 
-	defer func() {
-		w.hub.commsLock.Lock()
-		w.hub.commsPend--
-		w.hub.commsLock.Unlock()
-	}()
+	// TODO(rgeraldes24)
+	// defer func() {
+	// 	w.hub.commsLock.Lock()
+	// 	w.hub.commsPend--
+	// 	w.hub.commsLock.Unlock()
+	// }()
 	// Sign the transaction
 	signature, err := w.driver.SignTypedMessage(path, data[2:34], data[34:66])
 	if err != nil {
@@ -602,17 +605,19 @@ func (w *wallet) SignTx(account accounts.Account, tx *types.Transaction, chainID
 	<-w.commsLock
 	defer func() { w.commsLock <- struct{}{} }()
 
-	// Ensure the device isn't screwed with while user confirmation is pending
-	// TODO(karalabe): remove if hotplug lands on Windows
-	w.hub.commsLock.Lock()
-	w.hub.commsPend++
-	w.hub.commsLock.Unlock()
+	// TODO(rgeraldes24)
+	// // Ensure the device isn't screwed with while user confirmation is pending
+	// // TODO(karalabe): remove if hotplug lands on Windows
+	// w.hub.commsLock.Lock()
+	// w.hub.commsPend++
+	// w.hub.commsLock.Unlock()
 
-	defer func() {
-		w.hub.commsLock.Lock()
-		w.hub.commsPend--
-		w.hub.commsLock.Unlock()
-	}()
+	// TODO(rgeraldes24)
+	// defer func() {
+	// 	w.hub.commsLock.Lock()
+	// 	w.hub.commsPend--
+	// 	w.hub.commsLock.Unlock()
+	// }()
 	// Sign the transaction and verify the sender to avoid hardware fault surprises
 	sender, signed, err := w.driver.SignTx(path, tx, chainID)
 	if err != nil {

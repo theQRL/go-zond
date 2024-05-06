@@ -46,15 +46,13 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config     *params.ChainConfig `json:"config"`
-	Nonce      uint64              `json:"nonce"`
-	Timestamp  uint64              `json:"timestamp"`
-	ExtraData  []byte              `json:"extraData"`
-	GasLimit   uint64              `json:"gasLimit"   gencodec:"required"`
-	Difficulty *big.Int            `json:"difficulty" gencodec:"required"`
-	Mixhash    common.Hash         `json:"mixHash"`
-	Coinbase   common.Address      `json:"coinbase"`
-	Alloc      GenesisAlloc        `json:"alloc"      gencodec:"required"`
+	Config    *params.ChainConfig `json:"config"`
+	Timestamp uint64              `json:"timestamp"`
+	ExtraData []byte              `json:"extraData"`
+	GasLimit  uint64              `json:"gasLimit"   gencodec:"required"`
+	Mixhash   common.Hash         `json:"mixHash"`
+	Coinbase  common.Address      `json:"coinbase"`
+	Alloc     GenesisAlloc        `json:"alloc"      gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -88,12 +86,10 @@ func ReadGenesis(db zonddb.Database) (*Genesis, error) {
 		return nil, errors.New("genesis block missing from db")
 	}
 	genesisHeader := genesisBlock.Header()
-	genesis.Nonce = genesisHeader.Nonce.Uint64()
 	genesis.Timestamp = genesisHeader.Time
 	genesis.ExtraData = genesisHeader.Extra
 	genesis.GasLimit = genesisHeader.GasLimit
-	genesis.Difficulty = genesisHeader.Difficulty
-	genesis.Mixhash = genesisHeader.MixDigest
+	genesis.Mixhash = genesisHeader.Random
 	genesis.Coinbase = genesisHeader.Coinbase
 	genesis.BaseFee = genesisHeader.BaseFee
 
@@ -216,15 +212,13 @@ type GenesisAccount struct {
 
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
-	Nonce      math.HexOrDecimal64
-	Timestamp  math.HexOrDecimal64
-	ExtraData  hexutil.Bytes
-	GasLimit   math.HexOrDecimal64
-	GasUsed    math.HexOrDecimal64
-	Number     math.HexOrDecimal64
-	Difficulty *math.HexOrDecimal256
-	Alloc      map[common.UnprefixedAddress]GenesisAccount
-	BaseFee    *math.HexOrDecimal256
+	Timestamp math.HexOrDecimal64
+	ExtraData hexutil.Bytes
+	GasLimit  math.HexOrDecimal64
+	GasUsed   math.HexOrDecimal64
+	Number    math.HexOrDecimal64
+	Alloc     map[common.UnprefixedAddress]GenesisAccount
+	BaseFee   *math.HexOrDecimal256
 }
 
 type genesisAccountMarshaling struct {
@@ -417,23 +411,18 @@ func (g *Genesis) ToBlock() *types.Block {
 	}
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
-		Nonce:      types.EncodeNonce(g.Nonce),
 		Time:       g.Timestamp,
 		ParentHash: g.ParentHash,
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,
 		GasUsed:    g.GasUsed,
 		BaseFee:    g.BaseFee,
-		Difficulty: g.Difficulty,
-		MixDigest:  g.Mixhash,
+		Random:     g.Mixhash,
 		Coinbase:   g.Coinbase,
 		Root:       root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
-	}
-	if g.Difficulty == nil && g.Mixhash == (common.Hash{}) {
-		head.Difficulty = params.GenesisDifficulty
 	}
 	if g.Config != nil {
 		if g.BaseFee != nil {
@@ -447,7 +436,7 @@ func (g *Genesis) ToBlock() *types.Block {
 		head.WithdrawalsHash = &types.EmptyWithdrawalsHash
 		withdrawals = make([]*types.Withdrawal, 0)
 	}
-	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil)).WithWithdrawals(withdrawals)
+	return types.NewBlock(head, nil, nil, trie.NewStackTrie(nil)).WithWithdrawals(withdrawals)
 }
 
 // Commit writes the block and state of a genesis specification to the database.
@@ -470,7 +459,6 @@ func (g *Genesis) Commit(db zonddb.Database, triedb *trie.Database) (*types.Bloc
 	if err := g.Alloc.flush(db, triedb, block.Hash()); err != nil {
 		return nil, err
 	}
-	rawdb.WriteTd(db, block.Hash(), block.NumberU64(), block.Difficulty())
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
 	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
@@ -494,25 +482,21 @@ func (g *Genesis) MustCommit(db zonddb.Database, triedb *trie.Database) *types.B
 // DefaultGenesisBlock returns the Ethereum main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
-		Config:     params.MainnetChainConfig,
-		Nonce:      66,
-		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:   5000,
-		Difficulty: big.NewInt(17179869184),
-		Alloc:      decodePrealloc(mainnetAllocData),
+		Config:    params.MainnetChainConfig,
+		ExtraData: hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
+		GasLimit:  5000,
+		Alloc:     decodePrealloc(mainnetAllocData),
 	}
 }
 
 // DefaultBetaNetGenesisBlock returns the BetaNet network genesis block.
 func DefaultBetaNetGenesisBlock() *Genesis {
 	return &Genesis{
-		Config:     params.BetaNetChainConfig,
-		Nonce:      0,
-		ExtraData:  []byte("BetaNet, Zond, XMSS, Dilithium!!"),
-		GasLimit:   0x1c9c380,
-		Difficulty: big.NewInt(0x1),
-		Timestamp:  1705841668,
-		Alloc:      decodePreallocWithContractCode(betaNetAllocData),
+		Config:    params.BetaNetChainConfig,
+		ExtraData: []byte("BetaNet, Zond, XMSS, Dilithium!!"),
+		GasLimit:  0x1c9c380,
+		Timestamp: 1705841668,
+		Alloc:     decodePreallocWithContractCode(betaNetAllocData),
 	}
 }
 
@@ -523,10 +507,9 @@ func DeveloperGenesisBlock(gasLimit uint64, faucet common.Address) *Genesis {
 
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &Genesis{
-		Config:     &config,
-		GasLimit:   gasLimit,
-		BaseFee:    big.NewInt(params.InitialBaseFee),
-		Difficulty: big.NewInt(0),
+		Config:   &config,
+		GasLimit: gasLimit,
+		BaseFee:  big.NewInt(params.InitialBaseFee),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // DepositRoot
 			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256

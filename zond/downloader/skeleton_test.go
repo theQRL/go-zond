@@ -188,7 +188,7 @@ func (p *skeletonTestPeer) RequestHeadersByNumber(origin uint64, amount int, ski
 	return req, nil
 }
 
-func (p *skeletonTestPeer) Head() (common.Hash, *big.Int) {
+func (p *skeletonTestPeer) Head() common.Hash {
 	panic("skeleton sync must not request the remote head")
 }
 

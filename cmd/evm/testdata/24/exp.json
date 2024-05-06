@@ -49,7 +49,6 @@
         "transactionIndex": "0x1"
       }
     ],
-    "currentDifficulty": null,
     "gasUsed": "0x10306",
     "currentBaseFee": "0x500"
   }

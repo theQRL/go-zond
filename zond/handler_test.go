@@ -39,7 +39,7 @@ var (
 	// testKey is a private key to use for funding a tester account.
 	testKey, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
-	// testAddr is the Ethereum address of the tester account.
+	// testAddr is the Zond address of the tester account.
 	testAddr = testKey.GetAddress()
 )
 
@@ -97,7 +97,7 @@ func (p *testTxPool) Pending(enforceTips bool) map[common.Address][]*txpool.Lazy
 
 	batches := make(map[common.Address][]*types.Transaction)
 	for _, tx := range p.pool {
-		from, _ := types.Sender(types.HomesteadSigner{}, tx)
+		from, _ := types.Sender(types.ShanghaiSigner{ChainId: big.NewInt(0)}, tx)
 		batches[from] = append(batches[from], tx)
 	}
 	for _, batch := range batches {
@@ -124,7 +124,7 @@ func (p *testTxPool) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subs
 	return p.txFeed.Subscribe(ch)
 }
 
-// testHandler is a live implementation of the Ethereum protocol handler, just
+// testHandler is a live implementation of the Zond protocol handler, just
 // preinitialized with some sane testing defaults and the transaction pool mocked
 // out.
 type testHandler struct {

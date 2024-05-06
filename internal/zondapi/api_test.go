@@ -75,7 +75,7 @@ func testTransactionMarshal(t *testing.T, tests []txData, config *params.ChainCo
 		}
 
 		// rpcTransaction
-		rpcTx := newRPCTransaction(tx, common.Hash{}, 0, 0, 0, nil, config)
+		rpcTx := newRPCTransaction(tx, common.Hash{}, 0, 0, nil, config)
 		if data, err := json.Marshal(rpcTx); err != nil {
 			t.Fatalf("test %d: marshalling failed; %v", i, err)
 		} else if err = tx2.UnmarshalJSON(data); err != nil {
@@ -473,12 +473,7 @@ func (b testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.R
 	receipts := rawdb.ReadReceipts(b.db, hash, header.Number.Uint64(), header.Time, b.chain.Config())
 	return receipts, nil
 }
-func (b testBackend) GetTd(ctx context.Context, hash common.Hash) *big.Int {
-	if b.pending != nil && hash == b.pending.Hash() {
-		return nil
-	}
-	return big.NewInt(1)
-}
+
 func (b testBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockContext *vm.BlockContext) (*vm.EVM, func() error) {
 	vmError := func() error { return nil }
 	if vmConfig == nil {
@@ -554,7 +549,7 @@ func TestEstimateGas(t *testing.T) {
 			},
 		}
 		genBlocks      = 10
-		signer         = types.HomesteadSigner{}
+		signer         = types.ShanghaiSigner{ChainId: big.NewInt(0)}
 		randomAccounts = newAccounts(2)
 	)
 	api := NewBlockChainAPI(newTestBackend(t, genBlocks, genesis, beacon.NewFaker(), func(i int, b *core.BlockGen) {
@@ -658,7 +653,7 @@ func TestCall(t *testing.T) {
 			},
 		}
 		genBlocks = 10
-		signer    = types.HomesteadSigner{}
+		signer    = types.ShanghaiSigner{ChainId: big.NewInt(0)}
 	)
 	api := NewBlockChainAPI(newTestBackend(t, genBlocks, genesis, beacon.NewFaker(), func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
@@ -868,7 +863,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 		}
 		txs = append(txs, tx)
 	}
-	block := types.NewBlock(&types.Header{Number: big.NewInt(100)}, txs, nil, nil, blocktest.NewHasher())
+	block := types.NewBlock(&types.Header{Number: big.NewInt(100)}, txs, nil, blocktest.NewHasher())
 
 	var testSuite = []struct {
 		inclTx bool
@@ -880,7 +875,6 @@ func TestRPCMarshalBlock(t *testing.T) {
 			inclTx: false,
 			fullTx: false,
 			want: `{
-				"difficulty": "0x0",
 				"extraData": "0x",
 				"gasLimit": "0x0",
 				"gasUsed": "0x0",
@@ -888,16 +882,13 @@ func TestRPCMarshalBlock(t *testing.T) {
 				"logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 				"miner": "0x0000000000000000000000000000000000000000",
 				"mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-				"nonce": "0x0000000000000000",
 				"number": "0x64",
 				"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 				"receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-				"sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
 				"size": "0x296",
 				"stateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
 				"timestamp": "0x0",
-				"transactionsRoot": "0x661a9febcfa8f1890af549b874faf9fa274aede26ef489d9db0b25daa569450e",
-				"uncles": []
+				"transactionsRoot": "0x661a9febcfa8f1890af549b874faf9fa274aede26ef489d9db0b25daa569450e"
 			}`,
 		},
 		// only tx hashes
@@ -905,7 +896,6 @@ func TestRPCMarshalBlock(t *testing.T) {
 			inclTx: true,
 			fullTx: false,
 			want: `{
-				"difficulty": "0x0",
 				"extraData": "0x",
 				"gasLimit": "0x0",
 				"gasUsed": "0x0",
@@ -913,11 +903,9 @@ func TestRPCMarshalBlock(t *testing.T) {
 				"logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 				"miner": "0x0000000000000000000000000000000000000000",
 				"mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-				"nonce": "0x0000000000000000",
 				"number": "0x64",
 				"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 				"receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-				"sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
 				"size": "0x296",
 				"stateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
 				"timestamp": "0x0",
@@ -927,8 +915,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 					"0x98909ea1ff040da6be56bc4231d484de1414b3c1dac372d69293a4beb9032cb5",
 					"0x12e1f81207b40c3bdcc13c0ee18f5f86af6d31754d57a0ea1b0d4cfef21abef1"
 				],
-				"transactionsRoot": "0x661a9febcfa8f1890af549b874faf9fa274aede26ef489d9db0b25daa569450e",
-				"uncles": []
+				"transactionsRoot": "0x661a9febcfa8f1890af549b874faf9fa274aede26ef489d9db0b25daa569450e"
 			}`,
 		},
 		// full tx details
@@ -936,7 +923,6 @@ func TestRPCMarshalBlock(t *testing.T) {
 			inclTx: true,
 			fullTx: true,
 			want: `{
-				"difficulty": "0x0",
 				"extraData": "0x",
 				"gasLimit": "0x0",
 				"gasUsed": "0x0",
@@ -948,7 +934,6 @@ func TestRPCMarshalBlock(t *testing.T) {
 				"number": "0x64",
 				"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 				"receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-				"sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
 				"size": "0x296",
 				"stateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
 				"timestamp": "0x0",
@@ -1030,8 +1015,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 						"s": "0x0"
 					}
 				],
-				"transactionsRoot": "0x661a9febcfa8f1890af549b874faf9fa274aede26ef489d9db0b25daa569450e",
-				"uncles": []
+				"transactionsRoot": "0x661a9febcfa8f1890af549b874faf9fa274aede26ef489d9db0b25daa569450e"
 			}`,
 		},
 	}
@@ -1064,7 +1048,7 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 			},
 		}
 		genBlocks = 10
-		signer    = types.HomesteadSigner{}
+		signer    = types.ShanghaiSigner{ChainId: big.NewInt(0)}
 		tx        = types.NewTx(&types.LegacyTx{
 			Nonce:    11,
 			GasPrice: big.NewInt(11111),
@@ -1079,7 +1063,7 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 			Address:   common.Address{0x12, 0x34},
 			Amount:    10,
 		}
-		pending = types.NewBlockWithWithdrawals(&types.Header{Number: big.NewInt(11), Time: 42}, []*types.Transaction{tx}, nil, nil, []*types.Withdrawal{withdrawal}, blocktest.NewHasher())
+		pending = types.NewBlockWithWithdrawals(&types.Header{Number: big.NewInt(11), Time: 42}, []*types.Transaction{tx}, nil, []*types.Withdrawal{withdrawal}, blocktest.NewHasher())
 	)
 	backend := newTestBackend(t, genBlocks, genesis, beacon.NewFaker(), func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
@@ -1339,7 +1323,7 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 		switch i {
 		case 0:
 			// transfer 1000wei
-			tx, err = types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: &acc2Addr, Value: big.NewInt(1000), Gas: params.TxGas, GasPrice: b.BaseFee(), Data: nil}), types.HomesteadSigner{}, acc1Key)
+			tx, err = types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: &acc2Addr, Value: big.NewInt(1000), Gas: params.TxGas, GasPrice: b.BaseFee(), Data: nil}), types.ShanghaiSigner{ChainId: big.NewInt(0)}, acc1Key)
 		case 1:
 			// create contract
 			tx, err = types.SignTx(types.NewTx(&types.LegacyTx{Nonce: uint64(i), To: nil, Gas: 53100, GasPrice: b.BaseFee(), Data: common.FromHex("0x60806040")}), signer, acc1Key)
@@ -1370,7 +1354,6 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 			b.AddTx(tx)
 			txHashes[i] = tx.Hash()
 		}
-		b.SetPoS()
 	})
 	return backend, txHashes
 }

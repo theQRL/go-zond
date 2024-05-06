@@ -235,13 +235,6 @@ func (b *ZondAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number u
 	return rawdb.ReadLogs(b.zond.chainDb, hash, number), nil
 }
 
-func (b *ZondAPIBackend) GetTd(ctx context.Context, hash common.Hash) *big.Int {
-	if header := b.zond.blockchain.GetHeaderByHash(hash); header != nil {
-		return b.zond.blockchain.GetTd(hash, header.Number.Uint64())
-	}
-	return nil
-}
-
 func (b *ZondAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) (*vm.EVM, func() error) {
 	if vmConfig == nil {
 		vmConfig = b.zond.blockchain.GetVMConfig()

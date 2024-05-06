@@ -21,9 +21,9 @@ import (
 	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
-// ethPeerInfo represents a short summary of the `zond` sub-protocol metadata known
+// zondPeerInfo represents a short summary of the `zond` sub-protocol metadata known
 // about a connected peer.
-type ethPeerInfo struct {
+type zondPeerInfo struct {
 	Version uint `json:"version"` // Ethereum protocol version negotiated
 }
 
@@ -34,8 +34,8 @@ type ethPeer struct {
 }
 
 // info gathers and returns some `zond` protocol metadata known about a peer.
-func (p *ethPeer) info() *ethPeerInfo {
-	return &ethPeerInfo{
+func (p *ethPeer) info() *zondPeerInfo {
+	return &zondPeerInfo{
 		Version: p.Version(),
 	}
 }

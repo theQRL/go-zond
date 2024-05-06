@@ -18,11 +18,9 @@ package core
 
 import (
 	crand "crypto/rand"
-	"errors"
 	"math/big"
 	mrand "math/rand"
 
-	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
@@ -34,9 +32,6 @@ import (
 type ChainReader interface {
 	// Config retrieves the header chain's chain configuration.
 	Config() *params.ChainConfig
-
-	// GetTd returns the total difficulty of a local block.
-	GetTd(common.Hash, uint64) *big.Int
 }
 
 // ForkChoice is the fork chooser based on the highest total difficulty of the
@@ -74,13 +69,5 @@ func NewForkChoice(chainReader ChainReader, preserve func(header *types.Header) 
 // total difficulty is higher. In the extern mode, the trusted
 // header is always selected as the head.
 func (f *ForkChoice) ReorgNeeded(current *types.Header, extern *types.Header) (bool, error) {
-	var (
-		localTD  = f.chain.GetTd(current.Hash(), current.Number.Uint64())
-		externTd = f.chain.GetTd(extern.Hash(), extern.Number.Uint64())
-	)
-	if localTD == nil || externTd == nil {
-		return false, errors.New("missing td")
-	}
-
 	return true, nil
 }

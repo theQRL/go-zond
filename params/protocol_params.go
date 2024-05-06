@@ -17,8 +17,6 @@
 package params
 
 import (
-	"math/big"
-
 	"github.com/theQRL/go-zond/common"
 )
 
@@ -155,11 +153,6 @@ const (
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(2048)   // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
-
 	// BeaconRootsStorageAddress is the address where historical beacon roots are stored as per EIP-4788
 	BeaconRootsStorageAddress = common.HexToAddress("0xbEac00dDB15f3B6d645C48263dC93862413A222D")
 	// SystemAddress is where the system-transaction is sent from as per EIP-4788

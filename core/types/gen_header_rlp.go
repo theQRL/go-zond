@@ -9,20 +9,11 @@ func (obj *Header) EncodeRLP(_w io.Writer) error {
 	w := rlp.NewEncoderBuffer(_w)
 	_tmp0 := w.List()
 	w.WriteBytes(obj.ParentHash[:])
-	w.WriteBytes(obj.UncleHash[:])
 	w.WriteBytes(obj.Coinbase[:])
 	w.WriteBytes(obj.Root[:])
 	w.WriteBytes(obj.TxHash[:])
 	w.WriteBytes(obj.ReceiptHash[:])
 	w.WriteBytes(obj.Bloom[:])
-	if obj.Difficulty == nil {
-		w.Write(rlp.EmptyString)
-	} else {
-		if obj.Difficulty.Sign() == -1 {
-			return rlp.ErrNegativeBigInt
-		}
-		w.WriteBigInt(obj.Difficulty)
-	}
 	if obj.Number == nil {
 		w.Write(rlp.EmptyString)
 	} else {
@@ -35,8 +26,7 @@ func (obj *Header) EncodeRLP(_w io.Writer) error {
 	w.WriteUint64(obj.GasUsed)
 	w.WriteUint64(obj.Time)
 	w.WriteBytes(obj.Extra)
-	w.WriteBytes(obj.MixDigest[:])
-	w.WriteBytes(obj.Nonce[:])
+	w.WriteBytes(obj.Random[:])
 	_tmp1 := obj.BaseFee != nil
 	_tmp2 := obj.WithdrawalsHash != nil
 	if _tmp1 || _tmp2  {

@@ -236,7 +236,7 @@ func (zond *Zond) stateAtTransaction(ctx context.Context, block *types.Block, tx
 		return nil, vm.BlockContext{}, statedb, release, nil
 	}
 	// Recompute transactions up to the target index.
-	signer := types.MakeSigner(zond.blockchain.Config(), block.Number(), block.Time())
+	signer := types.MakeSigner(zond.blockchain.Config())
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())

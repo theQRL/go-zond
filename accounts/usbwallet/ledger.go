@@ -20,6 +20,7 @@
 
 package usbwallet
 
+/*
 import (
 	"encoding/binary"
 	"encoding/hex"
@@ -553,3 +554,4 @@ func (w *ledgerDriver) ledgerExchange(opcode ledgerOpcode, p1 ledgerParam1, p2 l
 	}
 	return reply[:len(reply)-2], nil
 }
+*/

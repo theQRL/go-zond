@@ -141,7 +141,7 @@ func TestTransactionTimeSort(t *testing.T) {
 	for i := 0; i < len(keys); i++ {
 		keys[i], _ = crypto.GenerateDilithiumKey()
 	}
-	signer := types.HomesteadSigner{}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
 
 	// Generate a batch of transactions with overlapping prices, but different creation times
 	groups := map[common.Address][]*txpool.LazyTransaction{}

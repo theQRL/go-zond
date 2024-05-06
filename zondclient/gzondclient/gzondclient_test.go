@@ -471,13 +471,12 @@ func TestBlockOverridesMarshal(t *testing.T) {
 		},
 		{
 			bo: BlockOverrides{
-				Number:     big.NewInt(1),
-				Difficulty: big.NewInt(2),
-				Time:       3,
-				GasLimit:   4,
-				BaseFee:    big.NewInt(5),
+				Number:   big.NewInt(1),
+				Time:     3,
+				GasLimit: 4,
+				BaseFee:  big.NewInt(5),
 			},
-			want: `{"number":"0x1","difficulty":"0x2","time":"0x3","gasLimit":"0x4","baseFee":"0x5"}`,
+			want: `{"number":"0x1","time":"0x3","gasLimit":"0x4","baseFee":"0x5"}`,
 		},
 	} {
 		marshalled, err := json.Marshal(&tt.bo)

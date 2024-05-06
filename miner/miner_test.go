@@ -82,7 +82,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 }
 
 func (bc *testBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
-	return types.NewBlock(bc.CurrentBlock(), nil, nil, nil, trie.NewStackTrie(nil))
+	return types.NewBlock(bc.CurrentBlock(), nil, nil, trie.NewStackTrie(nil))
 }
 
 func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
@@ -258,11 +258,10 @@ func minerTestGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &core.Genesis{
-		Config:     &config,
-		ExtraData:  append(append(make([]byte, 32), faucet[:]...), make([]byte, crypto.SignatureLength)...),
-		GasLimit:   gasLimit,
-		BaseFee:    big.NewInt(params.InitialBaseFee),
-		Difficulty: big.NewInt(1),
+		Config:    &config,
+		ExtraData: append(append(make([]byte, 32), faucet[:]...), make([]byte, crypto.SignatureLength)...),
+		GasLimit:  gasLimit,
+		BaseFee:   big.NewInt(params.InitialBaseFee),
 		Alloc: map[common.Address]core.GenesisAccount{
 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // Depositroot
 			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256

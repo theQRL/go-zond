@@ -44,7 +44,6 @@ type BlockGen struct {
 	gasPool     *GasPool
 	txs         []*types.Transaction
 	receipts    []*types.Receipt
-	uncles      []*types.Header
 	withdrawals []*types.Withdrawal
 
 	config *params.ChainConfig
@@ -67,23 +66,6 @@ func (b *BlockGen) SetCoinbase(addr common.Address) {
 // SetExtra sets the extra data field of the generated block.
 func (b *BlockGen) SetExtra(data []byte) {
 	b.header.Extra = data
-}
-
-// SetNonce sets the nonce field of the generated block.
-func (b *BlockGen) SetNonce(nonce types.BlockNonce) {
-	b.header.Nonce = nonce
-}
-
-// SetDifficulty sets the difficulty field of the generated block. This method is
-// useful for Clique tests where the difficulty does not depend on time. For the
-// ethash tests, please use OffsetTime, which implicitly recalculates the diff.
-func (b *BlockGen) SetDifficulty(diff *big.Int) {
-	b.header.Difficulty = diff
-}
-
-// SetPos makes the header a PoS-header (0 difficulty)
-func (b *BlockGen) SetPoS() {
-	b.header.Difficulty = new(big.Int)
 }
 
 // addTx adds a transaction to the generated block. If no coinbase has
@@ -184,27 +166,6 @@ func (b *BlockGen) TxNonce(addr common.Address) uint64 {
 	return b.statedb.GetNonce(addr)
 }
 
-// AddUncle adds an uncle header to the generated block.
-func (b *BlockGen) AddUncle(h *types.Header) {
-	// The uncle will have the same timestamp and auto-generated difficulty
-	h.Time = b.header.Time
-
-	var parent *types.Header
-	for i := b.i - 1; i >= 0; i-- {
-		if b.chain[i].Hash() == h.ParentHash {
-			parent = b.chain[i].Header()
-			break
-		}
-	}
-	chainreader := &fakeChainReader{config: b.config}
-	h.Difficulty = b.engine.CalcDifficulty(chainreader, b.header.Time, parent)
-
-	// The gas limit and price should be derived from the parent
-	h.GasLimit = parent.GasLimit
-	h.BaseFee = eip1559.CalcBaseFee(b.config, parent)
-	b.uncles = append(b.uncles, h)
-}
-
 // AddWithdrawal adds a withdrawal to the generated block.
 // It returns the withdrawal index.
 func (b *BlockGen) AddWithdrawal(w *types.Withdrawal) uint64 {
@@ -254,8 +215,6 @@ func (b *BlockGen) OffsetTime(seconds int64) {
 	if b.header.Time <= b.parent.Header().Time {
 		panic("block time out of range")
 	}
-	chainreader := &fakeChainReader{config: b.config}
-	b.header.Difficulty = b.engine.CalcDifficulty(chainreader, b.header.Time, b.parent.Header())
 }
 
 // GenerateChain creates a chain of n blocks. The first block's
@@ -263,7 +222,7 @@ func (b *BlockGen) OffsetTime(seconds int64) {
 // intermediate states and should contain the parent's state trie.
 //
 // The generator function is called with a new block generator for
-// every block. Any transactions and uncles added to the generator
+// every block. Any transactions added to the generator
 // become part of the block. If gen is nil, the blocks will be empty
 // and their coinbase will be the zero address.
 //
@@ -278,21 +237,14 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	chainreader := &fakeChainReader{config: config}
 	genblock := func(i int, parent *types.Block, triedb *trie.Database, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		b := &BlockGen{i: i, chain: blocks, parent: parent, statedb: statedb, config: config, engine: engine}
-		b.header = makeHeader(chainreader, parent, statedb, b.engine)
+		b.header = makeHeader(chainreader, parent, statedb)
 
-		// Set the difficulty for clique block. The chain maker doesn't have access
-		// to a chain, so the difficulty will be left unset (nil). Set it here to the
-		// correct value.
-		if b.header.Difficulty == nil {
-			// Post-merge chain
-			b.header.Difficulty = big.NewInt(0)
-		}
 		// Execute any user modifications to the block
 		if gen != nil {
 			gen(i, b)
 		}
 		if b.engine != nil {
-			block, err := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts, b.withdrawals)
+			block, err := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.receipts, b.withdrawals)
 			if err != nil {
 				panic(err)
 			}
@@ -341,7 +293,7 @@ func GenerateChainWithGenesis(genesis *Genesis, engine consensus.Engine, n int, 
 	return db, blocks, receipts
 }
 
-func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.StateDB, engine consensus.Engine) *types.Header {
+func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.StateDB) *types.Header {
 	var time uint64
 	if parent.Time() == 0 {
 		time = 10
@@ -352,16 +304,10 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Root:       state.IntermediateRoot(true),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		Difficulty: engine.CalcDifficulty(chain, time, &types.Header{
-			Number:     parent.Number(),
-			Time:       time - 10,
-			Difficulty: parent.Difficulty(),
-			UncleHash:  parent.UncleHash(),
-		}),
-		GasLimit: parent.GasLimit(),
-		Number:   new(big.Int).Add(parent.Number(), common.Big1),
-		Time:     time,
-		BaseFee:  eip1559.CalcBaseFee(chain.Config(), parent.Header()),
+		GasLimit:   parent.GasLimit(),
+		Number:     new(big.Int).Add(parent.Number(), common.Big1),
+		Time:       time,
+		BaseFee:    eip1559.CalcBaseFee(chain.Config(), parent.Header()),
 	}
 
 	return header
@@ -417,4 +363,3 @@ func (cr *fakeChainReader) GetHeaderByNumber(number uint64) *types.Header       
 func (cr *fakeChainReader) GetHeaderByHash(hash common.Hash) *types.Header          { return nil }
 func (cr *fakeChainReader) GetHeader(hash common.Hash, number uint64) *types.Header { return nil }
 func (cr *fakeChainReader) GetBlock(hash common.Hash, number uint64) *types.Block   { return nil }
-func (cr *fakeChainReader) GetTd(hash common.Hash, number uint64) *big.Int          { return nil }

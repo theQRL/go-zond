@@ -51,7 +51,7 @@ var (
 	// testKey is a private key to use for funding a tester account.
 	testKey, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
-	// testAddr is the Ethereum address of the tester account.
+	// testAddr is the Zond address of the tester account.
 	testAddr = common.Address(testKey.GetAddress())
 
 	testBalance = big.NewInt(2e18)
@@ -66,10 +66,9 @@ func generateMergeChain(n int) (*core.Genesis, []*types.Block) {
 			testAddr:                         {Balance: testBalance},
 			params.BeaconRootsStorageAddress: {Balance: common.Big0, Code: common.Hex2Bytes("3373fffffffffffffffffffffffffffffffffffffffe14604457602036146024575f5ffd5b620180005f350680545f35146037575f5ffd5b6201800001545f5260205ff35b6201800042064281555f359062018000015500")},
 		},
-		ExtraData:  []byte("test genesis"),
-		Timestamp:  9000,
-		BaseFee:    big.NewInt(params.InitialBaseFee),
-		Difficulty: big.NewInt(0),
+		ExtraData: []byte("test genesis"),
+		Timestamp: 9000,
+		BaseFee:   big.NewInt(params.InitialBaseFee),
 	}
 	testNonce := uint64(0)
 	generate := func(i int, g *core.BlockGen) {
@@ -90,7 +89,7 @@ func TestEth2AssembleBlock(t *testing.T) {
 	defer n.Close()
 
 	api := NewConsensusAPI(zondservice)
-	signer := types.NewEIP155Signer(zondservice.BlockChain().Config().ChainID)
+	signer := types.NewShanghaiSigner(zondservice.BlockChain().Config().ChainID)
 	tx, err := types.SignTx(types.NewTransaction(uint64(10), blocks[9].Coinbase(), big.NewInt(1000), params.TxGas, big.NewInt(params.InitialBaseFee), nil), signer, testKey)
 	if err != nil {
 		t.Fatalf("error signing transaction, err=%v", err)
@@ -295,7 +294,8 @@ func TestEth2NewBlock(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		statedb, _ := zondservice.BlockChain().StateAt(parent.Root())
 		nonce := statedb.GetNonce(testAddr)
-		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), types.LatestSigner(zondservice.BlockChain().Config()), testKey)
+		signer := types.LatestSigner(zondservice.BlockChain().Config())
+		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), signer, testKey)
 		zondservice.TxPool().Add([]*types.Transaction{tx}, true, false)
 
 		execData, err := assembleWithTransactions(api, parent.Hash(), &engine.PayloadAttributes{
@@ -464,7 +464,8 @@ func TestFullAPI(t *testing.T) {
 	callback := func(parent *types.Header) {
 		statedb, _ := zondservice.BlockChain().StateAt(parent.Root)
 		nonce := statedb.GetNonce(testAddr)
-		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), types.LatestSigner(zondservice.BlockChain().Config()), testKey)
+		signer := types.LatestSigner(zondservice.BlockChain().Config())
+		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), signer, testKey)
 		zondservice.TxPool().Add([]*types.Transaction{tx}, true, false)
 	}
 
@@ -707,22 +708,20 @@ func setBlockhash(data *engine.ExecutableData) *engine.ExecutableData {
 	number.SetUint64(data.Number)
 	header := &types.Header{
 		ParentHash:  data.ParentHash,
-		UncleHash:   types.EmptyUncleHash,
 		Coinbase:    data.FeeRecipient,
 		Root:        data.StateRoot,
 		TxHash:      types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
 		ReceiptHash: data.ReceiptsRoot,
 		Bloom:       types.BytesToBloom(data.LogsBloom),
-		Difficulty:  common.Big0,
 		Number:      number,
 		GasLimit:    data.GasLimit,
 		GasUsed:     data.GasUsed,
 		Time:        data.Timestamp,
 		BaseFee:     data.BaseFeePerGas,
 		Extra:       data.ExtraData,
-		MixDigest:   data.Random,
+		Random:      data.Random,
 	}
-	block := types.NewBlockWithHeader(header).WithBody(txs, nil /* uncles */)
+	block := types.NewBlockWithHeader(header).WithBody(txs)
 	data.BlockHash = block.Hash()
 	return data
 }
@@ -863,22 +862,20 @@ func TestNewPayloadOnInvalidTerminalBlock(t *testing.T) {
 	txs, _ := decodeTransactions(data.Transactions)
 	header := &types.Header{
 		ParentHash:  data.ParentHash,
-		UncleHash:   types.EmptyUncleHash,
 		Coinbase:    data.FeeRecipient,
 		Root:        data.StateRoot,
 		TxHash:      types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
 		ReceiptHash: data.ReceiptsRoot,
 		Bloom:       types.BytesToBloom(data.LogsBloom),
-		Difficulty:  common.Big0,
 		Number:      new(big.Int).SetUint64(data.Number),
 		GasLimit:    data.GasLimit,
 		GasUsed:     data.GasUsed,
 		Time:        data.Timestamp,
 		BaseFee:     data.BaseFeePerGas,
 		Extra:       data.ExtraData,
-		MixDigest:   data.Random,
+		Random:      data.Random,
 	}
-	block := types.NewBlockWithHeader(header).WithBody(txs, nil /* uncles */)
+	block := types.NewBlockWithHeader(header).WithBody(txs)
 	data.BlockHash = block.Hash()
 	// Send the new payload
 	resp2, err := api.NewPayloadV2(data)
@@ -1211,7 +1208,8 @@ func setupBodies(t *testing.T) (*node.Node, *zond.Zond, []*types.Block) {
 	callback := func(parent *types.Header) {
 		statedb, _ := zondservice.BlockChain().StateAt(parent.Root)
 		nonce := statedb.GetNonce(testAddr)
-		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), types.LatestSigner(zondservice.BlockChain().Config()), testKey)
+		signer := types.LatestSigner(zondservice.BlockChain().Config())
+		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), signer, testKey)
 		zondservice.TxPool().Add([]*types.Transaction{tx}, false, false)
 	}
 

@@ -51,7 +51,7 @@ var (
 		big.NewInt(1),
 		common.FromHex("5544"),
 	).WithSignatureAndPublicKey(
-		HomesteadSigner{},
+		ShanghaiSigner{},
 		common.Hex2Bytes("98ff921201554726367d2be8c804a7ff89ccf285ebc57dff8ae4c44b9c19ac4a8887321be575c8095f789dd4c743dfe42c1820f9231f98a962b210e3ac2452a301"),
 		nil,
 	)
@@ -67,7 +67,7 @@ var (
 	})
 
 	signedEip2718Tx, _ = emptyEip2718Tx.WithSignatureAndPublicKey(
-		NewEIP2930Signer(big.NewInt(1)),
+		NewShanghaiSigner(big.NewInt(1)),
 		common.Hex2Bytes("c9519f4f2b30335884581971573fadf60c6204f59a911df35ee8a540456b266032f1e8e2c5dd761f9e4f88f41c8310aeaba26a8bfcdacfedfa12ec3862d3752101"),
 		nil,
 	)
@@ -83,11 +83,11 @@ func TestDecodeEmptyTypedTx(t *testing.T) {
 }
 
 func TestTransactionSigHash(t *testing.T) {
-	var homestead HomesteadSigner
-	if homestead.Hash(emptyTx) != common.HexToHash("c775b99e7ad12f50d819fcd602390467e28141316969f4b57f0626f74fe3b386") {
+	var shanghai ShanghaiSigner
+	if shanghai.Hash(emptyTx) != common.HexToHash("c775b99e7ad12f50d819fcd602390467e28141316969f4b57f0626f74fe3b386") {
 		t.Errorf("empty transaction hash mismatch, got %x", emptyTx.Hash())
 	}
-	if homestead.Hash(rightvrsTx) != common.HexToHash("fe7a79529ed5f7c3375d06b26b186a8644e0e16c373d7a12be41c62d6042b77a") {
+	if shanghai.Hash(rightvrsTx) != common.HexToHash("fe7a79529ed5f7c3375d06b26b186a8644e0e16c373d7a12be41c62d6042b77a") {
 		t.Errorf("RightVRS transaction hash mismatch, got %x", rightvrsTx.Hash())
 	}
 }
@@ -104,7 +104,7 @@ func TestTransactionEncode(t *testing.T) {
 }
 
 func TestEIP2718TransactionSigHash(t *testing.T) {
-	s := NewEIP2930Signer(big.NewInt(1))
+	s := NewShanghaiSigner(big.NewInt(1))
 	if s.Hash(emptyEip2718Tx) != common.HexToHash("49b486f0ec0a60dfbbca2d30cb07c9e8ffb2a2ff41f29a1ab6737475f6ff69f3") {
 		t.Errorf("empty EIP-2718 transaction hash mismatch, got %x", s.Hash(emptyEip2718Tx))
 	}
@@ -118,8 +118,8 @@ func TestEIP2930Signer(t *testing.T) {
 	var (
 		key, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		keyAddr = common.Address(key.GetAddress())
-		signer1 = NewEIP2930Signer(big.NewInt(1))
-		signer2 = NewEIP2930Signer(big.NewInt(2))
+		signer1 = NewShanghaiSigner(big.NewInt(1))
+		signer2 = NewShanghaiSigner(big.NewInt(2))
 		tx0     = NewTx(&AccessListTx{Nonce: 1})
 		tx1     = NewTx(&AccessListTx{ChainID: big.NewInt(1), Nonce: 1})
 		tx2, _  = SignNewTx(key, signer2, &AccessListTx{ChainID: big.NewInt(2), Nonce: 1})
@@ -233,7 +233,7 @@ func TestRecipientEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	from, err := Sender(HomesteadSigner{}, tx)
+	from, err := Sender(ShanghaiSigner{}, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestRecipientNormal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	from, err := Sender(HomesteadSigner{}, tx)
+	from, err := Sender(ShanghaiSigner{}, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +266,7 @@ func TestTransactionCoding(t *testing.T) {
 		t.Fatalf("could not generate key: %v", err)
 	}
 	var (
-		signer    = NewEIP2930Signer(common.Big1)
+		signer    = NewShanghaiSigner(common.Big1)
 		addr      = common.HexToAddress("0x0000000000000000000000000000000000000001")
 		recipient = common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87")
 		accesses  = AccessList{{Address: addr, StorageKeys: []common.Hash{{0}}}}
@@ -387,7 +387,7 @@ func assertEqual(orig *Transaction, cpy *Transaction) error {
 }
 
 func TestTransactionSizes(t *testing.T) {
-	signer := NewLondonSigner(big.NewInt(123))
+	signer := NewShanghaiSigner(big.NewInt(123))
 	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	to := common.HexToAddress("0x01")
 	for i, txdata := range []TxData{

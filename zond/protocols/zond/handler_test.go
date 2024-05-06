@@ -372,7 +372,7 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 					block := backend.chain.GetBlockByNumber(uint64(num))
 					hashes = append(hashes, block.Hash())
 					if len(bodies) < tt.expected {
-						bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Uncles: block.Uncles(), Withdrawals: block.Withdrawals()})
+						bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Withdrawals: block.Withdrawals()})
 					}
 					break
 				}
@@ -382,7 +382,7 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 			hashes = append(hashes, hash)
 			if tt.available[j] && len(bodies) < tt.expected {
 				block := backend.chain.GetBlockByHash(hash)
-				bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Uncles: block.Uncles(), Withdrawals: block.Withdrawals()})
+				bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Withdrawals: block.Withdrawals()})
 			}
 		}
 
@@ -412,7 +412,7 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 	acc1Addr := acc1Key.GetAddress()
 	acc2Addr := acc2Key.GetAddress()
 
-	signer := types.HomesteadSigner{}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
@@ -431,14 +431,6 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 			// Block 3 is empty but was mined by account #2.
 			block.SetCoinbase(acc2Addr)
 			block.SetExtra([]byte("yeehaw"))
-		case 3:
-			// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
-			b2 := block.PrevBlock(1).Header()
-			b2.Extra = []byte("foo")
-			block.AddUncle(b2)
-			b3 := block.PrevBlock(2).Header()
-			b3.Extra = []byte("foo")
-			block.AddUncle(b3)
 		}
 	}
 	// Assemble the test environment

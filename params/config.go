@@ -104,19 +104,19 @@ func (c *ChainConfig) Description() string {
 func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, time uint64) *ConfigCompatError {
 	var (
 		bhead = new(big.Int).SetUint64(height)
-		btime = time
+		// btime = time
 	)
 	// Iterate checkCompatible to find the lowest conflict.
 	var lasterr *ConfigCompatError
 	for {
-		err := c.checkCompatible(newcfg, bhead, btime)
+		err := c.checkCompatible(newcfg /*, bhead, btime*/)
 		if err == nil || (lasterr != nil && err.RewindToBlock == lasterr.RewindToBlock && err.RewindToTime == lasterr.RewindToTime) {
 			break
 		}
 		lasterr = err
 
 		if err.RewindToTime > 0 {
-			btime = err.RewindToTime
+			// btime = err.RewindToTime
 		} else {
 			bhead.SetUint64(err.RewindToBlock)
 		}
@@ -172,7 +172,7 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 	return nil
 }
 
-func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, headTimestamp uint64) *ConfigCompatError {
+func (c *ChainConfig) checkCompatible(newcfg *ChainConfig /*, headNumber *big.Int, headTimestamp uint64*/) *ConfigCompatError {
 	if !configBlockEqual(c.ChainID, newcfg.ChainID) {
 		return newBlockCompatError("chain ID", c.ChainID, newcfg.ChainID)
 	}

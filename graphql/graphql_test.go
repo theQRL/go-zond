@@ -65,9 +65,8 @@ func TestGraphQLBlockSerialization(t *testing.T) {
 	stack := createNode(t)
 	defer stack.Close()
 	genesis := &core.Genesis{
-		Config:     params.AllBeaconProtocolChanges,
-		GasLimit:   11500000,
-		Difficulty: big.NewInt(1048576),
+		Config:   params.AllBeaconProtocolChanges,
+		GasLimit: 11500000,
 	}
 	newGQLService(t, stack, genesis, 10, func(i int, gen *core.BlockGen) {})
 	// start node
@@ -178,9 +177,8 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 	stack := createNode(t)
 	defer stack.Close()
 	genesis := &core.Genesis{
-		Config:     params.AllBeaconProtocolChanges,
-		GasLimit:   11500000,
-		Difficulty: big.NewInt(1048576),
+		Config:   params.AllBeaconProtocolChanges,
+		GasLimit: 11500000,
 		Alloc: core.GenesisAlloc{
 			address: {Balance: funds},
 			// The address 0xdad sloads 0x00 and 0x01
@@ -275,9 +273,8 @@ func TestGraphQLConcurrentResolvers(t *testing.T) {
 		dadStr  = "0x0000000000000000000000000000000000000dad"
 		dad     = common.HexToAddress(dadStr)
 		genesis = &core.Genesis{
-			Config:     params.AllBeaconProtocolChanges,
-			GasLimit:   11500000,
-			Difficulty: big.NewInt(1048576),
+			Config:   params.AllBeaconProtocolChanges,
+			GasLimit: 11500000,
 			Alloc: core.GenesisAlloc{
 				addr: {Balance: big.NewInt(params.Ether)},
 				dad: {
@@ -329,13 +326,13 @@ func TestGraphQLConcurrentResolvers(t *testing.T) {
 		},
 		// Multiple fields of block race to resolve header and body.
 		{
-			body: "{ block { number hash gasLimit ommerCount transactionCount totalDifficulty } }",
-			want: fmt.Sprintf(`{"block":{"number":"0x1","hash":"%s","gasLimit":"0xaf79e0","ommerCount":"0x0","transactionCount":"0x3","totalDifficulty":"0x200000"}}`, chain[len(chain)-1].Hash()),
+			body: "{ block { number hash gasLimit transactionCount } }",
+			want: fmt.Sprintf(`{"block":{"number":"0x1","hash":"%s","gasLimit":"0xaf79e0","transactionCount":"0x3"}}`, chain[len(chain)-1].Hash()),
 		},
 		// Multiple fields of a block race to resolve the header and body.
 		{
-			body: fmt.Sprintf(`{ transaction(hash: "%s") { block { number hash gasLimit ommerCount transactionCount } } }`, tx.Hash()),
-			want: fmt.Sprintf(`{"transaction":{"block":{"number":"0x1","hash":"%s","gasLimit":"0xaf79e0","ommerCount":"0x0","transactionCount":"0x3"}}}`, chain[len(chain)-1].Hash()),
+			body: fmt.Sprintf(`{ transaction(hash: "%s") { block { number hash gasLimit transactionCount } } }`, tx.Hash()),
+			want: fmt.Sprintf(`{"transaction":{"block":{"number":"0x1","hash":"%s","gasLimit":"0xaf79e0","transactionCount":"0x3"}}}`, chain[len(chain)-1].Hash()),
 		},
 		// Account fields race the resolve the state object.
 		{
@@ -368,9 +365,8 @@ func TestWithdrawals(t *testing.T) {
 		addr   = key.GetAddress()
 
 		genesis = &core.Genesis{
-			Config:     params.AllBeaconProtocolChanges,
-			GasLimit:   11500000,
-			Difficulty: common.Big1,
+			Config:   params.AllBeaconProtocolChanges,
+			GasLimit: 11500000,
 			Alloc: core.GenesisAlloc{
 				addr: {Balance: big.NewInt(params.Ether)},
 			},

@@ -6,7 +6,6 @@
 	"timestamp": "0x6582be61",
 	"extraData": "0x426574614e65742c205a6f6e642c20584d53532c2044696c69746869756d2121",
 	"gasLimit": "0x1c9c380",
-	"difficulty": "0x1",
 	"alloc": {
 		"20e526833d2ab5bd20de64cc00f2c2c7a07060bf": {
 			"balance": "0x1a784379d99db42000000"

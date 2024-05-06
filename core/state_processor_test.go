@@ -306,16 +306,12 @@ func TestStateProcessorErrors(t *testing.T) {
 // valid to be considered for import:
 // - valid pow (fake), ancestry, difficulty, gaslimit etc
 func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Transactions, config *params.ChainConfig) *types.Block {
-	difficulty := big.NewInt(0)
-
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		Difficulty: difficulty,
 		GasLimit:   parent.GasLimit(),
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       parent.Time() + 10,
-		UncleHash:  types.EmptyUncleHash,
 	}
 	header.BaseFee = eip1559.CalcBaseFee(config, parent.Header())
 	header.WithdrawalsHash = &types.EmptyWithdrawalsHash
@@ -336,5 +332,5 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 	}
 	header.Root = common.BytesToHash(hasher.Sum(nil))
 
-	return types.NewBlockWithWithdrawals(header, txs, nil, receipts, []*types.Withdrawal{}, trie.NewStackTrie(nil))
+	return types.NewBlockWithWithdrawals(header, txs, receipts, []*types.Withdrawal{}, trie.NewStackTrie(nil))
 }

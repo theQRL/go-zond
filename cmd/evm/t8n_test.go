@@ -147,14 +147,6 @@ func TestT8n(t *testing.T) {
 			output:      t8nOutput{alloc: true, result: true},
 			expExitCode: 4,
 		},
-		{ // Uncle test
-			base: "./testdata/5",
-			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Byzantium", "0x80",
-			},
-			output: t8nOutput{alloc: true, result: true},
-			expOut: "exp.json",
-		},
 		{ // Sign json transactions
 			base: "./testdata/13",
 			input: t8nInput{
@@ -353,7 +345,6 @@ func TestT9n(t *testing.T) {
 
 type b11rInput struct {
 	inEnv         string
-	inOmmersRlp   string
 	inWithdrawals string
 	inTxsRlp      string
 	inClique      string
@@ -366,10 +357,6 @@ func (args *b11rInput) get(base string) []string {
 	var out []string
 	if opt := args.inEnv; opt != "" {
 		out = append(out, "--input.header")
-		out = append(out, fmt.Sprintf("%v/%v", base, opt))
-	}
-	if opt := args.inOmmersRlp; opt != "" {
-		out = append(out, "--input.ommers")
 		out = append(out, fmt.Sprintf("%v/%v", base, opt))
 	}
 	if opt := args.inWithdrawals; opt != "" {
@@ -412,37 +399,33 @@ func TestB11r(t *testing.T) {
 		{ // unsealed block
 			base: "./testdata/20",
 			input: b11rInput{
-				inEnv:       "header.json",
-				inOmmersRlp: "ommers.json",
-				inTxsRlp:    "txs.rlp",
+				inEnv:    "header.json",
+				inTxsRlp: "txs.rlp",
 			},
 			expOut: "exp.json",
 		},
 		{ // ethash test seal
 			base: "./testdata/21",
 			input: b11rInput{
-				inEnv:       "header.json",
-				inOmmersRlp: "ommers.json",
-				inTxsRlp:    "txs.rlp",
+				inEnv:    "header.json",
+				inTxsRlp: "txs.rlp",
 			},
 			expOut: "exp.json",
 		},
 		{ // clique test seal
 			base: "./testdata/21",
 			input: b11rInput{
-				inEnv:       "header.json",
-				inOmmersRlp: "ommers.json",
-				inTxsRlp:    "txs.rlp",
-				inClique:    "clique.json",
+				inEnv:    "header.json",
+				inTxsRlp: "txs.rlp",
+				inClique: "clique.json",
 			},
 			expOut: "exp-clique.json",
 		},
 		{ // block with ommers
 			base: "./testdata/22",
 			input: b11rInput{
-				inEnv:       "header.json",
-				inOmmersRlp: "ommers.json",
-				inTxsRlp:    "txs.rlp",
+				inEnv:    "header.json",
+				inTxsRlp: "txs.rlp",
 			},
 			expOut: "exp.json",
 		},
@@ -450,7 +433,6 @@ func TestB11r(t *testing.T) {
 			base: "./testdata/27",
 			input: b11rInput{
 				inEnv:         "header.json",
-				inOmmersRlp:   "ommers.json",
 				inWithdrawals: "withdrawals.json",
 				inTxsRlp:      "txs.rlp",
 			},

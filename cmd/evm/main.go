@@ -173,7 +173,6 @@ var blockBuilderCommand = &cli.Command{
 		t8ntool.OutputBasedir,
 		t8ntool.OutputBlockFlag,
 		t8ntool.InputHeaderFlag,
-		t8ntool.InputOmmersFlag,
 		t8ntool.InputWithdrawalsFlag,
 		t8ntool.InputTxsRlpFlag,
 		t8ntool.VerbosityFlag,

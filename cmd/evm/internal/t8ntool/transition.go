@@ -356,14 +356,10 @@ func applyShanghaiChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 func applyMergeChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 	// post-merge:
 	// - random must be supplied
-	// - difficulty must be zero
 	switch {
 	case env.Random == nil:
 		return NewError(ErrorConfig, errors.New("post-merge requires currentRandom to be defined in env"))
-	case env.Difficulty != nil && env.Difficulty.BitLen() != 0:
-		return NewError(ErrorConfig, errors.New("post-merge difficulty must be zero (or omitted) in env"))
 	}
-	env.Difficulty = nil
 	return nil
 }
 

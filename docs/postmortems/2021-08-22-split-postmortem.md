@@ -211,7 +211,6 @@ index 9cf0c4e2c1..9fb83799c9 100644
   "trigger-issue": {
     "env": {
       "currentCoinbase": "b94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-      "currentDifficulty": "0x20000",
       "currentGasLimit": "0x26e1f476fe1e22",
       "currentNumber": "0x1",
       "currentTimestamp": "0x3e8",

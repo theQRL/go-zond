@@ -37,26 +37,21 @@ import (
 	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
-// testEthHandler is a mock event handler to listen for inbound network requests
+// testZondHandler is a mock event handler to listen for inbound network requests
 // on the `zond` protocol and convert them into a more easily testable form.
-type testEthHandler struct {
-	blockBroadcasts event.Feed // TODO(rgeraldes24)
-	txAnnounces     event.Feed
-	txBroadcasts    event.Feed
+type testZondHandler struct {
+	txAnnounces  event.Feed
+	txBroadcasts event.Feed
 }
 
-func (h *testEthHandler) Chain() *core.BlockChain                { panic("no backing chain") }
-func (h *testEthHandler) TxPool() zond.TxPool                    { panic("no backing tx pool") }
-func (h *testEthHandler) AcceptTxs() bool                        { return true }
-func (h *testEthHandler) RunPeer(*zond.Peer, zond.Handler) error { panic("not used in tests") }
-func (h *testEthHandler) PeerInfo(enode.ID) interface{}          { panic("not used in tests") }
+func (h *testZondHandler) Chain() *core.BlockChain                { panic("no backing chain") }
+func (h *testZondHandler) TxPool() zond.TxPool                    { panic("no backing tx pool") }
+func (h *testZondHandler) AcceptTxs() bool                        { return true }
+func (h *testZondHandler) RunPeer(*zond.Peer, zond.Handler) error { panic("not used in tests") }
+func (h *testZondHandler) PeerInfo(enode.ID) interface{}          { panic("not used in tests") }
 
-func (h *testEthHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
+func (h *testZondHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
 	switch packet := packet.(type) {
-	case *zond.NewBlockPacket:
-		h.blockBroadcasts.Send(packet.Block)
-		return nil
-
 	case *zond.NewPooledTransactionHashesPacket66:
 		h.txAnnounces.Send(([]common.Hash)(*packet))
 		return nil
@@ -258,14 +253,13 @@ func testRecvTransactions(t *testing.T, protocol uint) {
 	var (
 		genesis = handler.chain.Genesis()
 		head    = handler.chain.CurrentBlock()
-		td      = handler.chain.GetTd(head.Hash(), head.Number.Uint64())
 	)
-	if err := src.Handshake(1, td, head.Hash(), genesis.Hash(), forkid.NewIDWithChain(handler.chain), forkid.NewFilter(handler.chain)); err != nil {
+	if err := src.Handshake(1, head.Hash(), genesis.Hash(), forkid.NewIDWithChain(handler.chain), forkid.NewFilter(handler.chain)); err != nil {
 		t.Fatalf("failed to run protocol handshake")
 	}
 	// Send the transaction to the sink and verify that it's added to the tx pool
 	tx := types.NewTransaction(0, common.Address{}, big.NewInt(0), 100000, big.NewInt(0), nil)
-	tx, _ = types.SignTx(tx, types.HomesteadSigner{}, testKey)
+	tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
 
 	if err := src.SendTransactions([]*types.Transaction{tx}); err != nil {
 		t.Fatalf("failed to send transaction: %v", err)
@@ -295,7 +289,7 @@ func testSendTransactions(t *testing.T, protocol uint) {
 	insert := make([]*types.Transaction, 100)
 	for nonce := range insert {
 		tx := types.NewTransaction(uint64(nonce), common.Address{}, big.NewInt(0), 100000, big.NewInt(0), make([]byte, 10240))
-		tx, _ = types.SignTx(tx, types.HomesteadSigner{}, testKey)
+		tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
 
 		insert[nonce] = tx
 	}
@@ -320,14 +314,13 @@ func testSendTransactions(t *testing.T, protocol uint) {
 	var (
 		genesis = handler.chain.Genesis()
 		head    = handler.chain.CurrentBlock()
-		td      = handler.chain.GetTd(head.Hash(), head.Number.Uint64())
 	)
-	if err := sink.Handshake(1, td, head.Hash(), genesis.Hash(), forkid.NewIDWithChain(handler.chain), forkid.NewFilter(handler.chain)); err != nil {
+	if err := sink.Handshake(1, head.Hash(), genesis.Hash(), forkid.NewIDWithChain(handler.chain), forkid.NewFilter(handler.chain)); err != nil {
 		t.Fatalf("failed to run protocol handshake")
 	}
 	// After the handshake completes, the source handler should stream the sink
 	// the transactions, subscribe to all inbound network events
-	backend := new(testEthHandler)
+	backend := new(testZondHandler)
 
 	anns := make(chan []common.Hash)
 	annSub := backend.txAnnounces.Subscribe(anns)
@@ -420,7 +413,7 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 	txs := make([]*types.Transaction, 1024)
 	for nonce := range txs {
 		tx := types.NewTransaction(uint64(nonce), common.Address{}, big.NewInt(0), 100000, big.NewInt(0), nil)
-		tx, _ = types.SignTx(tx, types.HomesteadSigner{}, testKey)
+		tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
 
 		txs[nonce] = tx
 	}
@@ -437,75 +430,6 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 				t.Errorf("sink %d: transaction propagation timed out: have %d, want %d", i, arrived, len(txs))
 				timeout = true
 			}
-		}
-	}
-}
-
-// Tests that a propagated malformed block (uncles or transactions don't match
-// with the hashes in the header) gets discarded and not broadcast forward.
-func TestBroadcastMalformedBlock68(t *testing.T) { testBroadcastMalformedBlock(t, zond.ETH68) }
-
-func testBroadcastMalformedBlock(t *testing.T, protocol uint) {
-	t.Parallel()
-
-	// Create a source handler to broadcast blocks from and a number of sinks
-	// to receive them.
-	source := newTestHandlerWithBlocks(1)
-	defer source.close()
-
-	// Create a source handler to send messages through and a sink peer to receive them
-	p2pSrc, p2pSink := p2p.MsgPipe()
-	defer p2pSrc.Close()
-	defer p2pSink.Close()
-
-	src := zond.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{1}, "", nil, p2pSrc), p2pSrc, source.txpool)
-	sink := zond.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{2}, "", nil, p2pSink), p2pSink, source.txpool)
-	defer src.Close()
-	defer sink.Close()
-
-	go source.handler.runZondPeer(src, func(peer *zond.Peer) error {
-		return zond.Handle((*zondHandler)(source.handler), peer)
-	})
-	// Run the handshake locally to avoid spinning up a sink handler
-	var (
-		genesis = source.chain.Genesis()
-		td      = source.chain.GetTd(genesis.Hash(), genesis.NumberU64())
-	)
-	if err := sink.Handshake(1, td, genesis.Hash(), genesis.Hash(), forkid.NewIDWithChain(source.chain), forkid.NewFilter(source.chain)); err != nil {
-		t.Fatalf("failed to run protocol handshake")
-	}
-	// After the handshake completes, the source handler should stream the sink
-	// the blocks, subscribe to inbound network events
-	backend := new(testEthHandler)
-
-	blocks := make(chan *types.Block, 1)
-	sub := backend.blockBroadcasts.Subscribe(blocks)
-	defer sub.Unsubscribe()
-
-	go zond.Handle(backend, sink)
-
-	// Create various combinations of malformed blocks
-	head := source.chain.CurrentBlock()
-	block := source.chain.GetBlock(head.Hash(), head.Number.Uint64())
-
-	malformedUncles := head
-	malformedUncles.UncleHash[0]++
-	malformedTransactions := head
-	malformedTransactions.TxHash[0]++
-	malformedEverything := head
-	malformedEverything.UncleHash[0]++
-	malformedEverything.TxHash[0]++
-
-	// Try to broadcast all malformations and ensure they all get discarded
-	for _, header := range []*types.Header{malformedUncles, malformedTransactions, malformedEverything} {
-		block := types.NewBlockWithHeader(header).WithBody(block.Transactions(), block.Uncles())
-		if err := src.SendNewBlock(block, big.NewInt(131136)); err != nil {
-			t.Fatalf("failed to broadcast block: %v", err)
-		}
-		select {
-		case <-blocks:
-			t.Fatalf("malformed block forwarded")
-		case <-time.After(100 * time.Millisecond):
 		}
 	}
 }

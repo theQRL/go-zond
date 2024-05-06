@@ -27,7 +27,7 @@ import (
 	"github.com/theQRL/go-zond/trie"
 )
 
-// BlockValidator is responsible for validating block headers, uncles and
+// BlockValidator is responsible for validating block headers and
 // processed state.
 //
 // BlockValidator implements Validator.
@@ -47,24 +47,17 @@ func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engin
 	return validator
 }
 
-// ValidateBody validates the given block's uncles and verifies the block
-// header's transaction and uncle roots. The headers are assumed to be already
-// validated at this point.
+// ValidateBody verifies the block header's transaction root. The
+// headers are assumed to be already validated at this point.
 func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	// Check whether the block is already imported.
 	if v.bc.HasBlockAndState(block.Hash(), block.NumberU64()) {
 		return ErrKnownBlock
 	}
 
-	// Header validity is known at this point. Here we verify that uncles, transactions
+	// Header validity is known at this point. Here we verify that transactions
 	// and withdrawals given in the block body match the header.
 	header := block.Header()
-	if err := v.engine.VerifyUncles(v.bc, block); err != nil {
-		return err
-	}
-	if hash := types.CalcUncleHash(block.Uncles()); hash != header.UncleHash {
-		return fmt.Errorf("uncle root hash mismatch (header value %x, calculated %x)", header.UncleHash, hash)
-	}
 	if hash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil)); hash != header.TxHash {
 		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}

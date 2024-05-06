@@ -23,13 +23,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"reflect"
 
 	"github.com/theQRL/go-zond/accounts"
 	"github.com/theQRL/go-zond/accounts/keystore"
-	"github.com/theQRL/go-zond/accounts/scwallet"
-	"github.com/theQRL/go-zond/accounts/usbwallet"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/common/math"
@@ -61,8 +58,6 @@ type ExternalAPI interface {
 	SignData(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (hexutil.Bytes, error)
 	// SignTypedData - request to sign the given structured data (plus prefix)
 	SignTypedData(ctx context.Context, addr common.MixedcaseAddress, data apitypes.TypedData) (hexutil.Bytes, error)
-	// EcRecover - recover public key from given message and signature
-	EcRecover(ctx context.Context, data hexutil.Bytes, sig hexutil.Bytes) (common.Address, error)
 	// Version info about the APIs
 	Version(ctx context.Context) (string, error)
 	// SignGnosisSafeTransaction signs/confirms a gnosis-safe multisig transaction
@@ -130,7 +125,7 @@ type Metadata struct {
 	Origin    string `json:"Origin"`
 }
 
-func StartClefAccountManager(ksLocation string, nousb, lightKDF bool, scpath string) *accounts.Manager {
+func StartClefAccountManager(ksLocation string /*usbEnabled bool,*/, lightKDF bool /*scpath string*/) *accounts.Manager {
 	var (
 		backends []accounts.Backend
 		n, p     = keystore.StandardScryptN, keystore.StandardScryptP
@@ -142,48 +137,51 @@ func StartClefAccountManager(ksLocation string, nousb, lightKDF bool, scpath str
 	if len(ksLocation) > 0 {
 		backends = append(backends, keystore.NewKeyStore(ksLocation, n, p))
 	}
-	if !nousb {
-		// Start a USB hub for Ledger hardware wallets
-		if ledgerhub, err := usbwallet.NewLedgerHub(); err != nil {
-			log.Warn(fmt.Sprintf("Failed to start Ledger hub, disabling: %v", err))
-		} else {
-			backends = append(backends, ledgerhub)
-			log.Debug("Ledger support enabled")
-		}
-		// Start a USB hub for Trezor hardware wallets (HID version)
-		if trezorhub, err := usbwallet.NewTrezorHubWithHID(); err != nil {
-			log.Warn(fmt.Sprintf("Failed to start HID Trezor hub, disabling: %v", err))
-		} else {
-			backends = append(backends, trezorhub)
-			log.Debug("Trezor support enabled via HID")
-		}
-		// Start a USB hub for Trezor hardware wallets (WebUSB version)
-		if trezorhub, err := usbwallet.NewTrezorHubWithWebUSB(); err != nil {
-			log.Warn(fmt.Sprintf("Failed to start WebUSB Trezor hub, disabling: %v", err))
-		} else {
-			backends = append(backends, trezorhub)
-			log.Debug("Trezor support enabled via WebUSB")
-		}
-	}
 
-	// Start a smart card hub
-	if len(scpath) > 0 {
-		// Sanity check that the smartcard path is valid
-		fi, err := os.Stat(scpath)
-		if err != nil {
-			log.Info("Smartcard socket file missing, disabling", "err", err)
-		} else {
-			if fi.Mode()&os.ModeType != os.ModeSocket {
-				log.Error("Invalid smartcard socket file type", "path", scpath, "type", fi.Mode().String())
+	/*
+		if usbEnabled {
+			// Start a USB hub for Ledger hardware wallets
+			if ledgerhub, err := usbwallet.NewLedgerHub(); err != nil {
+				log.Warn(fmt.Sprintf("Failed to start Ledger hub, disabling: %v", err))
 			} else {
-				if schub, err := scwallet.NewHub(scpath, scwallet.Scheme, ksLocation); err != nil {
-					log.Warn(fmt.Sprintf("Failed to start smart card hub, disabling: %v", err))
+				backends = append(backends, ledgerhub)
+				log.Debug("Ledger support enabled")
+			}
+			// Start a USB hub for Trezor hardware wallets (HID version)
+			if trezorhub, err := usbwallet.NewTrezorHubWithHID(); err != nil {
+				log.Warn(fmt.Sprintf("Failed to start HID Trezor hub, disabling: %v", err))
+			} else {
+				backends = append(backends, trezorhub)
+				log.Debug("Trezor support enabled via HID")
+			}
+			// Start a USB hub for Trezor hardware wallets (WebUSB version)
+			if trezorhub, err := usbwallet.NewTrezorHubWithWebUSB(); err != nil {
+				log.Warn(fmt.Sprintf("Failed to start WebUSB Trezor hub, disabling: %v", err))
+			} else {
+				backends = append(backends, trezorhub)
+				log.Debug("Trezor support enabled via WebUSB")
+			}
+		}
+
+		// Start a smart card hub
+		if len(scpath) > 0 {
+			// Sanity check that the smartcard path is valid
+			fi, err := os.Stat(scpath)
+			if err != nil {
+				log.Info("Smartcard socket file missing, disabling", "err", err)
+			} else {
+				if fi.Mode()&os.ModeType != os.ModeSocket {
+					log.Error("Invalid smartcard socket file type", "path", scpath, "type", fi.Mode().String())
 				} else {
-					backends = append(backends, schub)
+					if schub, err := scwallet.NewHub(scpath, scwallet.Scheme, ksLocation); err != nil {
+						log.Warn(fmt.Sprintf("Failed to start smart card hub, disabling: %v", err))
+					} else {
+						backends = append(backends, schub)
+					}
 				}
 			}
 		}
-	}
+	*/
 
 	// Clef doesn't allow insecure http account unlock.
 	return accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: false}, backends...)
@@ -283,14 +281,16 @@ var ErrRequestDenied = errors.New("request denied")
 // key that is generated when a new Account is created.
 // noUSB disables USB support that is required to support hardware devices such as
 // ledger and trezor.
-func NewSignerAPI(am *accounts.Manager, chainID int64, noUSB bool, ui UIClientAPI, validator Validator, advancedMode bool, credentials storage.Storage) *SignerAPI {
+func NewSignerAPI(am *accounts.Manager, chainID int64 /*usbEnabled bool,*/, ui UIClientAPI, validator Validator, advancedMode bool, credentials storage.Storage) *SignerAPI {
 	if advancedMode {
 		log.Info("Clef is in advanced mode: will warn instead of reject")
 	}
 	signer := &SignerAPI{big.NewInt(chainID), am, ui, validator, !advancedMode, credentials}
-	if !noUSB {
-		signer.startUSBListener()
-	}
+	/*
+		if usbEnabled {
+			signer.startUSBListener()
+		}
+	*/
 	return signer
 }
 func (api *SignerAPI) openTrezor(url accounts.URL) {
@@ -332,9 +332,12 @@ func (api *SignerAPI) startUSBListener() {
 	for _, wallet := range am.Wallets() {
 		if err := wallet.Open(""); err != nil {
 			log.Warn("Failed to open wallet", "url", wallet.URL(), "err", err)
-			if err == usbwallet.ErrTrezorPINNeeded {
-				go api.openTrezor(wallet.URL())
-			}
+			// TODO(rgeraldes24)
+			/*
+				if err == usbwallet.ErrTrezorPINNeeded {
+					go api.openTrezor(wallet.URL())
+				}
+			*/
 		}
 	}
 	go api.derivationLoop(eventCh)
@@ -348,9 +351,12 @@ func (api *SignerAPI) derivationLoop(events chan accounts.WalletEvent) {
 		case accounts.WalletArrived:
 			if err := event.Wallet.Open(""); err != nil {
 				log.Warn("New wallet appeared, failed to open", "url", event.Wallet.URL(), "err", err)
-				if err == usbwallet.ErrTrezorPINNeeded {
-					go api.openTrezor(event.Wallet.URL())
-				}
+				// TODO(rgeraldes24)
+				/*
+					if err == usbwallet.ErrTrezorPINNeeded {
+						go api.openTrezor(event.Wallet.URL())
+					}
+				*/
 			}
 		case accounts.WalletOpened:
 			status, _ := event.Wallet.Status()

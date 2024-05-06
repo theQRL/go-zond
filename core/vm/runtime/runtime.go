@@ -33,7 +33,6 @@ import (
 // the EVM.
 type Config struct {
 	ChainConfig *params.ChainConfig
-	Difficulty  *big.Int
 	Origin      common.Address
 	Coinbase    common.Address
 	BlockNumber *big.Int
@@ -58,9 +57,6 @@ func setDefaults(cfg *Config) {
 		}
 	}
 
-	if cfg.Difficulty == nil {
-		cfg.Difficulty = new(big.Int)
-	}
 	if cfg.GasLimit == 0 {
 		cfg.GasLimit = math.MaxUint64
 	}

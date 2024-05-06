@@ -38,11 +38,10 @@ import (
 )
 
 type callContext struct {
-	Number     math.HexOrDecimal64   `json:"number"`
-	Difficulty *math.HexOrDecimal256 `json:"difficulty"`
-	Time       math.HexOrDecimal64   `json:"timestamp"`
-	GasLimit   math.HexOrDecimal64   `json:"gasLimit"`
-	Miner      common.Address        `json:"miner"`
+	Number   math.HexOrDecimal64 `json:"number"`
+	Time     math.HexOrDecimal64 `json:"timestamp"`
+	GasLimit math.HexOrDecimal64 `json:"gasLimit"`
+	Miner    common.Address      `json:"miner"`
 }
 
 // callLog is the result of LOG opCode
@@ -121,7 +120,7 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			}
 			// Configure a blockchain with the given prestate
 			var (
-				signer    = types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)), uint64(test.Context.Time))
+				signer    = types.MakeSigner(test.Genesis.Config)
 				origin, _ = signer.Sender(tx)
 				txContext = vm.TxContext{
 					Origin:   origin,
@@ -133,7 +132,6 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 					Coinbase:    test.Context.Miner,
 					BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
 					Time:        uint64(test.Context.Time),
-					Difficulty:  (*big.Int)(test.Context.Difficulty),
 					GasLimit:    uint64(test.Context.GasLimit),
 					BaseFee:     test.Genesis.BaseFee,
 				}
@@ -220,7 +218,7 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 	if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
 		b.Fatalf("failed to parse testcase input: %v", err)
 	}
-	signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)), uint64(test.Context.Time))
+	signer := types.MakeSigner(test.Genesis.Config)
 	msg, err := core.TransactionToMessage(tx, signer, nil)
 	if err != nil {
 		b.Fatalf("failed to prepare transaction for tracing: %v", err)
@@ -236,7 +234,6 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 		Coinbase:    test.Context.Miner,
 		BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
 		Time:        uint64(test.Context.Time),
-		Difficulty:  (*big.Int)(test.Context.Difficulty),
 		GasLimit:    uint64(test.Context.GasLimit),
 	}
 	triedb, _, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false, rawdb.HashScheme)
@@ -276,7 +273,6 @@ func TestInternals(t *testing.T) {
 			Coinbase:    common.Address{},
 			BlockNumber: new(big.Int).SetUint64(8000000),
 			Time:        5,
-			Difficulty:  big.NewInt(0x30000),
 			GasLimit:    uint64(6000000),
 		}
 	)

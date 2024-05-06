@@ -146,15 +146,12 @@ func newConsensusAPIWithoutHeartbeat(zond *zond.Zond) *ConsensusAPI {
 	return api
 }
 
-// TODO(rgeraldes24): desc
-// ForkchoiceUpdatedV1 has several responsibilities:
+// ForkchoiceUpdatedV2 has several responsibilities:
 //
 // We try to set our blockchain to the headBlock.
 //
 // If the method is called with an empty head block: we return success, which can be used
 // to check if the engine API is enabled.
-//
-// If the total difficulty was not reached: we return INVALID.
 //
 // If the finalizedBlockHash is set: we check if we have the finalizedBlockHash in our db,
 // if not we start a sync.
@@ -335,16 +332,16 @@ func (api *ConsensusAPI) getPayload(payloadID engine.PayloadID, full bool) (*eng
 	return data, nil
 }
 
-// NewPayloadV2 creates an Eth1 block, inserts it in the chain, and returns the status of the chain.
+// NewPayloadV2 creates a Zond execution block, inserts it in the chain, and returns the status of the chain.
 func (api *ConsensusAPI) NewPayloadV2(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
 	if params.Withdrawals == nil {
 		return engine.PayloadStatusV1{Status: engine.INVALID}, engine.InvalidParams.With(errors.New("nil withdrawals post-shanghai"))
 	}
 
-	return api.newPayload(params, nil, nil)
+	return api.newPayload(params)
 }
 
-func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (engine.PayloadStatusV1, error) {
+func (api *ConsensusAPI) newPayload(params engine.ExecutableData) (engine.PayloadStatusV1, error) {
 	// The locking here is, strictly, not required. Without these locks, this can happen:
 	//
 	// 1. NewPayload( execdata-N ) is invoked from the CL. It goes all the way down to
@@ -513,11 +510,7 @@ func (api *ConsensusAPI) checkInvalidAncestor(check common.Hash, head common.Has
 		}
 		api.invalidTipsets[head] = invalid
 	}
-	// If the last valid hash is the terminal pow block, return 0x0 for latest valid hash
 	lastValid := &invalid.ParentHash
-	if header := api.zond.BlockChain().GetHeader(invalid.ParentHash, invalid.Number.Uint64()-1); header != nil && header.Difficulty.Sign() != 0 {
-		lastValid = &common.Hash{}
-	}
 	failure := "links to previously rejected block"
 	return &engine.PayloadStatusV1{
 		Status:          engine.INVALID,
@@ -531,12 +524,7 @@ func (api *ConsensusAPI) checkInvalidAncestor(check common.Hash, head common.Has
 func (api *ConsensusAPI) invalid(err error, latestValid *types.Header) engine.PayloadStatusV1 {
 	currentHash := api.zond.BlockChain().CurrentBlock().Hash()
 	if latestValid != nil {
-		// Set latest valid hash to 0x0 if parent is PoW block
-		currentHash = common.Hash{}
-		if latestValid.Difficulty.BitLen() == 0 {
-			// Otherwise set latest valid hash to parent hash
-			currentHash = latestValid.Hash()
-		}
+		currentHash = latestValid.Hash()
 	}
 	errorMsg := err.Error()
 	return engine.PayloadStatusV1{Status: engine.INVALID, LatestValidHash: &currentHash, ValidationError: &errorMsg}

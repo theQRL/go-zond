@@ -77,7 +77,6 @@ Output:
         "error": "gas limit reached"
       }
     ],
-    "currentDifficulty": "0x20000",
     "gasUsed": "0x30000001",
     "currentBaseFee": "0x36b"
   }

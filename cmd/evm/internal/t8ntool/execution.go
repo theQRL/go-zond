@@ -51,50 +51,38 @@ type ExecutionResult struct {
 	Bloom           types.Bloom           `json:"logsBloom"        gencodec:"required"`
 	Receipts        types.Receipts        `json:"receipts"`
 	Rejected        []*rejectedTx         `json:"rejected,omitempty"`
-	Difficulty      *math.HexOrDecimal256 `json:"currentDifficulty" gencodec:"required"`
 	GasUsed         math.HexOrDecimal64   `json:"gasUsed"`
 	BaseFee         *math.HexOrDecimal256 `json:"currentBaseFee,omitempty"`
 	WithdrawalsRoot *common.Hash          `json:"withdrawalsRoot,omitempty"`
 }
 
-type ommer struct {
-	Delta   uint64         `json:"delta"`
-	Address common.Address `json:"address"`
-}
-
 //go:generate go run github.com/fjl/gencodec -type stEnv -field-override stEnvMarshaling -out gen_stenv.go
 type stEnv struct {
-	Coinbase         common.Address                      `json:"currentCoinbase"   gencodec:"required"`
-	Difficulty       *big.Int                            `json:"currentDifficulty"`
-	Random           *big.Int                            `json:"currentRandom"`
-	ParentDifficulty *big.Int                            `json:"parentDifficulty"`
-	ParentBaseFee    *big.Int                            `json:"parentBaseFee,omitempty"`
-	ParentGasUsed    uint64                              `json:"parentGasUsed,omitempty"`
-	ParentGasLimit   uint64                              `json:"parentGasLimit,omitempty"`
-	GasLimit         uint64                              `json:"currentGasLimit"   gencodec:"required"`
-	Number           uint64                              `json:"currentNumber"     gencodec:"required"`
-	Timestamp        uint64                              `json:"currentTimestamp"  gencodec:"required"`
-	ParentTimestamp  uint64                              `json:"parentTimestamp,omitempty"`
-	BlockHashes      map[math.HexOrDecimal64]common.Hash `json:"blockHashes,omitempty"`
-	Ommers           []ommer                             `json:"ommers,omitempty"`
-	Withdrawals      []*types.Withdrawal                 `json:"withdrawals,omitempty"`
-	BaseFee          *big.Int                            `json:"currentBaseFee,omitempty"`
-	ParentUncleHash  common.Hash                         `json:"parentUncleHash"`
+	Coinbase        common.Address                      `json:"currentCoinbase"   gencodec:"required"`
+	Random          *big.Int                            `json:"currentRandom"`
+	ParentBaseFee   *big.Int                            `json:"parentBaseFee,omitempty"`
+	ParentGasUsed   uint64                              `json:"parentGasUsed,omitempty"`
+	ParentGasLimit  uint64                              `json:"parentGasLimit,omitempty"`
+	GasLimit        uint64                              `json:"currentGasLimit"   gencodec:"required"`
+	Number          uint64                              `json:"currentNumber"     gencodec:"required"`
+	Timestamp       uint64                              `json:"currentTimestamp"  gencodec:"required"`
+	ParentTimestamp uint64                              `json:"parentTimestamp,omitempty"`
+	BlockHashes     map[math.HexOrDecimal64]common.Hash `json:"blockHashes,omitempty"`
+	Withdrawals     []*types.Withdrawal                 `json:"withdrawals,omitempty"`
+	BaseFee         *big.Int                            `json:"currentBaseFee,omitempty"`
 }
 
 type stEnvMarshaling struct {
-	Coinbase         common.UnprefixedAddress
-	Difficulty       *math.HexOrDecimal256
-	Random           *math.HexOrDecimal256
-	ParentDifficulty *math.HexOrDecimal256
-	ParentBaseFee    *math.HexOrDecimal256
-	ParentGasUsed    math.HexOrDecimal64
-	ParentGasLimit   math.HexOrDecimal64
-	GasLimit         math.HexOrDecimal64
-	Number           math.HexOrDecimal64
-	Timestamp        math.HexOrDecimal64
-	ParentTimestamp  math.HexOrDecimal64
-	BaseFee          *math.HexOrDecimal256
+	Coinbase        common.UnprefixedAddress
+	Random          *math.HexOrDecimal256
+	ParentBaseFee   *math.HexOrDecimal256
+	ParentGasUsed   math.HexOrDecimal64
+	ParentGasLimit  math.HexOrDecimal64
+	GasLimit        math.HexOrDecimal64
+	Number          math.HexOrDecimal64
+	Timestamp       math.HexOrDecimal64
+	ParentTimestamp math.HexOrDecimal64
+	BaseFee         *math.HexOrDecimal256
 }
 
 type rejectedTx struct {
@@ -122,7 +110,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	}
 	var (
 		statedb     = MakePreState(rawdb.NewMemoryDatabase(), pre.Pre)
-		signer      = types.MakeSigner(chainConfig, new(big.Int).SetUint64(pre.Env.Number), pre.Env.Timestamp)
+		signer      = types.MakeSigner(chainConfig)
 		gaspool     = new(core.GasPool)
 		blockHash   = common.Hash{0x13, 0x37}
 		rejectedTxs []*rejectedTx
@@ -138,7 +126,6 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		Coinbase:    pre.Env.Coinbase,
 		BlockNumber: new(big.Int).SetUint64(pre.Env.Number),
 		Time:        pre.Env.Timestamp,
-		Difficulty:  pre.Env.Difficulty,
 		GasLimit:    pre.Env.GasLimit,
 		GetHash:     getHash,
 	}
@@ -232,18 +219,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		var (
 			blockReward = big.NewInt(miningReward)
 			minerReward = new(big.Int).Set(blockReward)
-			perOmmer    = new(big.Int).Div(blockReward, big.NewInt(32))
 		)
-		for _, ommer := range pre.Env.Ommers {
-			// Add 1/32th for each ommer included
-			minerReward.Add(minerReward, perOmmer)
-			// Add (8-delta)/8
-			reward := big.NewInt(8)
-			reward.Sub(reward, new(big.Int).SetUint64(ommer.Delta))
-			reward.Mul(reward, blockReward)
-			reward.Div(reward, big.NewInt(8))
-			statedb.AddBalance(ommer.Address, reward)
-		}
 		statedb.AddBalance(pre.Env.Coinbase, minerReward)
 	}
 	// Apply withdrawals
@@ -265,7 +241,6 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		LogsHash:    rlpHash(statedb.Logs()),
 		Receipts:    receipts,
 		Rejected:    rejectedTxs,
-		Difficulty:  (*math.HexOrDecimal256)(vmContext.Difficulty),
 		GasUsed:     (math.HexOrDecimal64)(gasUsed),
 		BaseFee:     (*math.HexOrDecimal256)(vmContext.BaseFee),
 	}

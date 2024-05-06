@@ -18,11 +18,8 @@ package zond
 
 import (
 	"fmt"
-	"math/big"
 
-	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
-	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
@@ -39,7 +36,7 @@ func (h *zondHandler) RunPeer(peer *zond.Peer, hand zond.Handler) error {
 	return (*handler)(h).runZondPeer(peer, hand)
 }
 
-// PeerInfo retrieves all known `eth` information about a peer.
+// PeerInfo retrieves all known `zond` information about a peer.
 func (h *zondHandler) PeerInfo(id enode.ID) interface{} {
 	if p := h.peers.peer(id.String()); p != nil {
 		return p.info()
@@ -58,13 +55,6 @@ func (h *zondHandler) AcceptTxs() bool {
 func (h *zondHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
 	// Consume any broadcasts and announces, forwarding the rest to the downloader
 	switch packet := packet.(type) {
-	case *zond.NewBlockHashesPacket:
-		hashes, numbers := packet.Unpack()
-		return h.handleBlockAnnounces(peer, hashes, numbers)
-
-	case *zond.NewBlockPacket:
-		return h.handleBlockBroadcast(peer, packet.Block, packet.TD)
-
 	case *zond.NewPooledTransactionHashesPacket66:
 		return h.txFetcher.Notify(peer.ID(), *packet)
 
@@ -78,28 +68,6 @@ func (h *zondHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
 		return h.txFetcher.Enqueue(peer.ID(), *packet, true)
 
 	default:
-		return fmt.Errorf("unexpected eth packet type: %T", packet)
+		return fmt.Errorf("unexpected zond packet type: %T", packet)
 	}
-}
-
-// handleBlockAnnounces is invoked from a peer's message handler when it transmits a
-// batch of block announcements for the local node to process.
-func (h *zondHandler) handleBlockAnnounces(peer *zond.Peer, hashes []common.Hash, numbers []uint64) error {
-	// Drop all incoming block announces from the p2p network if
-	// the chain already entered the pos stage and disconnect the
-	// remote peer.
-	// TODO (MariusVanDerWijden) drop non-updated peers after the merge
-	return nil
-	// return errors.New("unexpected block announces")
-}
-
-// handleBlockBroadcast is invoked from a peer's message handler when it transmits a
-// block broadcast for the local node to process.
-func (h *zondHandler) handleBlockBroadcast(peer *zond.Peer, block *types.Block, td *big.Int) error {
-	// Drop all incoming block announces from the p2p network if
-	// the chain already entered the pos stage and disconnect the
-	// remote peer.
-	// TODO (MariusVanDerWijden) drop non-updated peers after the merge
-	return nil
-	// return errors.New("unexpected block announces")
 }

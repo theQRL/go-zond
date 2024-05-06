@@ -21,7 +21,6 @@ package downloader
 
 import (
 	"errors"
-	"math/big"
 	"sync"
 	"time"
 
@@ -50,14 +49,14 @@ type peerConnection struct {
 
 	peer Peer
 
-	version uint       // Eth protocol version number to switch strategies
+	version uint       // Zond protocol version number to switch strategies
 	log     log.Logger // Contextual logger to add extra infos to peer logs
 	lock    sync.RWMutex
 }
 
 // Peer encapsulates the methods required to synchronise with a remote full peer.
 type Peer interface {
-	Head() (common.Hash, *big.Int)
+	Head() common.Hash
 	RequestHeadersByHash(common.Hash, int, int, bool, chan *zond.Response) (*zond.Request, error)
 	RequestHeadersByNumber(uint64, int, int, bool, chan *zond.Response) (*zond.Request, error)
 	RequestBodies([]common.Hash, chan *zond.Response) (*zond.Request, error)

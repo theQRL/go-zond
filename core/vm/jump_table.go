@@ -485,12 +485,6 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:    minStack(0, 1),
 			maxStack:    maxStack(0, 1),
 		},
-		DIFFICULTY: {
-			execute:     opDifficulty,
-			constantGas: GasQuickStep,
-			minStack:    minStack(0, 1),
-			maxStack:    maxStack(0, 1),
-		},
 		GASLIMIT: {
 			execute:     opGasLimit,
 			constantGas: GasQuickStep,

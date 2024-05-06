@@ -29,7 +29,7 @@ import (
 	"github.com/theQRL/go-zond/rlp"
 )
 
-// AdminAPI is the collection of Ethereum full node related APIs for node
+// AdminAPI is the collection of Zond full node related APIs for node
 // administration.
 type AdminAPI struct {
 	zond *Zond

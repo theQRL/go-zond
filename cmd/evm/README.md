@@ -88,20 +88,12 @@ type Env struct {
     CurrentTimestamp uint64              `json:"currentTimestamp"`
     Withdrawals      []*Withdrawal       `json:"withdrawals"`
     // optional
-    CurrentDifficulty *big.Int           `json:"currentDifficuly"`
     CurrentRandom     *big.Int           `json:"currentRandom"`
     CurrentBaseFee    *big.Int           `json:"currentBaseFee"`
-    ParentDifficulty  *big.Int           `json:"parentDifficulty"`
     ParentGasUsed     uint64             `json:"parentGasUsed"`
     ParentGasLimit    uint64             `json:"parentGasLimit"`
     ParentTimestamp   uint64             `json:"parentTimestamp"`
     BlockHashes       map[uint64]common.Hash `json:"blockHashes"`
-    ParentUncleHash   common.Hash        `json:"parentUncleHash"`
-    Ommers            []Ommer            `json:"ommers"`
-}
-type Ommer struct {
-    Delta   uint64         `json:"delta"`
-    Address common.Address `json:"address"`
 }
 type Withdrawal struct {
     Index          uint64         `json:"index"`
@@ -179,7 +171,6 @@ type ExecutionResult struct {
     Bloom       types.Bloom    `json:"logsBloom"`
     Receipts    types.Receipts `json:"receipts"`
     Rejected    []*rejectedTx  `json:"rejected,omitempty"`
-    Difficulty  *big.Int       `json:"currentDifficulty"`
     GasUsed     uint64         `json:"gasUsed"`
     BaseFee     *big.Int       `json:"currentBaseFee,omitempty"`
 }
@@ -269,7 +260,6 @@ Two resulting files:
    "error": "nonce too low: address 0x8A8eAFb1cf62BfBeb1741769DAE1a9dd47996192, tx: 0 state: 1"
   }
  ],
- "currentDifficulty": "0x20000",
  "gasUsed": "0x5208"
 }
 ```
@@ -320,67 +310,11 @@ Output:
         "error": "nonce too low: address 0x8A8eAFb1cf62BfBeb1741769DAE1a9dd47996192, tx: 0 state: 1"
       }
     ],
-    "currentDifficulty": "0x20000",
     "gasUsed": "0x5208"
   }
 }
 ```
 
-#### About Ommers
-
-Mining rewards and ommer rewards might need to be added. This is how those are applied:
-
-- `block_reward` is the block mining reward for the miner (`0xaa`), of a block at height `N`.
-- For each ommer (mined by `0xbb`), with blocknumber `N-delta`
-   - (where `delta` is the difference between the current block and the ommer)
-   - The account `0xbb` (ommer miner) is awarded `(8-delta)/ 8 * block_reward`
-   - The account `0xaa` (block miner) is awarded `block_reward / 32`
-
-To make `t8n` apply these, the following inputs are required:
-
-- `--state.reward`
-  - For ethash, it is `5000000000000000000` `wei`,
-  - If this is not defined, mining rewards are not applied,
-  - A value of `0` is valid, and causes accounts to be 'touched'.
-- For each ommer, the tool needs to be given an `address\` and a `delta`. This
-  is done via the `ommers` field in `env`.
-
-Note: the tool does not verify that e.g. the normal uncle rules apply,
-and allows e.g two uncles at the same height, or the uncle-distance. This means that
-the tool allows for negative uncle reward (distance > 8)
-
-Example:
-`./testdata/5/env.json`:
-```json
-{
-  "currentCoinbase": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "currentDifficulty": "0x20000",
-  "currentGasLimit": "0x750a163df65e8a",
-  "currentNumber": "1",
-  "currentTimestamp": "1000",
-  "ommers": [
-    {"delta":  1, "address": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
-    {"delta":  2, "address": "0xcccccccccccccccccccccccccccccccccccccccc" }
-  ]
-}
-```
-When applying this, using a reward of `0x08`
-Output:
-```json
-{
-  "alloc": {
-    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
-      "balance": "0x88"
-    },
-    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
-      "balance": "0x70"
-    },
-    "0xcccccccccccccccccccccccccccccccccccccccc": {
-      "balance": "0x60"
-    }
-  }
-}
-```
 #### Future EIPS
 
 It is also possible to experiment with future eips that are not yet defined in a hard fork.
@@ -526,7 +460,6 @@ Command line params that need to be supported are:
 
 ```
     --input.header value        `stdin` or file name of where to find the block header to use. (default: "header.json")
-    --input.ommers value        `stdin` or file name of where to find the list of ommer header RLPs to use.
     --input.txs value           `stdin` or file name of where to find the transactions list in RLP form. (default: "txs.rlp")
     --output.basedir value      Specifies where output files are placed. Will be created if it does not exist.
     --output.block value        Determines where to put the alloc of the post-state. (default: "block.json")
@@ -549,32 +482,21 @@ The `header` object is a consensus header.
 ```go=
 type Header struct {
         ParentHash  common.Hash       `json:"parentHash"`
-        OmmerHash   *common.Hash      `json:"sha3Uncles"`
         Coinbase    *common.Address   `json:"miner"`
         Root        common.Hash       `json:"stateRoot"         gencodec:"required"`
         TxHash      *common.Hash      `json:"transactionsRoot"`
         ReceiptHash *common.Hash      `json:"receiptsRoot"`
         Bloom       types.Bloom       `json:"logsBloom"`
-        Difficulty  *big.Int          `json:"difficulty"`
         Number      *big.Int          `json:"number"            gencodec:"required"`
         GasLimit    uint64            `json:"gasLimit"          gencodec:"required"`
         GasUsed     uint64            `json:"gasUsed"`
         Time        uint64            `json:"timestamp"         gencodec:"required"`
         Extra       []byte            `json:"extraData"`
-        MixDigest   common.Hash       `json:"mixHash"`
+        Random   common.Hash          `json:"prevRandao"`
         Nonce       *types.BlockNonce `json:"nonce"`
         BaseFee     *big.Int          `json:"baseFeePerGas"`
 }
 ```
-#### `ommers`
-
-The `ommers` object is a list of RLP-encoded ommer blocks in hex
-representation.
-
-```go=
-type Ommers []string
-```
-
 #### `txs`
 
 The `txs` object is a list of RLP-encoded transactions in hex representation.

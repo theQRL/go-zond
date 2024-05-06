@@ -212,8 +212,6 @@ func BenchmarkPrecompiledBn256ScalarMul(b *testing.B) { benchJson("bn256ScalarMu
 func TestPrecompiledBn256Pairing(t *testing.T)      { testJson("bn256Pairing", "08", t) }
 func BenchmarkPrecompiledBn256Pairing(b *testing.B) { benchJson("bn256Pairing", "08", b) }
 
-// func TestPrecompiledEcrecover(t *testing.T) { testJson("ecRecover", "01", t) }
-
 // TODO(rgeraldes24)
 // func TestPrecompiledDepositroot(t *testing.T) { testJson("depositRoot", "01", t) }
 

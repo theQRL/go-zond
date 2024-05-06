@@ -193,8 +193,11 @@ contract OpCodes {
      //number
      assembly {  pop(number())}
 
-     //difficulty
-     assembly {  pop(difficulty())}
+     //prevrandao
+     //assembly {  pop(prevrandao())}
+
+     //random
+     //assembly {  pop(random())}
 
      //gaslimit
      assembly {  pop(gaslimit())}

@@ -105,11 +105,9 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 				addr: {Balance: big.NewInt(1)},
 			},
 			BaseFee:    big.NewInt(params.InitialBaseFee),
-			Difficulty: new(big.Int),
 		}
 		copy(gspec.ExtraData[32:], addr[:])
 
-		td := 0
 		genDb, blocks, _ := GenerateChainWithGenesis(gspec, engine, 8, nil)
 		for i, block := range blocks {
 			header := block.Header()
@@ -117,14 +115,10 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 				header.ParentHash = blocks[i-1].Hash()
 			}
 			header.Extra = make([]byte, 32+crypto.SignatureLength)
-			header.Difficulty = big.NewInt(2)
 
 			sig, _ := crypto.Sign(engine.SealHash(header).Bytes(), key)
 			copy(header.Extra[len(header.Extra)-crypto.SignatureLength:], sig)
 			blocks[i] = block.WithSeal(header)
-
-			// calculate td
-			td += int(block.Difficulty().Uint64())
 		}
 		preBlocks = blocks
 		postBlocks, _ = GenerateChain(gspec.Config, preBlocks[len(preBlocks)-1], engine, genDb, 8, nil)
@@ -132,12 +126,7 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 		config := *params.TestChainConfig
 		gspec = &Genesis{Config: &config}
 		engine = beacon.New()
-		td := int(params.GenesisDifficulty.Uint64())
 		genDb, blocks, _ := GenerateChainWithGenesis(gspec, engine, 8, nil)
-		for _, block := range blocks {
-			// calculate td
-			td += int(block.Difficulty().Uint64())
-		}
 		preBlocks = blocks
 		postBlocks, _ = GenerateChain(gspec.Config, preBlocks[len(preBlocks)-1], engine, genDb, 8, func(i int, gen *BlockGen) {
 			gen.SetPoS()

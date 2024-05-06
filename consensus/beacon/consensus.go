@@ -34,20 +34,11 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// Proof-of-stake protocol constants.
-var (
-	beaconDifficulty = common.Big0          // The default block difficulty in the beacon consensus
-	beaconNonce      = types.EncodeNonce(0) // The default block nonce in the beacon consensus
-)
-
 // Various error messages to mark blocks invalid. These should be private to
 // prevent engine specific errors from being referenced in the remainder of the
 // codebase, inherently breaking if the engine is swapped out. Please put common
 // error types into the consensus package.
 var (
-	errTooManyUncles    = errors.New("too many uncles")
-	errInvalidNonce     = errors.New("invalid nonce")
-	errInvalidUncleHash = errors.New("invalid uncle hash")
 	errInvalidTimestamp = errors.New("invalid timestamp")
 )
 
@@ -118,26 +109,11 @@ func (beacon *Beacon) VerifyHeaders(chain consensus.ChainHeaderReader, headers [
 	return beacon.verifyHeaders(chain, headers, nil)
 }
 
-// VerifyUncles verifies that the given block's uncles conform to the consensus
-// rules of the Ethereum consensus engine.
-func (beacon *Beacon) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
-	if beacon.fakeFull {
-		return nil
-	}
-	// Verify that there is no uncle block. It's explicitly disabled in the beacon
-	if len(block.Uncles()) > 0 {
-		return errTooManyUncles
-	}
-	return nil
-}
-
 // verifyHeader checks whether a header conforms to the consensus rules of the
 // stock Ethereum consensus engine. The difference between the beacon and classic is
 // (a) The following fields are expected to be constants:
-//   - difficulty is expected to be 0
-//   - nonce is expected to be 0
-//   - unclehash is expected to be Hash(emptyHeader)
-//     to be the desired constants
+//
+//	to be the desired constants
 //
 // (b) we don't verify if a block is in the future anymore
 // (c) the extradata is limited to 32 bytes
@@ -146,20 +122,9 @@ func (beacon *Beacon) verifyHeader(chain consensus.ChainHeaderReader, header, pa
 	if len(header.Extra) > 32 {
 		return fmt.Errorf("extra-data longer than 32 bytes (%d)", len(header.Extra))
 	}
-	// Verify the seal parts. Ensure the nonce and uncle hash are the expected value.
-	if header.Nonce != beaconNonce {
-		return errInvalidNonce
-	}
-	if header.UncleHash != types.EmptyUncleHash {
-		return errInvalidUncleHash
-	}
 	// Verify the timestamp
 	if header.Time <= parent.Time {
 		return errInvalidTimestamp
-	}
-	// Verify the block's difficulty to ensure it's the default constant
-	if beaconDifficulty.Cmp(header.Difficulty) != 0 {
-		return fmt.Errorf("invalid difficulty: have %v, want %v", header.Difficulty, beaconDifficulty)
 	}
 	// Verify that the gas limit is <= 2^63-1
 	if header.GasLimit > params.MaxGasLimit {
@@ -238,15 +203,13 @@ func (beacon *Beacon) verifyHeaders(chain consensus.ChainHeaderReader, headers [
 	return abort, results
 }
 
-// Prepare implements consensus.Engine, initializing the difficulty field of a
-// header to conform to the beacon protocol. The changes are done inline.
+// Prepare implements consensus.Engine.
 func (beacon *Beacon) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
-	header.Difficulty = beaconDifficulty
 	return nil
 }
 
 // Finalize implements consensus.Engine and processes withdrawals on top.
-func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
+func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, withdrawals []*types.Withdrawal) {
 	// Withdrawals processing.
 	for _, w := range withdrawals {
 		// Convert amount from gwei to wei.
@@ -259,19 +222,19 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 
 // FinalizeAndAssemble implements consensus.Engine, setting the final state and
 // assembling the block.
-func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
+func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
 	// All blocks after Shanghai must include a withdrawals root.
 	if withdrawals == nil {
 		withdrawals = make([]*types.Withdrawal, 0)
 	}
 	// Finalize and assemble the block.
-	beacon.Finalize(chain, header, state, txs, uncles, withdrawals)
+	beacon.Finalize(chain, header, state, txs, withdrawals)
 
 	// Assign the final state root to header.
 	header.Root = state.IntermediateRoot(true)
 
 	// Assemble and return the final block.
-	return types.NewBlockWithWithdrawals(header, txs, uncles, receipts, withdrawals, trie.NewStackTrie(nil)), nil
+	return types.NewBlockWithWithdrawals(header, txs, receipts, withdrawals, trie.NewStackTrie(nil)), nil
 }
 
 // Seal generates a new sealing request for the given input block and pushes
@@ -293,13 +256,11 @@ func (beacon *Beacon) SealHash(header *types.Header) (hash common.Hash) {
 
 	enc := []interface{}{
 		header.ParentHash,
-		header.UncleHash,
 		header.Coinbase,
 		header.Root,
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,
-		header.Difficulty,
 		header.Number,
 		header.GasLimit,
 		header.GasUsed,
@@ -315,13 +276,6 @@ func (beacon *Beacon) SealHash(header *types.Header) (hash common.Hash) {
 	rlp.Encode(hasher, enc)
 	hasher.Sum(hash[:0])
 	return hash
-}
-
-// CalcDifficulty is the difficulty adjustment algorithm. It returns
-// the difficulty that a new block should have when created at time
-// given the parent block's time and difficulty.
-func (beacon *Beacon) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
-	return beaconDifficulty
 }
 
 // APIs implements consensus.Engine, returning the user facing RPC APIs.
