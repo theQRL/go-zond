@@ -241,8 +241,8 @@ The gendoc generates example structures of the json-rpc communication types.
 	importRawCommand = &cli.Command{
 		Action:    accountImport,
 		Name:      "importraw",
-		Usage:     "Import a hex-encoded private key.",
-		ArgsUsage: "<keyfile>",
+		Usage:     "Import a hex-encoded seed.",
+		ArgsUsage: "<file>",
 		Flags: []cli.Flag{
 			logLevelFlag,
 			keystoreFlag,
@@ -250,14 +250,14 @@ The gendoc generates example structures of the json-rpc communication types.
 			acceptFlag,
 		},
 		Description: `
-Imports an unencrypted private key from <keyfile> and creates a new account.
+Imports a seed from <file> and creates a new account.
 Prints the address.
-The keyfile is assumed to contain an unencrypted private key in hexadecimal format.
+The file is assumed to contain a seed in hexadecimal format.
 The account is saved in encrypted format, you are prompted for a password.
 `}
 )
 
-var app = flags.NewApp("Manage Ethereum account operations")
+var app = flags.NewApp("Manage Zond account operations")
 
 func init() {
 	app.Name = "Clef"
@@ -407,6 +407,7 @@ func initInternalApi(c *cli.Context) (*core.UIServerAPI, core.UIClientAPI, error
 		lightKdf                  = c.Bool(utils.LightKDFFlag.Name)
 	)
 	am := core.StartClefAccountManager(ksLoc /*false,*/, lightKdf /*""*/)
+	defer am.Close()
 	api := core.NewSignerAPI(am, 0 /*false,*/, ui, nil, false, pwStorage)
 	internalApi := core.NewUIServerAPI(api)
 	return internalApi, ui, nil
@@ -546,16 +547,17 @@ func listWallets(c *cli.Context) error {
 	return nil
 }
 
-// accountImport imports a raw hexadecimal private key via CLI.
+// accountImport imports a raw hexadecimal seed via CLI.
 func accountImport(c *cli.Context) error {
 	if c.Args().Len() != 1 {
-		return errors.New("<keyfile> must be given as first argument.")
+		return errors.New("<file> must be given as first argument")
 	}
 	internalApi, ui, err := initInternalApi(c)
 	if err != nil {
 		return err
 	}
-	pKey, err := crypto.LoadECDSA(c.Args().First())
+
+	hexSeed, err := readSeedFromFile(c.Args().First())
 	if err != nil {
 		return err
 	}
@@ -579,9 +581,10 @@ func accountImport(c *cli.Context) error {
 		return err
 	}
 	if first != second {
+		//lint:ignore ST1005 This is a message for the user
 		return errors.New("Passwords do not match")
 	}
-	acc, err := internalApi.ImportRawKey(hex.EncodeToString(crypto.FromECDSA(pKey)), first)
+	acc, err := internalApi.ImportRawKey(hexSeed, first)
 	if err != nil {
 		return err
 	}
@@ -1218,4 +1221,58 @@ These data types are defined in the channel between clef and the UI`)
 		fmt.Println(elem)
 	}
 	return nil
+}
+
+func readSeedFromFile(file string) (string, error) {
+	fd, err := os.Open(file)
+	if err != nil {
+		return "", err
+	}
+	defer fd.Close()
+
+	r := bufio.NewReader(fd)
+	buf := make([]byte, 96)
+	n, err := readASCII(buf, r)
+	if err != nil {
+		return "", err
+	} else if n != len(buf) {
+		return "", errors.New("seed too short, want 96 hex characters")
+	}
+	if err := checkKeyFileEnd(r); err != nil {
+		return "", err
+	}
+
+	return string(buf), nil
+}
+
+// checkKeyFileEnd skips over additional newlines at the end of a key file.
+func checkKeyFileEnd(r *bufio.Reader) error {
+	for i := 0; ; i++ {
+		b, err := r.ReadByte()
+		switch {
+		case err == io.EOF:
+			return nil
+		case err != nil:
+			return err
+		case b != '\n' && b != '\r':
+			return fmt.Errorf("invalid character %q at end of file", b)
+		case i >= 2:
+			return errors.New("key file too long, want 48 hex characters")
+		}
+	}
+}
+
+// readASCII reads into 'buf', stopping when the buffer is full or
+// when a non-printable control character is encountered.
+func readASCII(buf []byte, r *bufio.Reader) (n int, err error) {
+	for ; n < len(buf); n++ {
+		buf[n], err = r.ReadByte()
+		switch {
+		case err == io.EOF || buf[n] < '!':
+			return n, nil
+		case err != nil:
+			return n, err
+		}
+	}
+	return n, nil
 }

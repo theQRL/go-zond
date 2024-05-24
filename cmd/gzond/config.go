@@ -293,18 +293,7 @@ func applyMetricConfig(ctx *cli.Context, cfg *gzondConfig) {
 }
 
 func deprecated(field string) bool {
-	switch field {
-	case "zondconfigConfig.EVMInterpreter":
-		return true
-	case "zondconfigConfig.EWASMInterpreter":
-		return true
-	case "zondconfigConfig.TrieCleanCacheJournal":
-		return true
-	case "zondconfigConfig.TrieCleanCacheRejournal":
-		return true
-	default:
-		return false
-	}
+	return false
 }
 
 func setAccountManagerBackends(conf *node.Config, am *accounts.Manager, keydir string) error {

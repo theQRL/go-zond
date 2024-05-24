@@ -293,6 +293,8 @@ func NewSignerAPI(am *accounts.Manager, chainID int64 /*usbEnabled bool,*/, ui U
 	*/
 	return signer
 }
+
+/*
 func (api *SignerAPI) openTrezor(url accounts.URL) {
 	resp, err := api.UI.OnInputRequired(UserInputRequest{
 		Prompt: "Pin required to open Trezor wallet\n" +
@@ -332,12 +334,9 @@ func (api *SignerAPI) startUSBListener() {
 	for _, wallet := range am.Wallets() {
 		if err := wallet.Open(""); err != nil {
 			log.Warn("Failed to open wallet", "url", wallet.URL(), "err", err)
-			// TODO(rgeraldes24)
-			/*
-				if err == usbwallet.ErrTrezorPINNeeded {
-					go api.openTrezor(wallet.URL())
-				}
-			*/
+			if err == usbwallet.ErrTrezorPINNeeded {
+				go api.openTrezor(wallet.URL())
+			}
 		}
 	}
 	go api.derivationLoop(eventCh)
@@ -351,12 +350,9 @@ func (api *SignerAPI) derivationLoop(events chan accounts.WalletEvent) {
 		case accounts.WalletArrived:
 			if err := event.Wallet.Open(""); err != nil {
 				log.Warn("New wallet appeared, failed to open", "url", event.Wallet.URL(), "err", err)
-				// TODO(rgeraldes24)
-				/*
-					if err == usbwallet.ErrTrezorPINNeeded {
-						go api.openTrezor(event.Wallet.URL())
-					}
-				*/
+				if err == usbwallet.ErrTrezorPINNeeded {
+					go api.openTrezor(event.Wallet.URL())
+				}
 			}
 		case accounts.WalletOpened:
 			status, _ := event.Wallet.Status()
@@ -391,6 +387,7 @@ func (api *SignerAPI) derivationLoop(events chan accounts.WalletEvent) {
 		}
 	}
 }
+*/
 
 // List returns the set of wallet this signer manages. Each wallet can contain
 // multiple accounts.
