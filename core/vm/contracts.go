@@ -39,7 +39,7 @@ type PrecompiledContract interface {
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
 }
 
-// PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
+// PrecompiledContractsBerlin contains the default set of pre-compiled Zond
 // contracts used in the Berlin release.
 var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{1}): &depositroot{},
@@ -83,12 +83,12 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uin
 
 type depositroot struct{}
 
-// TODO(rgeraldes24): review required gas
+// TODO(now.youtrack.cloud/issue/TGZ-5)
 func (c *depositroot) RequiredGas(input []byte) uint64 {
 	return params.DepositrootGas
 }
 
-// TODO(rgeraldes24): assess why extra bytes are being added
+// TODO(now.youtrack.cloud/issue/TGZ-5)
 func (c *depositroot) Run(input []byte) ([]byte, error) {
 	const depositRootInputLength = 7508 // 7251 in the correct version
 	input = common.RightPadBytes(input, depositRootInputLength)

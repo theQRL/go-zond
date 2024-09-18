@@ -96,9 +96,9 @@ func ToDilithiumUnsafe(seed []byte) *dilithium.Dilithium {
 func HexToDilithium(hexSeedStr string) (*dilithium.Dilithium, error) {
 	b, err := hex.DecodeString(hexSeedStr)
 	if byteErr, ok := err.(hex.InvalidByteError); ok {
-		return nil, fmt.Errorf("invalid hex character %q in private key", byte(byteErr))
+		return nil, fmt.Errorf("invalid hex character %q in seed", byte(byteErr))
 	} else if err != nil {
-		return nil, errors.New("invalid hex data for private key")
+		return nil, errors.New("invalid hex data for seed")
 	}
 
 	var hexSeed [qrllibCommon.SeedSize]uint8

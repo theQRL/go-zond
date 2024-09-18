@@ -79,17 +79,17 @@ func genValueTx(nbytes int) func(int, *BlockGen) {
 		data := make([]byte, nbytes)
 		gas, _ := IntrinsicGas(data, nil, false)
 		signer := types.MakeSigner(gen.config)
-		gasPrice := big.NewInt(0)
+		baseFee := big.NewInt(0)
 		if gen.header.BaseFee != nil {
-			gasPrice = gen.header.BaseFee
+			baseFee = gen.header.BaseFee
 		}
-		tx, _ := types.SignNewTx(benchRootKey, signer, &types.LegacyTx{
-			Nonce:    gen.TxNonce(benchRootAddr),
-			To:       &toaddr,
-			Value:    big.NewInt(1),
-			Gas:      gas,
-			Data:     data,
-			GasPrice: gasPrice,
+		tx, _ := types.SignNewTx(benchRootKey, signer, &types.DynamicFeeTx{
+			Nonce:     gen.TxNonce(benchRootAddr),
+			To:        &toaddr,
+			Value:     big.NewInt(1),
+			Gas:       gas,
+			Data:      data,
+			GasFeeCap: baseFee,
 		})
 		gen.AddTx(tx)
 	}
@@ -118,9 +118,9 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		block := gen.PrevBlock(i - 1)
 		gas := block.GasLimit()
-		gasPrice := big.NewInt(0)
+		baseFee := big.NewInt(0)
 		if gen.header.BaseFee != nil {
-			gasPrice = gen.header.BaseFee
+			baseFee = gen.header.BaseFee
 		}
 		signer := types.MakeSigner(gen.config)
 		for {
@@ -136,12 +136,12 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 				panic("not enough funds")
 			}
 			tx, err := types.SignNewTx(ringKeys[from], signer,
-				&types.LegacyTx{
-					Nonce:    gen.TxNonce(ringAddrs[from]),
-					To:       &ringAddrs[to],
-					Value:    availableFunds,
-					Gas:      params.TxGas,
-					GasPrice: gasPrice,
+				&types.DynamicFeeTx{
+					Nonce:     gen.TxNonce(ringAddrs[from]),
+					To:        &ringAddrs[to],
+					Value:     availableFunds,
+					Gas:       params.TxGas,
+					GasFeeCap: baseFee,
 				})
 			if err != nil {
 				panic(err)
@@ -177,7 +177,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	chainman, _ := NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil, nil)
+	chainman, _ := NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil)
 	defer chainman.Stop()
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -286,7 +286,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}
-		chain, err := NewBlockChain(db, &cacheConfig, nil, beacon.NewFaker(), vm.Config{}, nil, nil)
+		chain, err := NewBlockChain(db, &cacheConfig, nil, beacon.NewFaker(), vm.Config{}, nil)
 		if err != nil {
 			b.Fatalf("error creating chain: %v", err)
 		}

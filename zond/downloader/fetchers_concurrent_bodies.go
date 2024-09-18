@@ -89,7 +89,7 @@ func (q *bodyQueue) request(peer *peerConnection, req *fetchRequest, resCh chan 
 // deliver is responsible for taking a generic response packet from the concurrent
 // fetcher, unpacking the body data and delivering it to the downloader's queue.
 func (q *bodyQueue) deliver(peer *peerConnection, packet *zond.Response) (int, error) {
-	txs, withdrawals := packet.Res.(*zond.BlockBodiesPacket).Unpack()
+	txs, withdrawals := packet.Res.(*zond.BlockBodiesResponse).Unpack()
 	hashsets := packet.Meta.([][]common.Hash) // {txs hashes, withdrawal hashes}
 
 	accepted, err := q.queue.DeliverBodies(peer.id, txs, hashsets[0], withdrawals, hashsets[1])

@@ -44,9 +44,7 @@ type operation struct {
 	memorySize memorySizeFunc
 }
 
-var (
-	shanghaiInstructionSet = newShanghaiInstructionSet()
-)
+var shanghaiInstructionSet = newShanghaiInstructionSet()
 
 // JumpTable contains the EVM opcodes supported at a given fork.
 type JumpTable [256]*operation
@@ -69,167 +67,9 @@ func validate(jt JumpTable) JumpTable {
 	return jt
 }
 
-func newShanghaiInstructionSet() JumpTable {
-	instructionSet := newMergeInstructionSet()
-	enable3855(&instructionSet) // PUSH0 instruction
-	enable3860(&instructionSet) // Limit and meter initcode
-
-	return validate(instructionSet)
-}
-
-func newMergeInstructionSet() JumpTable {
-	instructionSet := newLondonInstructionSet()
-	instructionSet[PREVRANDAO] = &operation{
-		execute:     opRandom,
-		constantGas: GasQuickStep,
-		minStack:    minStack(0, 1),
-		maxStack:    maxStack(0, 1),
-	}
-	return validate(instructionSet)
-}
-
-// newLondonInstructionSet returns the frontier, homestead, byzantium,
-// constantinople, istanbul, petersburg, berlin and london instructions.
-func newLondonInstructionSet() JumpTable {
-	instructionSet := newBerlinInstructionSet()
-	enable3529(&instructionSet) // EIP-3529: Reduction in refunds https://eips.ethereum.org/EIPS/eip-3529
-	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
-	return validate(instructionSet)
-}
-
-// newBerlinInstructionSet returns the frontier, homestead, byzantium,
-// constantinople, istanbul, petersburg and berlin instructions.
-func newBerlinInstructionSet() JumpTable {
-	instructionSet := newIstanbulInstructionSet()
-	enable2929(&instructionSet) // Access lists for trie accesses https://eips.ethereum.org/EIPS/eip-2929
-	return validate(instructionSet)
-}
-
-// newIstanbulInstructionSet returns the frontier, homestead, byzantium,
-// constantinople, istanbul and petersburg instructions.
-func newIstanbulInstructionSet() JumpTable {
-	instructionSet := newConstantinopleInstructionSet()
-
-	enable1344(&instructionSet) // ChainID opcode - https://eips.ethereum.org/EIPS/eip-1344
-	enable1884(&instructionSet) // Reprice reader opcodes - https://eips.ethereum.org/EIPS/eip-1884
-	enable2200(&instructionSet) // Net metered SSTORE - https://eips.ethereum.org/EIPS/eip-2200
-
-	return validate(instructionSet)
-}
-
-// newConstantinopleInstructionSet returns the frontier, homestead,
-// byzantium and constantinople instructions.
-func newConstantinopleInstructionSet() JumpTable {
-	instructionSet := newByzantiumInstructionSet()
-	instructionSet[SHL] = &operation{
-		execute:     opSHL,
-		constantGas: GasFastestStep,
-		minStack:    minStack(2, 1),
-		maxStack:    maxStack(2, 1),
-	}
-	instructionSet[SHR] = &operation{
-		execute:     opSHR,
-		constantGas: GasFastestStep,
-		minStack:    minStack(2, 1),
-		maxStack:    maxStack(2, 1),
-	}
-	instructionSet[SAR] = &operation{
-		execute:     opSAR,
-		constantGas: GasFastestStep,
-		minStack:    minStack(2, 1),
-		maxStack:    maxStack(2, 1),
-	}
-	instructionSet[EXTCODEHASH] = &operation{
-		execute:     opExtCodeHash,
-		constantGas: params.ExtcodeHashGasConstantinople,
-		minStack:    minStack(1, 1),
-		maxStack:    maxStack(1, 1),
-	}
-	instructionSet[CREATE2] = &operation{
-		execute:     opCreate2,
-		constantGas: params.Create2Gas,
-		dynamicGas:  gasCreate2,
-		minStack:    minStack(4, 1),
-		maxStack:    maxStack(4, 1),
-		memorySize:  memoryCreate2,
-	}
-	return validate(instructionSet)
-}
-
-// newByzantiumInstructionSet returns the frontier, homestead and
-// byzantium instructions.
-func newByzantiumInstructionSet() JumpTable {
-	instructionSet := newSpuriousDragonInstructionSet()
-	instructionSet[STATICCALL] = &operation{
-		execute:     opStaticCall,
-		constantGas: params.CallGasEIP150,
-		dynamicGas:  gasStaticCall,
-		minStack:    minStack(6, 1),
-		maxStack:    maxStack(6, 1),
-		memorySize:  memoryStaticCall,
-	}
-	instructionSet[RETURNDATASIZE] = &operation{
-		execute:     opReturnDataSize,
-		constantGas: GasQuickStep,
-		minStack:    minStack(0, 1),
-		maxStack:    maxStack(0, 1),
-	}
-	instructionSet[RETURNDATACOPY] = &operation{
-		execute:     opReturnDataCopy,
-		constantGas: GasFastestStep,
-		dynamicGas:  gasReturnDataCopy,
-		minStack:    minStack(3, 0),
-		maxStack:    maxStack(3, 0),
-		memorySize:  memoryReturnDataCopy,
-	}
-	instructionSet[REVERT] = &operation{
-		execute:    opRevert,
-		dynamicGas: gasRevert,
-		minStack:   minStack(2, 0),
-		maxStack:   maxStack(2, 0),
-		memorySize: memoryRevert,
-	}
-	return validate(instructionSet)
-}
-
-// EIP 158 a.k.a Spurious Dragon
-func newSpuriousDragonInstructionSet() JumpTable {
-	instructionSet := newTangerineWhistleInstructionSet()
-	instructionSet[EXP].dynamicGas = gasExpEIP158
-	return validate(instructionSet)
-}
-
-// EIP 150 a.k.a Tangerine Whistle
-func newTangerineWhistleInstructionSet() JumpTable {
-	instructionSet := newHomesteadInstructionSet()
-	instructionSet[BALANCE].constantGas = params.BalanceGasEIP150
-	instructionSet[EXTCODESIZE].constantGas = params.ExtcodeSizeGasEIP150
-	instructionSet[SLOAD].constantGas = params.SloadGasEIP150
-	instructionSet[EXTCODECOPY].constantGas = params.ExtcodeCopyBaseEIP150
-	instructionSet[CALL].constantGas = params.CallGasEIP150
-	instructionSet[CALLCODE].constantGas = params.CallGasEIP150
-	instructionSet[DELEGATECALL].constantGas = params.CallGasEIP150
-	return validate(instructionSet)
-}
-
-// newHomesteadInstructionSet returns the frontier and homestead
-// instructions that can be executed during the homestead phase.
-func newHomesteadInstructionSet() JumpTable {
-	instructionSet := newFrontierInstructionSet()
-	instructionSet[DELEGATECALL] = &operation{
-		execute:     opDelegateCall,
-		dynamicGas:  gasDelegateCall,
-		constantGas: params.CallGasFrontier,
-		minStack:    minStack(6, 1),
-		maxStack:    maxStack(6, 1),
-		memorySize:  memoryDelegateCall,
-	}
-	return validate(instructionSet)
-}
-
 // newFrontierInstructionSet returns the frontier instructions
 // that can be executed during the frontier phase.
-func newFrontierInstructionSet() JumpTable {
+func newShanghaiInstructionSet() JumpTable {
 	tbl := JumpTable{
 		STOP: {
 			execute:     opStop,
@@ -293,7 +133,7 @@ func newFrontierInstructionSet() JumpTable {
 		},
 		EXP: {
 			execute:    opExp,
-			dynamicGas: gasExpFrontier,
+			dynamicGas: gasExpEIP158,
 			minStack:   minStack(2, 1),
 			maxStack:   maxStack(2, 1),
 		},
@@ -385,7 +225,8 @@ func newFrontierInstructionSet() JumpTable {
 		},
 		BALANCE: {
 			execute:     opBalance,
-			constantGas: params.BalanceGasFrontier,
+			constantGas: params.WarmStorageReadCostEIP2929,
+			dynamicGas:  gasEip2929AccountCheck,
 			minStack:    minStack(1, 1),
 			maxStack:    maxStack(1, 1),
 		},
@@ -449,14 +290,15 @@ func newFrontierInstructionSet() JumpTable {
 		},
 		EXTCODESIZE: {
 			execute:     opExtCodeSize,
-			constantGas: params.ExtcodeSizeGasFrontier,
+			constantGas: params.WarmStorageReadCostEIP2929,
+			dynamicGas:  gasEip2929AccountCheck,
 			minStack:    minStack(1, 1),
 			maxStack:    maxStack(1, 1),
 		},
 		EXTCODECOPY: {
 			execute:     opExtCodeCopy,
-			constantGas: params.ExtcodeCopyBaseFrontier,
-			dynamicGas:  gasExtCodeCopy,
+			constantGas: params.WarmStorageReadCostEIP2929,
+			dynamicGas:  gasExtCodeCopyEIP2929,
 			minStack:    minStack(4, 0),
 			maxStack:    maxStack(4, 0),
 			memorySize:  memoryExtCodeCopy,
@@ -523,13 +365,14 @@ func newFrontierInstructionSet() JumpTable {
 		},
 		SLOAD: {
 			execute:     opSload,
-			constantGas: params.SloadGasFrontier,
+			constantGas: 0,
+			dynamicGas:  gasSLoadEIP2929,
 			minStack:    minStack(1, 1),
 			maxStack:    maxStack(1, 1),
 		},
 		SSTORE: {
 			execute:    opSstore,
-			dynamicGas: gasSStore,
+			dynamicGas: gasSStoreEIP3529,
 			minStack:   minStack(2, 0),
 			maxStack:   maxStack(2, 0),
 		},
@@ -991,23 +834,15 @@ func newFrontierInstructionSet() JumpTable {
 		CREATE: {
 			execute:     opCreate,
 			constantGas: params.CreateGas,
-			dynamicGas:  gasCreate,
+			dynamicGas:  gasCreateEip3860,
 			minStack:    minStack(3, 1),
 			maxStack:    maxStack(3, 1),
 			memorySize:  memoryCreate,
 		},
 		CALL: {
 			execute:     opCall,
-			constantGas: params.CallGasFrontier,
-			dynamicGas:  gasCall,
-			minStack:    minStack(7, 1),
-			maxStack:    maxStack(7, 1),
-			memorySize:  memoryCall,
-		},
-		CALLCODE: {
-			execute:     opCallCode,
-			constantGas: params.CallGasFrontier,
-			dynamicGas:  gasCallCode,
+			constantGas: params.WarmStorageReadCostEIP2929,
+			dynamicGas:  gasCallEIP2929,
 			minStack:    minStack(7, 1),
 			maxStack:    maxStack(7, 1),
 			memorySize:  memoryCall,
@@ -1020,10 +855,111 @@ func newFrontierInstructionSet() JumpTable {
 			memorySize: memoryReturn,
 		},
 		SELFDESTRUCT: {
-			execute:    opSelfdestruct,
-			dynamicGas: gasSelfdestruct,
-			minStack:   minStack(1, 0),
-			maxStack:   maxStack(1, 0),
+			constantGas: params.SelfdestructGasEIP150,
+			execute:     opSelfdestruct,
+			dynamicGas:  gasSelfdestructEIP3529,
+			minStack:    minStack(1, 0),
+			maxStack:    maxStack(1, 0),
+		},
+		DELEGATECALL: {
+			execute:     opDelegateCall,
+			dynamicGas:  gasDelegateCallEIP2929,
+			constantGas: params.WarmStorageReadCostEIP2929,
+			minStack:    minStack(6, 1),
+			maxStack:    maxStack(6, 1),
+			memorySize:  memoryDelegateCall,
+		},
+		REVERT: {
+			execute:    opRevert,
+			dynamicGas: gasRevert,
+			minStack:   minStack(2, 0),
+			maxStack:   maxStack(2, 0),
+			memorySize: memoryRevert,
+		},
+		RETURNDATACOPY: {
+			execute:     opReturnDataCopy,
+			constantGas: GasFastestStep,
+			dynamicGas:  gasReturnDataCopy,
+			minStack:    minStack(3, 0),
+			maxStack:    maxStack(3, 0),
+			memorySize:  memoryReturnDataCopy,
+		},
+		RETURNDATASIZE: {
+			execute:     opReturnDataSize,
+			constantGas: GasQuickStep,
+			minStack:    minStack(0, 1),
+			maxStack:    maxStack(0, 1),
+		},
+		STATICCALL: {
+			execute:     opStaticCall,
+			constantGas: params.WarmStorageReadCostEIP2929,
+			dynamicGas:  gasStaticCallEIP2929,
+			minStack:    minStack(6, 1),
+			maxStack:    maxStack(6, 1),
+			memorySize:  memoryStaticCall,
+		},
+		SHL: {
+			execute:     opSHL,
+			constantGas: GasFastestStep,
+			minStack:    minStack(2, 1),
+			maxStack:    maxStack(2, 1),
+		},
+		SHR: {
+			execute:     opSHR,
+			constantGas: GasFastestStep,
+			minStack:    minStack(2, 1),
+			maxStack:    maxStack(2, 1),
+		},
+		SAR: {
+			execute:     opSAR,
+			constantGas: GasFastestStep,
+			minStack:    minStack(2, 1),
+			maxStack:    maxStack(2, 1),
+		},
+		EXTCODEHASH: {
+			execute:     opExtCodeHash,
+			constantGas: params.WarmStorageReadCostEIP2929,
+			dynamicGas:  gasEip2929AccountCheck,
+			minStack:    minStack(1, 1),
+			maxStack:    maxStack(1, 1),
+		},
+		CREATE2: {
+			execute:     opCreate2,
+			constantGas: params.Create2Gas,
+			dynamicGas:  gasCreate2Eip3860,
+			minStack:    minStack(4, 1),
+			maxStack:    maxStack(4, 1),
+			memorySize:  memoryCreate2,
+		},
+		CHAINID: {
+			execute:     opChainID,
+			constantGas: GasQuickStep,
+			minStack:    minStack(0, 1),
+			maxStack:    maxStack(0, 1),
+		},
+		SELFBALANCE: {
+			execute:     opSelfBalance,
+			constantGas: GasFastStep,
+			minStack:    minStack(0, 1),
+			maxStack:    maxStack(0, 1),
+		},
+		BASEFEE: {
+			execute:     opBaseFee,
+			constantGas: GasQuickStep,
+			minStack:    minStack(0, 1),
+			maxStack:    maxStack(0, 1),
+		},
+		PREVRANDAO: {
+			execute:     opRandom,
+			constantGas: GasQuickStep,
+			minStack:    minStack(0, 1),
+			maxStack:    maxStack(0, 1),
+		},
+		PUSH0: {
+			execute:     opPush0,
+			constantGas: GasQuickStep,
+			minStack:    minStack(0, 1),
+			maxStack:    maxStack(0, 1),
 		},
 	}
 

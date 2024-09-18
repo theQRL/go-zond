@@ -170,7 +170,7 @@ func (w *wallet) Open(passphrase string) error {
 	go w.heartbeat()
 	go w.selfDerive()
 
-	// TODO(rgeraldes24)
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
 	// Notify anyone listening for wallet events that a new device is accessible
 	// go w.hub.updateFeed.Send(accounts.WalletEvent{Wallet: w, Kind: accounts.WalletOpened})
 
@@ -549,14 +549,14 @@ func (w *wallet) SignData(account accounts.Account, mimeType string, data []byte
 	<-w.commsLock
 	defer func() { w.commsLock <- struct{}{} }()
 
-	// TODO(rgeraldes24)
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
 	// Ensure the device isn't screwed with while user confirmation is pending
 	// TODO(karalabe): remove if hotplug lands on Windows
 	// w.hub.commsLock.Lock()
 	// w.hub.commsPend++
 	// w.hub.commsLock.Unlock()
 
-	// TODO(rgeraldes24)
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
 	// defer func() {
 	// 	w.hub.commsLock.Lock()
 	// 	w.hub.commsPend--
@@ -605,14 +605,14 @@ func (w *wallet) SignTx(account accounts.Account, tx *types.Transaction, chainID
 	<-w.commsLock
 	defer func() { w.commsLock <- struct{}{} }()
 
-	// TODO(rgeraldes24)
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
 	// // Ensure the device isn't screwed with while user confirmation is pending
 	// // TODO(karalabe): remove if hotplug lands on Windows
 	// w.hub.commsLock.Lock()
 	// w.hub.commsPend++
 	// w.hub.commsLock.Unlock()
 
-	// TODO(rgeraldes24)
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
 	// defer func() {
 	// 	w.hub.commsLock.Lock()
 	// 	w.hub.commsPend--

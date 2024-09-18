@@ -16,6 +16,7 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/tests"
 
@@ -98,6 +99,7 @@ func flatCallTracerTestRunner(tracerName string, filename string, dirPath string
 		BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
 		Time:        uint64(test.Context.Time),
 		GasLimit:    uint64(test.Context.GasLimit),
+		BaseFee:     big.NewInt(params.InitialBaseFee),
 	}
 	triedb, _, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false, rawdb.HashScheme)
 	defer triedb.Close()
@@ -148,6 +150,7 @@ func flatCallTracerTestRunner(tracerName string, filename string, dirPath string
 	return nil
 }
 
+// TODO(now.youtrack.cloud/issue/TGZ-13)
 // Iterates over all the input-output datasets in the tracer parity test harness and
 // runs the Native tracer against them.
 func TestFlatCallTracerNative(t *testing.T) {

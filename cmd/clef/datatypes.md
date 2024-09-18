@@ -63,7 +63,8 @@ Example:
     "from": "0xDEADbEeF000000000000000000000000DeaDbeEf",
     "to": null,
     "gas": "0x3e8",
-    "gasPrice": "0x5",
+    "maxFeePerGas": "0x5",
+    "maxPriorityFeePerGas": "0x0",
     "value": "0x6",
     "nonce": "0x1",
     "data": "0x01020304"
@@ -98,7 +99,8 @@ Example:
     "from": "0xDEADbEeF000000000000000000000000DeaDbeEf",
     "to": null,
     "gas": "0x3e8",
-    "gasPrice": "0x5",
+    "maxFeePerGas": "0x5",
+    "maxPriorityFeePerGas": "0x0",
     "value": "0x6",
     "nonce": "0x4",
     "data": "0x04030201"
@@ -117,7 +119,8 @@ Example:
     "from": "0x",
     "to": null,
     "gas": "0x0",
-    "gasPrice": "0x0",
+    "maxFeePerGas": "0x0",
+    "maxPriorityFeePerGas": "0x0",
     "value": "0x0",
     "nonce": "0x0",
     "data": null
@@ -143,14 +146,14 @@ Example:
   "raw": "0xf85d640101948a8eafb1cf62bfbeb1741769dae1a9dd47996192018026a0716bd90515acb1e68e5ac5867aa11a1e65399c3349d479f5fb698554ebc6f293a04e8a4ebfff434e971e0ef12c5bf3a881b06fd04fc3f8b8a7291fb67a26a1d4ed",
   "tx": {
     "nonce": "0x64",
-    "gasPrice": "0x1",
+    "maxFeePerGas": "0x1",
+    "maxPriorityFeePerGas": "0x0",
     "gas": "0x1",
     "to": "0x8a8eafb1cf62bfbeb1741769dae1a9dd47996192",
     "value": "0x1",
     "input": "0x",
-    "v": "0x26",
-    "r": "0x716bd90515acb1e68e5ac5867aa11a1e65399c3349d479f5fb698554ebc6f293",
-    "s": "0x4e8a4ebfff434e971e0ef12c5bf3a881b06fd04fc3f8b8a7291fb67a26a1d4ed",
+    "signature": "0x716bd90515acb1e68e5ac5867aa11a1e65399c3349d479f5fb698554ebc6f293",
+    "publicKey": "0x4e8a4ebfff434e971e0ef12c5bf3a881b06fd04fc3f8b8a7291fb67a26a1d4ed",
     "hash": "0x662f6d772692dd692f1b5e8baa77a9ff95bbd909362df3fc3d301aafebde5441"
   }
 }

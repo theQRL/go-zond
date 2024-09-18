@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package graphql provides a GraphQL interface to Ethereum node data.
+// Package graphql provides a GraphQL interface to Zond node data.
 package graphql
 
 import (
@@ -77,7 +77,7 @@ func (b *Long) UnmarshalGraphQL(input interface{}) error {
 	return err
 }
 
-// Account represents an Ethereum account at a particular block.
+// Account represents a Zond account at a particular block.
 type Account struct {
 	r             *Resolver
 	address       common.Address
@@ -169,7 +169,6 @@ func (l *Log) Data(ctx context.Context) hexutil.Bytes {
 	return l.log.Data
 }
 
-// AccessTuple represents EIP-2930
 type AccessTuple struct {
 	address     common.Address
 	storageKeys []common.Hash
@@ -184,7 +183,7 @@ func (at *AccessTuple) StorageKeys(ctx context.Context) []common.Hash {
 }
 
 // Withdrawal represents a withdrawal of value from the beacon chain
-// by a validator. For details see EIP-4895.
+// by a validator.
 type Withdrawal struct {
 	index     uint64
 	validator uint64
@@ -208,7 +207,7 @@ func (w *Withdrawal) Amount(ctx context.Context) hexutil.Uint64 {
 	return hexutil.Uint64(w.amount)
 }
 
-// Transaction represents an Ethereum transaction.
+// Transaction represents a Zond transaction.
 // backend and hash are mandatory; all others will be fetched when required.
 type Transaction struct {
 	r    *Resolver
@@ -272,15 +271,13 @@ func (t *Transaction) GasPrice(ctx context.Context) hexutil.Big {
 		return hexutil.Big{}
 	}
 	switch tx.Type() {
-	case types.DynamicFeeTxType:
+	default:
 		if block != nil {
 			if baseFee, _ := block.BaseFeePerGas(ctx); baseFee != nil {
 				// price = min(gasTipCap + baseFee, gasFeeCap)
 				return (hexutil.Big)(*math.BigMin(new(big.Int).Add(tx.GasTipCap(), baseFee.ToInt()), tx.GasFeeCap()))
 			}
 		}
-		return hexutil.Big(*tx.GasPrice())
-	default:
 		return hexutil.Big(*tx.GasPrice())
 	}
 }
@@ -565,7 +562,7 @@ func (t *Transaction) RawReceipt(ctx context.Context) (hexutil.Bytes, error) {
 
 type BlockType int
 
-// Block represents an Ethereum block.
+// Block represents a Zond block.
 // backend, and numberOrHash are mandatory. All other fields are lazily fetched
 // when required.
 type Block struct {
@@ -972,12 +969,11 @@ func (b *Block) Account(ctx context.Context, args struct {
 // CallData encapsulates arguments to `call` or `estimateGas`.
 // All arguments are optional.
 type CallData struct {
-	From                 *common.Address // The Ethereum address the call is from.
-	To                   *common.Address // The Ethereum address the call is to.
+	From                 *common.Address // The Zond address the call is from.
+	To                   *common.Address // The Zond address the call is to.
 	Gas                  *Long           // The amount of gas provided for the call.
-	GasPrice             *hexutil.Big    // The price of each unit of gas, in wei.
-	MaxFeePerGas         *hexutil.Big    // The max price of each unit of gas, in wei (1559).
-	MaxPriorityFeePerGas *hexutil.Big    // The max tip of each unit of gas, in wei (1559).
+	MaxFeePerGas         *hexutil.Big    // The max price of each unit of gas, in wei.
+	MaxPriorityFeePerGas *hexutil.Big    // The max tip of each unit of gas, in wei.
 	Value                *hexutil.Big    // The value sent along with the call.
 	Data                 *hexutil.Bytes  // Any data sent with the call.
 }

@@ -47,7 +47,7 @@ func (h *zondHandler) PeerInfo(id enode.ID) interface{} {
 // AcceptTxs retrieves whether transaction processing is enabled on the node
 // or if inbound transactions should simply be dropped.
 func (h *zondHandler) AcceptTxs() bool {
-	return h.acceptTxs.Load()
+	return h.synced.Load()
 }
 
 // Handle is invoked from a peer's message handler when it receives a new remote
@@ -55,16 +55,13 @@ func (h *zondHandler) AcceptTxs() bool {
 func (h *zondHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
 	// Consume any broadcasts and announces, forwarding the rest to the downloader
 	switch packet := packet.(type) {
-	case *zond.NewPooledTransactionHashesPacket66:
-		return h.txFetcher.Notify(peer.ID(), *packet)
-
-	case *zond.NewPooledTransactionHashesPacket68:
-		return h.txFetcher.Notify(peer.ID(), packet.Hashes)
+	case *zond.NewPooledTransactionHashesPacket:
+		return h.txFetcher.Notify(peer.ID(), packet.Types, packet.Sizes, packet.Hashes)
 
 	case *zond.TransactionsPacket:
 		return h.txFetcher.Enqueue(peer.ID(), *packet, false)
 
-	case *zond.PooledTransactionsPacket:
+	case *zond.PooledTransactionsResponse:
 		return h.txFetcher.Enqueue(peer.ID(), *packet, true)
 
 	default:

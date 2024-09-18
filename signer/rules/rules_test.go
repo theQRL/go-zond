@@ -422,16 +422,16 @@ func dummyTx(value hexutil.Big) *core.SignTxRequest {
 	from, _ := mixAddr("000000000000000000000000000000000000dead")
 	n := hexutil.Uint64(3)
 	gas := hexutil.Uint64(21000)
-	gasPrice := hexutil.Big(*big.NewInt(2000000))
+	maxFeePerGas := hexutil.Big(*big.NewInt(2000000))
 
 	return &core.SignTxRequest{
 		Transaction: apitypes.SendTxArgs{
-			From:     *from,
-			To:       to,
-			Value:    value,
-			Nonce:    n,
-			GasPrice: &gasPrice,
-			Gas:      gas,
+			From:         *from,
+			To:           to,
+			Value:        value,
+			Nonce:        n,
+			MaxFeePerGas: &maxFeePerGas,
+			Gas:          gas,
 		},
 		Callinfo: []apitypes.ValidationInfo{
 			{Typ: "Warning", Message: "All your base are belong to us"},
@@ -449,9 +449,16 @@ func dummyTxWithV(value uint64) *core.SignTxRequest {
 func dummySigned(value *big.Int) *types.Transaction {
 	to := common.HexToAddress("000000000000000000000000000000000000dead")
 	gas := uint64(21000)
-	gasPrice := big.NewInt(2000000)
+	gasFeeCap := big.NewInt(2000000)
 	data := make([]byte, 0)
-	return types.NewTransaction(3, to, value, gas, gasPrice, data)
+	return types.NewTx(&types.DynamicFeeTx{
+		Nonce:     3,
+		To:        &to,
+		Value:     value,
+		Gas:       gas,
+		GasFeeCap: gasFeeCap,
+		Data:      data,
+	})
 }
 
 func TestLimitWindow(t *testing.T) {

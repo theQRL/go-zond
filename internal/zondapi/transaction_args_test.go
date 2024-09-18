@@ -43,11 +43,10 @@ import (
 // TestSetFeeDefaults tests the logic for filling in default fee values works as expected.
 func TestSetFeeDefaults(t *testing.T) {
 	type test struct {
-		name     string
-		isLondon bool // TODO(rgeraldes24)
-		in       *TransactionArgs
-		want     *TransactionArgs
-		err      error
+		name string
+		in   *TransactionArgs
+		want *TransactionArgs
+		err  error
 	}
 
 	var (
@@ -58,141 +57,40 @@ func TestSetFeeDefaults(t *testing.T) {
 	)
 
 	tests := []test{
-		// Legacy txs
 		{
-			"legacy tx pre-London",
-			false,
-			&TransactionArgs{},
-			&TransactionArgs{GasPrice: fortytwo},
-			nil,
-		},
-		{
-			"legacy tx post-London, explicit gas price",
-			true,
-			&TransactionArgs{GasPrice: fortytwo},
-			&TransactionArgs{GasPrice: fortytwo},
-			nil,
-		},
-
-		// Access list txs
-		{
-			"access list tx pre-London",
-			false,
-			&TransactionArgs{AccessList: al},
-			&TransactionArgs{AccessList: al, GasPrice: fortytwo},
-			nil,
-		},
-		{
-			"access list tx post-London, explicit gas price",
-			false,
-			&TransactionArgs{AccessList: al, GasPrice: fortytwo},
-			&TransactionArgs{AccessList: al, GasPrice: fortytwo},
-			nil,
-		},
-		{
-			"access list tx post-London",
-			true,
+			"dynamic tx",
 			&TransactionArgs{AccessList: al},
 			&TransactionArgs{AccessList: al, MaxFeePerGas: maxFee, MaxPriorityFeePerGas: fortytwo},
 			nil,
 		},
 		{
-			"access list tx post-London, only max fee",
-			true,
-			&TransactionArgs{AccessList: al, MaxFeePerGas: maxFee},
-			&TransactionArgs{AccessList: al, MaxFeePerGas: maxFee, MaxPriorityFeePerGas: fortytwo},
-			nil,
-		},
-		{
-			"access list tx post-London, only priority fee",
-			true,
-			&TransactionArgs{AccessList: al, MaxFeePerGas: maxFee},
-			&TransactionArgs{AccessList: al, MaxFeePerGas: maxFee, MaxPriorityFeePerGas: fortytwo},
-			nil,
-		},
-
-		// Dynamic fee txs
-		{
-			"dynamic tx post-London",
-			true,
-			&TransactionArgs{},
-			&TransactionArgs{MaxFeePerGas: maxFee, MaxPriorityFeePerGas: fortytwo},
-			nil,
-		},
-		{
-			"dynamic tx post-London, only max fee",
-			true,
+			"dynamic tx, only max fee",
 			&TransactionArgs{MaxFeePerGas: maxFee},
 			&TransactionArgs{MaxFeePerGas: maxFee, MaxPriorityFeePerGas: fortytwo},
 			nil,
 		},
 		{
-			"dynamic tx post-London, only priority fee",
-			true,
+			"dynamic tx, only priority fee",
 			&TransactionArgs{MaxFeePerGas: maxFee},
 			&TransactionArgs{MaxFeePerGas: maxFee, MaxPriorityFeePerGas: fortytwo},
 			nil,
-		},
-		{
-			"dynamic fee tx pre-London, maxFee set",
-			false,
-			&TransactionArgs{MaxFeePerGas: maxFee},
-			nil,
-			errors.New("maxFeePerGas and maxPriorityFeePerGas are not valid before London is active"),
-		},
-		{
-			"dynamic fee tx pre-London, priorityFee set",
-			false,
-			&TransactionArgs{MaxPriorityFeePerGas: fortytwo},
-			nil,
-			errors.New("maxFeePerGas and maxPriorityFeePerGas are not valid before London is active"),
 		},
 		{
 			"dynamic fee tx, maxFee < priorityFee",
-			true,
 			&TransactionArgs{MaxFeePerGas: maxFee, MaxPriorityFeePerGas: (*hexutil.Big)(big.NewInt(1000))},
 			nil,
 			errors.New("maxFeePerGas (0x3e) < maxPriorityFeePerGas (0x3e8)"),
 		},
 		{
 			"dynamic fee tx, maxFee < priorityFee while setting default",
-			true,
 			&TransactionArgs{MaxFeePerGas: (*hexutil.Big)(big.NewInt(7))},
 			nil,
 			errors.New("maxFeePerGas (0x7) < maxPriorityFeePerGas (0x2a)"),
-		},
-
-		// Misc
-		{
-			"set all fee parameters",
-			false,
-			&TransactionArgs{GasPrice: fortytwo, MaxFeePerGas: maxFee, MaxPriorityFeePerGas: fortytwo},
-			nil,
-			errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified"),
-		},
-		{
-			"set gas price and maxPriorityFee",
-			false,
-			&TransactionArgs{GasPrice: fortytwo, MaxPriorityFeePerGas: fortytwo},
-			nil,
-			errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified"),
-		},
-		{
-			"set gas price and maxFee",
-			true,
-			&TransactionArgs{GasPrice: fortytwo, MaxFeePerGas: maxFee},
-			nil,
-			errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified"),
 		},
 	}
 
 	ctx := context.Background()
 	for i, test := range tests {
-		if test.isLondon {
-			b.activateLondon()
-		} else {
-			b.deactivateLondon()
-		}
 		got := test.in
 		err := got.setFeeDefaults(ctx, b)
 		if err != nil && err.Error() == test.err.Error() {
@@ -229,13 +127,6 @@ func newBackendMock() *backendMock {
 	}
 }
 
-func (b *backendMock) activateLondon() {
-	b.current.Number = big.NewInt(1100)
-}
-
-func (b *backendMock) deactivateLondon() {
-	b.current.Number = big.NewInt(900)
-}
 func (b *backendMock) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	return big.NewInt(42), nil
 }
@@ -282,15 +173,15 @@ func (b *backendMock) StateAndHeaderByNumber(ctx context.Context, number rpc.Blo
 func (b *backendMock) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error) {
 	return nil, nil, nil
 }
-func (b *backendMock) PendingBlockAndReceipts() (*types.Block, types.Receipts) { return nil, nil }
+func (b *backendMock) Pending() (*types.Block, types.Receipts, *state.StateDB) { return nil, nil, nil }
 func (b *backendMock) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	return nil, nil
 }
 func (b *backendMock) GetLogs(ctx context.Context, blockHash common.Hash, number uint64) ([][]*types.Log, error) {
 	return nil, nil
 }
-func (b *backendMock) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) (*vm.EVM, func() error) {
-	return nil, nil
+func (b *backendMock) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) *vm.EVM {
+	return nil
 }
 func (b *backendMock) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription { return nil }
 func (b *backendMock) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
@@ -319,9 +210,6 @@ func (b *backendMock) SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscr
 func (b *backendMock) BloomStatus() (uint64, uint64)                                        { return 0, 0 }
 func (b *backendMock) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {}
 func (b *backendMock) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription         { return nil }
-func (b *backendMock) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
-	return nil
-}
 func (b *backendMock) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
 	return nil
 }

@@ -38,11 +38,11 @@ func BenchmarkTransactionTrace(b *testing.B) {
 	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
 	signer := types.LatestSignerForChainID(big.NewInt(1337))
 	tx, err := types.SignNewTx(key, signer,
-		&types.LegacyTx{
-			Nonce:    1,
-			GasPrice: big.NewInt(500),
-			Gas:      gas,
-			To:       &to,
+		&types.DynamicFeeTx{
+			Nonce:     1,
+			GasFeeCap: big.NewInt(500),
+			Gas:       gas,
+			To:        &to,
 		})
 	if err != nil {
 		b.Fatal(err)

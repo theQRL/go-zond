@@ -16,6 +16,8 @@
 
 package zondtest
 
+// TODO(now.youtrack.cloud/issue/TGZ-6)
+/*
 import (
 	"bytes"
 	"errors"
@@ -58,7 +60,7 @@ type accRangeTest struct {
 func (s *Suite) TestSnapGetAccountRange(t *utesting.T) {
 	var (
 		root           = s.chain.RootAt(999)
-		ffHash         = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+		ffHash         = common.MaxHash
 		zero           = common.Hash{}
 		firstKeyMinus1 = common.HexToHash("0x00bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf29")
 		firstKey       = common.HexToHash("0x00bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a")
@@ -125,7 +127,7 @@ type stRangesTest struct {
 // TestSnapGetStorageRanges various forms of GetStorageRanges requests.
 func (s *Suite) TestSnapGetStorageRanges(t *utesting.T) {
 	var (
-		ffHash    = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+		ffHash    = common.MaxHash
 		zero      = common.Hash{}
 		firstKey  = common.HexToHash("0x00bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a")
 		secondKey = common.HexToHash("0x09e47cd5056a689e708f22fe1f932709a320518e444f5f7d8d46a3da523d6606")
@@ -139,8 +141,6 @@ func (s *Suite) TestSnapGetStorageRanges(t *utesting.T) {
 			nBytes:   500,
 			expSlots: 0,
 		},
-
-		/*
 			Some tests against this account:
 			{
 			  "balance": "0",
@@ -154,7 +154,7 @@ func (s *Suite) TestSnapGetStorageRanges(t *utesting.T) {
 			  },
 			  "key": "0xf493f79c43bd747129a226ad42529885a4b108aba6046b2d12071695a6627844"
 			}
-		*/
+
 		{ // [:] -> [slot1, slot2, slot3]
 			root:     s.chain.RootAt(999),
 			accounts: []common.Hash{common.HexToHash("0xf493f79c43bd747129a226ad42529885a4b108aba6046b2d12071695a6627844")},
@@ -434,7 +434,7 @@ func (s *Suite) TestSnapTrieNodes(t *utesting.T) {
 			},
 		},
 		{
-			/*
+
 				A test against this account, requesting trie nodes for the storage trie
 				{
 				  "balance": "0",
@@ -448,7 +448,7 @@ func (s *Suite) TestSnapTrieNodes(t *utesting.T) {
 				  },
 				  "key": "0xf493f79c43bd747129a226ad42529885a4b108aba6046b2d12071695a6627844"
 				}
-			*/
+
 			root: s.chain.RootAt(999),
 			paths: []snap.TrieNodePathSet{
 				{
@@ -700,3 +700,4 @@ func (s *Suite) snapGetTrieNodes(t *utesting.T, tc *trieNodesTest) error {
 	}
 	return err
 }
+*/

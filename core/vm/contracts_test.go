@@ -212,7 +212,7 @@ func BenchmarkPrecompiledBn256ScalarMul(b *testing.B) { benchJson("bn256ScalarMu
 func TestPrecompiledBn256Pairing(t *testing.T)      { testJson("bn256Pairing", "08", t) }
 func BenchmarkPrecompiledBn256Pairing(b *testing.B) { benchJson("bn256Pairing", "08", b) }
 
-// TODO(rgeraldes24)
+// TODO(now.youtrack.cloud/issue/TGZ-5)
 // func TestPrecompiledDepositroot(t *testing.T) { testJson("depositRoot", "01", t) }
 
 func testJson(name, addr string, t *testing.T) {
@@ -247,8 +247,6 @@ func benchJson(name, addr string, b *testing.B) {
 		benchmarkPrecompiled(addr, test, b)
 	}
 }
-
-func TestPrecompiledPointEvaluation(t *testing.T) { testJson("pointEvaluation", "0a", t) }
 
 // Failure tests
 

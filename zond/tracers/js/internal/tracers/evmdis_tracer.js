@@ -47,7 +47,7 @@
 					prevop.result.push(log.stack.peek(i).toString(16));
 			}
 			switch(log.op.toString()) {
-			case "CALL": case "CALLCODE":
+			case "CALL":
 				var instart = log.stack.peek(3).valueOf();
 				var insize = log.stack.peek(4).valueOf();
 				opinfo["gas"] = log.stack.peek(0).valueOf();

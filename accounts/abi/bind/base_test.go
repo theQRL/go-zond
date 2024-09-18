@@ -325,25 +325,6 @@ func TestTransactGasFee(t *testing.T) {
 	assert.Equal(big.NewInt(6), tx.GasTipCap())
 	assert.Equal(big.NewInt(206), tx.GasFeeCap())
 	assert.True(mt.suggestGasTipCapCalled)
-
-	// GasPrice
-	// When opts.GasPrice is nil
-	mt = &mockTransactor{gasPrice: big.NewInt(5)}
-	bc = bind.NewBoundContract(common.Address{}, abi.ABI{}, nil, mt, nil)
-	opts = &bind.TransactOpts{Signer: mockSign}
-	tx, err = bc.Transact(opts, "")
-	assert.Nil(err)
-	assert.Equal(big.NewInt(5), tx.GasPrice())
-	assert.Nil(opts.GasPrice)
-	assert.True(mt.suggestGasPriceCalled)
-
-	// Second call to Transact should use latest suggested GasPrice
-	mt.gasPrice = big.NewInt(6)
-	mt.suggestGasPriceCalled = false
-	tx, err = bc.Transact(opts, "")
-	assert.Nil(err)
-	assert.Equal(big.NewInt(6), tx.GasPrice())
-	assert.True(mt.suggestGasPriceCalled)
 }
 
 func unpackAndCheck(t *testing.T, bc *bind.BoundContract, expected map[string]interface{}, mockLog types.Log) {

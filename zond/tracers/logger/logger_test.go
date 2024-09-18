@@ -23,7 +23,9 @@ import (
 	"testing"
 
 	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
+	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/params"
 )
@@ -54,10 +56,12 @@ func (*dummyStatedb) SetState(_ common.Address, _ common.Hash, _ common.Hash) {}
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		logger   = NewStructLogger(nil)
-		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, &dummyStatedb{}, params.TestChainConfig, vm.Config{Tracer: logger})
-		contract = vm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 100000)
+		logger     = NewStructLogger(nil)
+		statedb, _ = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		env        = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, &dummyStatedb{StateDB: *statedb}, params.TestChainConfig, vm.Config{Tracer: logger})
+		contract   = vm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 100000)
 	)
+	statedb.AddAddressToAccessList(contract.Address())
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x0, byte(vm.SSTORE)}
 	var index common.Hash
 	logger.CaptureStart(env, common.Address{}, contract.Address(), false, nil, 0, nil)

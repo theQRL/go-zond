@@ -25,7 +25,7 @@ type OpCode byte
 
 // IsPush specifies if an opcode is a PUSH opcode.
 func (op OpCode) IsPush() bool {
-	return PUSH1 <= op && op <= PUSH32
+	return PUSH0 <= op && op <= PUSH32
 }
 
 // 0x0 range - arithmetic ops.
@@ -115,8 +115,6 @@ const (
 	MSIZE    OpCode = 0x59
 	GAS      OpCode = 0x5a
 	JUMPDEST OpCode = 0x5b
-	TLOAD    OpCode = 0x5c
-	TSTORE   OpCode = 0x5d
 	MCOPY    OpCode = 0x5e
 	PUSH0    OpCode = 0x5f
 )
@@ -210,7 +208,6 @@ const (
 const (
 	CREATE       OpCode = 0xf0
 	CALL         OpCode = 0xf1
-	CALLCODE     OpCode = 0xf2
 	RETURN       OpCode = 0xf3
 	DELEGATECALL OpCode = 0xf4
 	CREATE2      OpCode = 0xf5
@@ -298,8 +295,6 @@ var opCodeToString = map[OpCode]string{
 	MSIZE:    "MSIZE",
 	GAS:      "GAS",
 	JUMPDEST: "JUMPDEST",
-	TLOAD:    "TLOAD",
-	TSTORE:   "TSTORE",
 	MCOPY:    "MCOPY",
 	PUSH0:    "PUSH0",
 
@@ -384,7 +379,6 @@ var opCodeToString = map[OpCode]string{
 	CREATE:       "CREATE",
 	CALL:         "CALL",
 	RETURN:       "RETURN",
-	CALLCODE:     "CALLCODE",
 	DELEGATECALL: "DELEGATECALL",
 	CREATE2:      "CREATE2",
 	STATICCALL:   "STATICCALL",
@@ -469,8 +463,6 @@ var stringToOp = map[string]OpCode{
 	"MSIZE":          MSIZE,
 	"GAS":            GAS,
 	"JUMPDEST":       JUMPDEST,
-	"TLOAD":          TLOAD,
-	"TSTORE":         TSTORE,
 	"MCOPY":          MCOPY,
 	"PUSH0":          PUSH0,
 	"PUSH1":          PUSH1,
@@ -546,7 +538,6 @@ var stringToOp = map[string]OpCode{
 	"CREATE2":        CREATE2,
 	"CALL":           CALL,
 	"RETURN":         RETURN,
-	"CALLCODE":       CALLCODE,
 	"REVERT":         REVERT,
 	"INVALID":        INVALID,
 	"SELFDESTRUCT":   SELFDESTRUCT,

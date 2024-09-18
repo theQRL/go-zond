@@ -72,8 +72,17 @@ func TestGenerateWithdrawalChain(t *testing.T) {
 	genesis := gspec.MustCommit(gendb, trie.NewDatabase(gendb, trie.HashDefaults))
 
 	chain, _ := GenerateChain(gspec.Config, genesis, beacon.NewFaker(), gendb, 4, func(i int, gen *BlockGen) {
-		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(address), address, big.NewInt(1000), params.TxGas, new(big.Int).Add(gen.BaseFee(), common.Big1), nil), signer, key)
-		gen.AddTx(tx)
+		to := common.Address(address)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     gen.TxNonce(address),
+			To:        &to,
+			Value:     big.NewInt(1000),
+			Gas:       params.TxGas,
+			GasFeeCap: new(big.Int).Add(gen.BaseFee(), common.Big1),
+			Data:      nil,
+		})
+		signedTx, _ := types.SignTx(tx, signer, key)
+		gen.AddTx(signedTx)
 		if i == 1 {
 			gen.AddWithdrawal(&types.Withdrawal{
 				Validator: 42,
@@ -101,7 +110,7 @@ func TestGenerateWithdrawalChain(t *testing.T) {
 	})
 
 	// Import the chain. This runs all block validation rules.
-	blockchain, _ := NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil)
 	defer blockchain.Stop()
 
 	if i, err := blockchain.InsertChain(chain); err != nil {
@@ -145,28 +154,58 @@ func ExampleGenerateChain() {
 
 	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
-		Config: &params.ChainConfig{},
-		Alloc:  GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
+		Config: &params.ChainConfig{
+			ChainID: big.NewInt(1),
+		},
+		Alloc: GenesisAlloc{addr1: {Balance: big.NewInt(2000000000000000)}},
 	}
 	genesis := gspec.MustCommit(genDb, trie.NewDatabase(genDb, trie.HashDefaults))
 
 	// This call generates a chain of 5 blocks. The function runs for
 	// each block and adds different features to gen based on the
 	// block index.
-	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(1)}
 	chain, _ := GenerateChain(gspec.Config, genesis, beacon.NewFaker(), genDb, 5, func(i int, gen *BlockGen) {
 		switch i {
 		case 0:
 			// In block 1, addr1 sends addr2 some ether.
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
-			gen.AddTx(tx)
+			to := common.Address(addr2)
+			tx := types.NewTx(&types.DynamicFeeTx{
+				Nonce:     gen.TxNonce(addr1),
+				To:        &to,
+				Value:     big.NewInt(10000000000000),
+				Gas:       params.TxGas,
+				GasFeeCap: gen.header.BaseFee,
+				Data:      nil,
+			})
+			signedTx, _ := types.SignTx(tx, signer, key1)
+			gen.AddTx(signedTx)
+
 		case 1:
 			// In block 2, addr1 sends some more ether to addr2.
 			// addr2 passes it on to addr3.
-			tx1, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(1000), params.TxGas, nil, nil), signer, key1)
-			tx2, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr2), addr3, big.NewInt(1000), params.TxGas, nil, nil), signer, key2)
-			gen.AddTx(tx1)
-			gen.AddTx(tx2)
+			to2 := common.Address(addr2)
+			to3 := common.Address(addr3)
+			tx1 := types.NewTx(&types.DynamicFeeTx{
+				Nonce:     gen.TxNonce(addr1),
+				To:        &to2,
+				Value:     big.NewInt(10000000000000),
+				Gas:       params.TxGas,
+				GasFeeCap: gen.header.BaseFee,
+				Data:      nil,
+			})
+			tx2 := types.NewTx(&types.DynamicFeeTx{
+				Nonce:     gen.TxNonce(addr2),
+				To:        &to3,
+				Value:     big.NewInt(10000000),
+				Gas:       params.TxGas,
+				GasFeeCap: gen.header.BaseFee,
+				Data:      nil,
+			})
+			signedTx1, _ := types.SignTx(tx1, signer, key1)
+			signedTx2, _ := types.SignTx(tx2, signer, key2)
+			gen.AddTx(signedTx1)
+			gen.AddTx(signedTx2)
 		case 2:
 			// Block 3 is empty but was mined by addr3.
 			gen.SetCoinbase(addr3)
@@ -181,7 +220,7 @@ func ExampleGenerateChain() {
 	})
 
 	// Import the chain. This runs all block validation rules.
-	blockchain, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(rawdb.HashScheme), gspec, beacon.NewFaker(), vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(rawdb.HashScheme), gspec, beacon.NewFaker(), vm.Config{}, nil)
 	defer blockchain.Stop()
 
 	if i, err := blockchain.InsertChain(chain); err != nil {
@@ -196,7 +235,7 @@ func ExampleGenerateChain() {
 	fmt.Println("balance of addr3:", state.GetBalance(addr3))
 	// Output:
 	// last block: #5
-	// balance of addr1: 989000
-	// balance of addr2: 10000
-	// balance of addr3: 19687500000000001000
+	// balance of addr1: 1945526403675000
+	// balance of addr2: 3901393675000
+	// balance of addr3: 10000000
 }

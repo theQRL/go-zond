@@ -31,6 +31,8 @@ import (
 	"github.com/theQRL/go-zond/accounts/external"
 	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/cmd/utils"
+	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/theQRL/go-zond/internal/version"
 	"github.com/theQRL/go-zond/internal/zondapi"
@@ -39,7 +41,6 @@ import (
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/zond/catalyst"
-	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/zond/zondconfig"
 	"github.com/urfave/cli/v2"
 )
@@ -120,7 +121,7 @@ func defaultNodeConfig() node.Config {
 	return cfg
 }
 
-// loadBaseConfig loads the gethConfig based on the given command line
+// loadBaseConfig loads the gzondConfig based on the given command line
 // parameters and config file.
 func loadBaseConfig(ctx *cli.Context) gzondConfig {
 	// Load defaults.
@@ -163,7 +164,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gzondConfig) {
 	return stack, cfg
 }
 
-// makeFullNode loads gzond configuration and creates the Ethereum backend.
+// makeFullNode loads gzond configuration and creates the Zond backend.
 func makeFullNode(ctx *cli.Context) (*node.Node, zondapi.Backend) {
 	stack, cfg := makeConfigNode(ctx)
 	backend, zond := utils.RegisterZondService(stack, &cfg.Zond)
@@ -190,14 +191,18 @@ func makeFullNode(ctx *cli.Context) (*node.Node, zondapi.Backend) {
 		utils.RegisterGraphQLService(stack, backend, filterSystem, &cfg.Node)
 	}
 
-	// Add the Ethereum Stats daemon if requested.
+	// Add the Zond Stats daemon if requested.
 	if cfg.Zondstats.URL != "" {
 		utils.RegisterZondStatsService(stack, backend, cfg.Zondstats.URL)
 	}
 
 	// Configure full-sync tester service if requested
-	if ctx.IsSet(utils.SyncTargetFlag.Name) && cfg.Zond.SyncMode == downloader.FullSync {
-		utils.RegisterFullSyncTester(stack, zond, ctx.Path(utils.SyncTargetFlag.Name))
+	if ctx.IsSet(utils.SyncTargetFlag.Name) {
+		hex := hexutil.MustDecode(ctx.String(utils.SyncTargetFlag.Name))
+		if len(hex) != common.HashLength {
+			utils.Fatalf("invalid sync target length: have %d, want %d", len(hex), common.HashLength)
+		}
+		utils.RegisterFullSyncTester(stack, zond, common.BytesToHash(hex))
 	}
 
 	// Start the dev mode if requested, or launch the engine API for
@@ -293,7 +298,10 @@ func applyMetricConfig(ctx *cli.Context, cfg *gzondConfig) {
 }
 
 func deprecated(field string) bool {
-	return false
+	switch field {
+	default:
+		return false
+	}
 }
 
 func setAccountManagerBackends(conf *node.Config, am *accounts.Manager, keydir string) error {
@@ -320,7 +328,7 @@ func setAccountManagerBackends(conf *node.Config, am *accounts.Manager, keydir s
 	// we can have both, but it's very confusing for the user to see the same
 	// accounts in both externally and locally, plus very racey.
 	am.AddBackend(keystore.NewKeyStore(keydir, scryptN, scryptP))
-	// TODO(rgeraldes24)
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
 	/*
 		if conf.USB {
 			// Start a USB hub for Ledger hardware wallets

@@ -19,7 +19,7 @@ package graphql
 const schema string = `
     # Bytes32 is a 32 byte binary string, represented as 0x-prefixed hexadecimal.
     scalar Bytes32
-    # Address is a 20 byte Ethereum address, represented as 0x-prefixed hexadecimal.
+    # Address is a 20 byte Zond address, represented as 0x-prefixed hexadecimal.
     scalar Address
     # Bytes is an arbitrary length binary string, represented as 0x-prefixed hexadecimal.
     # An empty byte string is represented as '0x'. Byte strings must have an even number of hexadecimal nybbles.
@@ -38,7 +38,7 @@ const schema string = `
         mutation: Mutation
     }
 
-    # Account is an Ethereum account at a particular block.
+    # Account is a Zond account at a particular block.
     type Account {
         # Address is the address owning the account.
         address: Address!
@@ -56,7 +56,7 @@ const schema string = `
         storage(slot: Bytes32!): Bytes32!
     }
 
-    # Log is an Ethereum event log.
+    # Log is a Zond event log.
     type Log {
         # Index is the index of this log in the block.
         index: Long!
@@ -71,13 +71,11 @@ const schema string = `
         transaction: Transaction!
     }
 
-    # EIP-2718
     type AccessTuple {
         address: Address!
         storageKeys : [Bytes32!]!
     }
 
-    # EIP-4895
     type Withdrawal {
         # Index is a monotonically increasing identifier issued by consensus layer.
         index: Long!
@@ -89,7 +87,7 @@ const schema string = `
         amount: Long!
     }
 
-    # Transaction is an Ethereum transaction.
+    # Transaction is a Zond transaction.
     type Transaction {
         # Hash is the hash of this transaction.
         hash: Bytes32!
@@ -106,8 +104,6 @@ const schema string = `
         to(block: Long): Account
         # Value is the value, in wei, sent along with this transaction.
         value: BigInt!
-        # GasPrice is the price offered to miners for gas, in wei per unit.
-        gasPrice: BigInt!
         # MaxFeePerGas is the maximum fee per gas offered to include a transaction, in wei.
         maxFeePerGas: BigInt
         # MaxPriorityFeePerGas is the maximum miner tip per gas offered to include a transaction, in wei.
@@ -135,11 +131,8 @@ const schema string = `
         # will be null.
         cumulativeGasUsed: Long
         # EffectiveGasPrice is actual value per gas deducted from the sender's
-        # account. Before EIP-1559, this is equal to the transaction's gas price.
-        # After EIP-1559, it is baseFeePerGas + min(maxFeePerGas - baseFeePerGas,
-        # maxPriorityFeePerGas). Legacy transactions and EIP-2930 transactions are
-        # coerced into the EIP-1559 format by setting both maxFeePerGas and
-        # maxPriorityFeePerGas as the transaction's gas price.
+        # account. It is baseFeePerGas + min(maxFeePerGas - baseFeePerGas, 
+        # maxPriorityFeePerGas). 
         effectiveGasPrice: BigInt
         # CreatedContract is the account that was created by a contract creation
         # transaction. If the transaction was not a contract creation transaction,
@@ -148,19 +141,15 @@ const schema string = `
         # Logs is a list of log entries emitted by this transaction. If the
         # transaction has not yet been mined, this field will be null.
         logs: [Log!]
-        r: BigInt!
-        s: BigInt!
-        v: BigInt!
-        yParity: Long
+        publicKey: Bytes!
+        signature: Bytes!
         # Envelope transaction support
         type: Long
         accessList: [AccessTuple!]
-        # Raw is the canonical encoding of the transaction.
-        # For legacy transactions, it returns the RLP encoding.
-        # For EIP-2718 typed transactions, it returns the type and payload.
+        # Raw is the canonical encoding of the transaction: it returns the type and payload.
         raw: Bytes!
-        # RawReceipt is the canonical encoding of the receipt. For post EIP-2718 typed transactions
-        # this is equivalent to TxType || ReceiptEncoding.
+        # RawReceipt is the canonical encoding of the receipt: this is equivalent to 
+        # TxType || ReceiptEncoding.
         rawReceipt: Bytes!
     }
 
@@ -184,7 +173,7 @@ const schema string = `
         topics: [[Bytes32!]!]
     }
 
-    # Block is an Ethereum block.
+    # Block is a Zond block.
     type Block {
         # Number is the number of this block, starting at 0 for the genesis block.
         number: Long!
@@ -218,8 +207,8 @@ const schema string = `
         # LogsBloom is a bloom filter that can be used to check if a block may
         # contain log entries matching a filter.
         logsBloom: Bytes!
-        # MixHash is the hash that was used as an input to the PoW process.
-        mixHash: Bytes32!
+        # Random is the hash that was used as an input to the PoW process.
+        random: Bytes32!
         # Transactions is a list of transactions associated with this block. If
         # transactions are unavailable for this block, this field will be null.
         transactions: [Transaction!]
@@ -229,7 +218,7 @@ const schema string = `
         transactionAt(index: Long!): Transaction
         # Logs returns a filtered set of logs from this block.
         logs(filter: BlockFilterCriteria!): [Log!]!
-        # Account fetches an Ethereum account at the current block's state.
+        # Account fetches a Zond account at the current block's state.
         account(address: Address!): Account!
         # Call executes a local call operation at the current block's state.
         call(data: CallData!): CallResult
@@ -257,8 +246,6 @@ const schema string = `
         to: Address
         # Gas is the amount of gas sent with the call.
         gas: Long
-        # GasPrice is the price, in wei, offered for each unit of gas.
-        gasPrice: BigInt
         # MaxFeePerGas is the maximum fee per gas offered, in wei.
         maxFeePerGas: BigInt
         # MaxPriorityFeePerGas is the maximum miner tip per gas offered, in wei.
@@ -320,7 +307,7 @@ const schema string = `
         transactionCount: Long!
         # Transactions is a list of transactions in the current pending state.
         transactions: [Transaction!]
-        # Account fetches an Ethereum account for the pending state.
+        # Account fetches a Zond account for the pending state.
         account(address: Address!): Account!
         # Call executes a local call operation for the pending state.
         call(data: CallData!): CallResult
@@ -328,9 +315,9 @@ const schema string = `
         # successful execution of a transaction for the pending state.
         estimateGas(data: CallData!): Long!
     }
-
+    
     type Query {
-        # Block fetches an Ethereum block by number or by hash. If neither is
+        # Block fetches a Zond block by number or by hash. If neither is
         # supplied, the most recent known block is returned.
         block(number: Long, hash: Bytes32): Block
         # Blocks returns all the blocks between two numbers, inclusive. If

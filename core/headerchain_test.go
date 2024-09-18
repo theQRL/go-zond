@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
@@ -47,10 +46,10 @@ func verifyUnbrokenCanonchain(hc *HeaderChain) error {
 	return nil
 }
 
-func testInsert(t *testing.T, hc *HeaderChain, chain []*types.Header, wantStatus WriteStatus, wantErr error, forker *ForkChoice) {
+func testInsert(t *testing.T, hc *HeaderChain, chain []*types.Header, wantStatus WriteStatus, wantErr error) {
 	t.Helper()
 
-	status, err := hc.InsertHeaderChain(chain, time.Now(), forker)
+	status, err := hc.InsertHeaderChain(chain, time.Now())
 	if status != wantStatus {
 		t.Errorf("wrong write status from InsertHeaderChain: got %v, want %v", status, wantStatus)
 	}
@@ -63,6 +62,7 @@ func testInsert(t *testing.T, hc *HeaderChain, chain []*types.Header, wantStatus
 	}
 }
 
+/*
 // This test checks status reporting of InsertHeaderChain.
 func TestHeaderInsertion(t *testing.T) {
 	var (
@@ -109,4 +109,36 @@ func TestHeaderInsertion(t *testing.T) {
 
 	// And B becomes even longer
 	testInsert(t, hc, chainB[107:128], CanonStatTy, nil, forker)
+}
+*/
+
+// NOTE(rgeraldes24): the original test above is no longer valid
+// This test checks status reporting of InsertHeaderChain.
+func TestHeaderInsertion(t *testing.T) {
+	var (
+		db    = rawdb.NewMemoryDatabase()
+		gspec = &Genesis{BaseFee: big.NewInt(params.InitialBaseFee), Config: params.AllBeaconProtocolChanges}
+	)
+	gspec.Commit(db, trie.NewDatabase(db, nil))
+	hc, err := NewHeaderChain(db, gspec.Config, beacon.NewFaker(), func() bool { return false })
+	if err != nil {
+		t.Fatal(err)
+	}
+	// chain A: G->A1->A2...A128
+	_, chainA := makeHeaderChainWithGenesis(gspec, 128, beacon.NewFaker(), 10)
+
+	// Inserting 64 headers on an empty chain, expecting
+	// 1 callbacks, 1 canon-status, 0 sidestatus,
+	testInsert(t, hc, chainA[:64], CanonStatTy, nil)
+
+	// Inserting 64 identical headers, expecting
+	// 0 callbacks, 0 canon-status, 0 sidestatus,
+	testInsert(t, hc, chainA[:64], NonStatTy, nil)
+
+	// Inserting the same some old, some new headers
+	// 1 callbacks, 1 canon, 0 side
+	testInsert(t, hc, chainA[32:96], CanonStatTy, nil)
+
+	// Inserting more A-headers, taking back the canonicality
+	testInsert(t, hc, chainA[90:100], CanonStatTy, nil)
 }

@@ -36,24 +36,6 @@ func init() {
 	tracers.DefaultDirectory.Register("flatCallTracer", newFlatCallTracer, false)
 }
 
-var parityErrorMapping = map[string]string{
-	"contract creation code storage out of gas": "Out of gas",
-	"out of gas":                      "Out of gas",
-	"gas uint64 overflow":             "Out of gas",
-	"max code size exceeded":          "Out of gas",
-	"invalid jump destination":        "Bad jump destination",
-	"execution reverted":              "Reverted",
-	"return data out of bounds":       "Out of bounds",
-	"stack limit reached 1024 (1023)": "Out of stack",
-	"precompiled failed":              "Built-in failed",
-	"invalid input length":            "Built-in failed",
-}
-
-var parityErrorMappingStartingWith = map[string]string{
-	"invalid opcode:": "Bad instruction",
-	"stack underflow": "Stack underflow",
-}
-
 // flatCallFrame is a standalone callframe.
 type flatCallFrame struct {
 	Action              flatCallAction  `json:"action"`
@@ -116,8 +98,7 @@ type flatCallTracer struct {
 }
 
 type flatCallTracerConfig struct {
-	ConvertParityErrors bool `json:"convertParityErrors"` // If true, call tracer converts errors to parity format
-	IncludePrecompiles  bool `json:"includePrecompiles"`  // If true, call tracer includes calls to precompiled contracts
+	IncludePrecompiles bool `json:"includePrecompiles"` // If true, call tracer includes calls to precompiled contracts
 }
 
 // newFlatCallTracer returns a new flatCallTracer.
@@ -215,7 +196,7 @@ func (t *flatCallTracer) GetResult() (json.RawMessage, error) {
 		return nil, errors.New("invalid number of calls")
 	}
 
-	flat, err := flatFromNested(&t.tracer.callstack[0], []int{}, t.config.ConvertParityErrors, t.ctx)
+	flat, err := flatFromNested(&t.tracer.callstack[0], []int{}, t.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -242,14 +223,14 @@ func (t *flatCallTracer) isPrecompiled(addr common.Address) bool {
 	return false
 }
 
-func flatFromNested(input *callFrame, traceAddress []int, convertErrs bool, ctx *tracers.Context) (output []flatCallFrame, err error) {
+func flatFromNested(input *callFrame, traceAddress []int, ctx *tracers.Context) (output []flatCallFrame, err error) {
 	var frame *flatCallFrame
 	switch input.Type {
 	case vm.CREATE, vm.CREATE2:
 		frame = newFlatCreate(input)
 	case vm.SELFDESTRUCT:
 		frame = newFlatSelfdestruct(input)
-	case vm.CALL, vm.STATICCALL, vm.CALLCODE, vm.DELEGATECALL:
+	case vm.CALL, vm.STATICCALL, vm.DELEGATECALL:
 		frame = newFlatCall(input)
 	default:
 		return nil, fmt.Errorf("unrecognized call frame type: %s", input.Type)
@@ -259,9 +240,6 @@ func flatFromNested(input *callFrame, traceAddress []int, convertErrs bool, ctx 
 	frame.Error = input.Error
 	frame.Subtraces = len(input.Calls)
 	fillCallFrameFromContext(frame, ctx)
-	if convertErrs {
-		convertErrorToParity(frame)
-	}
 
 	// Revert output contains useful information (revert reason).
 	// Otherwise discard result.
@@ -274,7 +252,7 @@ func flatFromNested(input *callFrame, traceAddress []int, convertErrs bool, ctx 
 		for i, childCall := range input.Calls {
 			childAddr := childTraceAddress(traceAddress, i)
 			childCallCopy := childCall
-			flat, err := flatFromNested(&childCallCopy, childAddr, convertErrs, ctx)
+			flat, err := flatFromNested(&childCallCopy, childAddr, ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -355,22 +333,6 @@ func fillCallFrameFromContext(callFrame *flatCallFrame, ctx *tracers.Context) {
 		callFrame.TransactionHash = &ctx.TxHash
 	}
 	callFrame.TransactionPosition = uint64(ctx.TxIndex)
-}
-
-func convertErrorToParity(call *flatCallFrame) {
-	if call.Error == "" {
-		return
-	}
-
-	if parityError, ok := parityErrorMapping[call.Error]; ok {
-		call.Error = parityError
-	} else {
-		for gzondError, parityError := range parityErrorMappingStartingWith {
-			if strings.HasPrefix(call.Error, gzondError) {
-				call.Error = parityError
-			}
-		}
-	}
 }
 
 func childTraceAddress(a []int, i int) []int {

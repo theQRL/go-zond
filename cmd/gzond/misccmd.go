@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	// TODO(theQRL/go-zond/issues/36)
+	// TODO(now.youtrack.cloud/issue/TGZ-17)
 	VersionCheckUrlFlag = &cli.StringFlag{
 		Name:  "check.url",
 		Usage: "URL to use when checking vulnerabilities",

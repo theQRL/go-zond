@@ -31,10 +31,7 @@ import (
 )
 
 // sign receives a request and produces a signature
-//
-// Note, the produced signature conforms to the secp256k1 curve R, S and V values,
-// where the V value will be 27 or 28 for legacy reasons, if legacyV==true.
-func (api *SignerAPI) sign(req *SignDataRequest, legacyV bool) (hexutil.Bytes, error) {
+func (api *SignerAPI) sign(req *SignDataRequest) (hexutil.Bytes, error) {
 	// We make the request prior to looking up if we actually have the account, to prevent
 	// account-enumeration via the API
 	res, err := api.UI.ApproveSignData(req)
@@ -61,9 +58,6 @@ func (api *SignerAPI) sign(req *SignDataRequest, legacyV bool) (hexutil.Bytes, e
 	if err != nil {
 		return nil, err
 	}
-	if legacyV {
-		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
-	}
 	return signature, nil
 }
 
@@ -72,11 +66,11 @@ func (api *SignerAPI) sign(req *SignDataRequest, legacyV bool) (hexutil.Bytes, e
 //
 // Different types of validation occur.
 func (api *SignerAPI) SignData(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (hexutil.Bytes, error) {
-	var req, transformV, err = api.determineSignatureFormat(ctx, contentType, addr, data)
+	var req, err = api.determineSignatureFormat(ctx, contentType, addr, data)
 	if err != nil {
 		return nil, err
 	}
-	signature, err := api.sign(req, transformV)
+	signature, err := api.sign(req)
 	if err != nil {
 		api.UI.ShowError(err.Error())
 		return nil, err
@@ -90,14 +84,12 @@ func (api *SignerAPI) SignData(ctx context.Context, contentType string, addr com
 // charset, ok := params["charset"]
 // As it is now, we accept any charset and just treat it as 'raw'.
 // This method returns the mimetype for signing along with the request
-func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (*SignDataRequest, bool, error) {
-	var (
-		req          *SignDataRequest
-		useEthereumV = true // Default to use V = 27 or 28, the legacy Ethereum format
-	)
+func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (*SignDataRequest, error) {
+	var req *SignDataRequest
+
 	mediaType, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return nil, useEthereumV, err
+		return nil, err
 	}
 
 	switch mediaType {
@@ -105,7 +97,7 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 		// Data with an intended validator
 		validatorData, err := UnmarshalValidatorData(data)
 		if err != nil {
-			return nil, useEthereumV, err
+			return nil, err
 		}
 		sighash, msg := SignTextValidator(validatorData)
 		messages := []*apitypes.NameValueType{
@@ -136,15 +128,15 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 		var err error
 		req, err = typedDataRequest(data)
 		if err != nil {
-			return nil, useEthereumV, err
+			return nil, err
 		}
 	default: // also case TextPlain.Mime:
-		// Calculates an Ethereum ECDSA signature for:
-		// hash = keccak256("\x19Ethereum Signed Message:\n${message length}${message}")
+		// Calculates a Zond Dilithium signature for:
+		// hash = keccak256("\x19Zond Signed Message:\n${message length}${message}")
 		// We expect input to be a hex-encoded string
 		textData, err := fromHex(data)
 		if err != nil {
-			return nil, useEthereumV, err
+			return nil, err
 		}
 		sighash, msg := accounts.TextAndHash(textData)
 		messages := []*apitypes.NameValueType{
@@ -158,7 +150,7 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 	}
 	req.Address = addr
 	req.Meta = MetadataFromContext(ctx)
-	return req, useEthereumV, nil
+	return req, nil
 }
 
 // SignTextValidator signs the given message which can be further recovered
@@ -192,7 +184,7 @@ func (api *SignerAPI) signTypedData(ctx context.Context, addr common.MixedcaseAd
 	if validationMessages != nil {
 		req.Callinfo = validationMessages.Messages
 	}
-	signature, err := api.sign(req, true)
+	signature, err := api.sign(req)
 	if err != nil {
 		api.UI.ShowError(err.Error())
 		return nil, nil, err

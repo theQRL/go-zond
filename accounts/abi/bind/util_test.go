@@ -42,13 +42,13 @@ var waitDeployedTests = map[string]struct {
 	"successful deploy": {
 		code:        `6060604052600a8060106000396000f360606040526008565b00`,
 		gas:         3000000,
-		wantAddress: common.HexToAddress("0x3a220f351252089d385b29beca14e27f204c296a"),
+		wantAddress: common.HexToAddress("0xfe66B8AED6e4fb3e12d0B65f61ef246c4d0CfFFA"),
 	},
 	"empty code": {
 		code:        ``,
 		gas:         300000,
 		wantErr:     bind.ErrNoCodeAfterDeploy,
-		wantAddress: common.HexToAddress("0x3a220f351252089d385b29beca14e27f204c296a"),
+		wantAddress: common.HexToAddress("0xfe66B8AED6e4fb3e12d0B65f61ef246c4d0CfFFA"),
 	},
 }
 
@@ -64,10 +64,16 @@ func TestWaitDeployed(t *testing.T) {
 
 		// Create the transaction
 		head, _ := backend.HeaderByNumber(context.Background(), nil) // Should be child's, good enough
-		gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(1))
+		gasFeeCap := new(big.Int).Add(head.BaseFee, big.NewInt(1))
 
-		tx := types.NewContractCreation(0, big.NewInt(0), test.gas, gasPrice, common.FromHex(test.code))
-		tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     0,
+			Value:     big.NewInt(0),
+			Gas:       test.gas,
+			Data:      common.FromHex(test.code),
+			GasFeeCap: gasFeeCap,
+		})
+		tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(1337)}, testKey)
 
 		// Wait for it to get mined in the background.
 		var (
@@ -109,11 +115,19 @@ func TestWaitDeployedCornerCases(t *testing.T) {
 	defer backend.Close()
 
 	head, _ := backend.HeaderByNumber(context.Background(), nil) // Should be child's, good enough
-	gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(1))
+	gasFeeCap := new(big.Int).Add(head.BaseFee, big.NewInt(1))
 
 	// Create a transaction to an account.
 	code := "6060604052600a8060106000396000f360606040526008565b00"
-	tx := types.NewTransaction(0, common.HexToAddress("0x01"), big.NewInt(0), 3000000, gasPrice, common.FromHex(code))
+	to := common.HexToAddress("0x01")
+	tx := types.NewTx(&types.DynamicFeeTx{
+		Nonce:     0,
+		To:        &to,
+		Value:     big.NewInt(0),
+		Gas:       3000000,
+		GasFeeCap: gasFeeCap,
+		Data:      common.FromHex(code),
+	})
 	tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -125,7 +139,13 @@ func TestWaitDeployedCornerCases(t *testing.T) {
 	}
 
 	// Create a transaction that is not mined.
-	tx = types.NewContractCreation(1, big.NewInt(0), 3000000, gasPrice, common.FromHex(code))
+	tx = types.NewTx(&types.DynamicFeeTx{
+		Nonce:     1,
+		Value:     big.NewInt(0),
+		Gas:       3000000,
+		GasFeeCap: gasFeeCap,
+		Data:      common.FromHex(code),
+	})
 	tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
 
 	go func() {

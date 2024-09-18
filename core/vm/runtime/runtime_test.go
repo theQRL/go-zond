@@ -611,15 +611,6 @@ func TestColdAccountAccessCost(t *testing.T) {
 			step: 7,
 			want: 2855,
 		},
-		{ // CALLCODE(0xff)
-			code: []byte{
-				byte(vm.PUSH1), 0x0,
-				byte(vm.DUP1), byte(vm.DUP1), byte(vm.DUP1), byte(vm.DUP1),
-				byte(vm.PUSH1), 0xff, byte(vm.DUP1), byte(vm.CALLCODE), byte(vm.POP),
-			},
-			step: 7,
-			want: 2855,
-		},
 		{ // DELEGATECALL(0xff)
 			code: []byte{
 				byte(vm.PUSH1), 0x0,
@@ -657,7 +648,7 @@ func TestColdAccountAccessCost(t *testing.T) {
 			for ii, op := range tracer.StructLogs() {
 				t.Logf("%d: %v %d", ii, op.OpName(), op.GasCost)
 			}
-			t.Fatalf("tescase %d, gas report wrong, step %d, have %d want %d", i, tc.step, have, want)
+			t.Fatalf("testcase %d, gas report wrong, step %d, have %d want %d", i, tc.step, have, want)
 		}
 	}
 }
@@ -710,7 +701,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,952855,6,12"`, `"1,1,952855,6,0"`},
+			results: []string{`"1,1,952853,6,12"`, `"1,1,952853,6,0"`},
 		},
 		{
 			// CREATE2
@@ -726,7 +717,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE2),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,952846,6,13"`, `"1,1,952846,6,0"`},
+			results: []string{`"1,1,952844,6,13"`, `"1,1,952844,6,0"`},
 		},
 		{
 			// CALL
@@ -737,19 +728,6 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.PUSH1), 0xbb, //address
 				byte(vm.GAS), // gas
 				byte(vm.CALL),
-				byte(vm.POP),
-			},
-			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
-		},
-		{
-			// CALLCODE
-			code: []byte{
-				// outsize, outoffset, insize, inoffset
-				byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0,
-				byte(vm.PUSH1), 0, // value
-				byte(vm.PUSH1), 0xcc, //address
-				byte(vm.GAS), // gas
-				byte(vm.CALLCODE),
 				byte(vm.POP),
 			},
 			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
@@ -797,7 +775,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 		byte(vm.PUSH1), 0,
 		byte(vm.RETURN),
 	}
-	depressedCode := []byte{
+	suicideCode := []byte{
 		byte(vm.PUSH1), 0xaa,
 		byte(vm.SELFDESTRUCT),
 	}
@@ -810,7 +788,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 			statedb.SetCode(common.HexToAddress("0xcc"), calleeCode)
 			statedb.SetCode(common.HexToAddress("0xdd"), calleeCode)
 			statedb.SetCode(common.HexToAddress("0xee"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xff"), depressedCode)
+			statedb.SetCode(common.HexToAddress("0xff"), suicideCode)
 
 			tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 			if err != nil {

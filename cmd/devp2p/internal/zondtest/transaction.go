@@ -16,6 +16,8 @@
 
 package zondtest
 
+// TODO(now.youtrack.cloud/issue/TGZ-6)
+/*
 import (
 	"errors"
 	"fmt"
@@ -328,7 +330,14 @@ func unknownTx(s *Suite) *types.Transaction {
 	if tx.To() != nil {
 		to = *tx.To()
 	}
-	txNew := types.NewTransaction(tx.Nonce()+1, to, tx.Value(), tx.Gas(), tx.GasPrice(), tx.Data())
+	txNew := types.NewTx(&types.DynamicFeeTx{
+		Nonce: tx.Nonce() + 1,
+		To:    &to,
+		Value: tx.Value(),
+		Gas:   tx.Gas(),
+		GasFeeCap: tx.GasPrice(),
+		Data:  tx.Data(),
+	})
 	return signWithFaucet(s.chain.chainConfig, txNew)
 }
 
@@ -369,7 +378,14 @@ func generateTxs(s *Suite, numTxs int) (map[common.Hash]common.Hash, []*types.Tr
 
 func generateTx(chainConfig *params.ChainConfig, nonce uint64, gas uint64) *types.Transaction {
 	var to common.Address
-	tx := types.NewTransaction(nonce, to, big.NewInt(1), gas, big.NewInt(1), []byte{})
+	tx := types.NewTx(&types.DynamicFeeTx{
+		Nonce: nonce,
+		To:    &to,
+		Value: big.NewInt(1),
+		Gas:   gas,
+		GasFeeCap: big.NewInt(1),
+		Data:  []byte{},
+	})
 	return signWithFaucet(chainConfig, tx)
 }
 
@@ -392,7 +408,14 @@ func invalidNonceTx(s *Suite) *types.Transaction {
 	if tx.To() != nil {
 		to = *tx.To()
 	}
-	txNew := types.NewTransaction(tx.Nonce()-2, to, tx.Value(), tx.Gas(), tx.GasPrice(), tx.Data())
+	txNew := types.NewTx(&types.DynamicFeeTx{
+		Nonce: tx.Nonce() - 2,
+		To:    &to,
+		Value: tx.Value(),
+		Gas:   tx.Gas(),
+		GasFeeCap: tx.GasPrice(),
+		Data:  tx.Data(),
+	})
 	return signWithFaucet(s.chain.chainConfig, txNew)
 }
 
@@ -406,7 +429,14 @@ func hugeAmount(s *Suite) *types.Transaction {
 	if tx.To() != nil {
 		to = *tx.To()
 	}
-	txNew := types.NewTransaction(tx.Nonce(), to, amount, tx.Gas(), tx.GasPrice(), tx.Data())
+	txNew := types.NewTx(&types.DynamicFeeTx{
+		Nonce: tx.Nonce(),
+		To:    &to,
+		Value: amount,
+		Gas:   tx.Gas(),
+		GasFeeCap: tx.GasPrice(),
+		Data:  tx.Data(),
+	})
 	return signWithFaucet(s.chain.chainConfig, txNew)
 }
 
@@ -420,7 +450,14 @@ func hugeGasPrice(s *Suite) *types.Transaction {
 	if tx.To() != nil {
 		to = *tx.To()
 	}
-	txNew := types.NewTransaction(tx.Nonce(), to, tx.Value(), tx.Gas(), gasPrice, tx.Data())
+	txNew := types.NewTx(&types.DynamicFeeTx{
+		Nonce:     tx.Nonce(),
+		To:        &to,
+		Value:     tx.Value(),
+		Gas:       tx.Gas(),
+		GasFeeCap: gasPrice,
+		Data:      tx.Data(),
+	})
 	return signWithFaucet(s.chain.chainConfig, txNew)
 }
 
@@ -433,7 +470,14 @@ func hugeData(s *Suite) *types.Transaction {
 	if tx.To() != nil {
 		to = *tx.To()
 	}
-	txNew := types.NewTransaction(tx.Nonce(), to, tx.Value(), tx.Gas(), tx.GasPrice(), largeBuffer(2))
+	txNew := types.NewTx(&types.DynamicFeeTx{
+		Nonce: tx.Nonce(),
+		To:    &to,
+		Value: tx.Value(),
+		Gas:   tx.Gas(),
+		GasFeeCap: tx.GasPrice(),
+		Data:  largeBuffer(2),
+	})
 	return signWithFaucet(s.chain.chainConfig, txNew)
 }
 
@@ -445,3 +489,4 @@ func signWithFaucet(chainConfig *params.ChainConfig, tx *types.Transaction) *typ
 	}
 	return signedTx
 }
+*/

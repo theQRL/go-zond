@@ -36,7 +36,6 @@ type sigCache struct {
 	from   common.Address
 }
 
-// TODO(theQRL/go-zond/issues/39)
 // MakeSigner returns a Signer based on the given chain config and block number.
 func MakeSigner(config *params.ChainConfig) Signer {
 	return NewShanghaiSigner(config.ChainID)
@@ -66,6 +65,14 @@ func LatestSignerForChainID(chainID *big.Int) Signer {
 
 // SignTx signs the transaction using the given dilithium signer and private key.
 func SignTx(tx *Transaction, s Signer, d *dilithium.Dilithium) (*Transaction, error) {
+	// Check that chain ID of tx matches the signer. We also accept ID zero here,
+	// because it indicates that the chain ID was not specified in the tx.
+	// NOTE(rgeraldes24): chain ID is filled in in the WithSignatureAndPublicKey method
+	// below if its not specified in the transaction
+	if tx.ChainId().Sign() != 0 && tx.ChainId().Cmp(s.ChainID()) != 0 {
+		return nil, fmt.Errorf("%w: have %d want %d", ErrInvalidChainId, tx.ChainId(), s.ChainID())
+	}
+
 	h := s.Hash(tx)
 	sig, err := pqcrypto.Sign(h[:], d)
 	if err != nil {
@@ -97,9 +104,8 @@ func MustSignNewTx(d *dilithium.Dilithium, s Signer, txdata TxData) *Transaction
 	return tx
 }
 
-// Sender returns the address derived from the signature (V, R, S) using secp256k1
-// elliptic curve and an error if it failed deriving or upon an incorrect
-// signature.
+// Sender returns the address derived from the public key and an error
+// if it failed deriving or upon an incorrect signature.
 //
 // Sender may cache the address, allowing it to be used regardless of
 // signing method. The cache is invalidated if the cached signer does
@@ -200,29 +206,6 @@ func (s ShanghaiSigner) Hash(tx *Transaction) common.Hash {
 				tx.Nonce(),
 				tx.GasTipCap(),
 				tx.GasFeeCap(),
-				tx.Gas(),
-				tx.To(),
-				tx.Value(),
-				tx.Data(),
-				tx.AccessList(),
-			})
-	case LegacyTxType:
-		return rlpHash([]interface{}{
-			tx.Nonce(),
-			tx.GasPrice(),
-			tx.Gas(),
-			tx.To(),
-			tx.Value(),
-			tx.Data(),
-			s.ChainId,
-		})
-	case AccessListTxType:
-		return prefixedRlpHash(
-			tx.Type(),
-			[]interface{}{
-				s.ChainId,
-				tx.Nonce(),
-				tx.GasPrice(),
 				tx.Gas(),
 				tx.To(),
 				tx.Value(),

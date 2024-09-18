@@ -26,6 +26,7 @@ import (
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto/pqcrypto"
+	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/params"
@@ -48,7 +49,7 @@ func startSimulatedBeaconZondService(t *testing.T, genesis *core.Genesis) (*node
 		t.Fatal("can't create node:", err)
 	}
 
-	zondcfg := &zondconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256}
+	zondcfg := &zondconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256, Miner: miner.DefaultConfig}
 	zondservice, err := zond.New(n, zondcfg)
 	if err != nil {
 		t.Fatal("can't create zond service:", err)
@@ -73,7 +74,7 @@ func startSimulatedBeaconZondService(t *testing.T, genesis *core.Genesis) (*node
 // send enough transactions to fill multiple blocks
 func TestSimulatedBeaconSendWithdrawals(t *testing.T) {
 	var withdrawals []types.Withdrawal
-	txs := make(map[common.Hash]types.Transaction)
+	txs := make(map[common.Hash]*types.Transaction)
 
 	var (
 		// testKey is a private key to use for funding a tester account.
@@ -105,11 +106,11 @@ func TestSimulatedBeaconSendWithdrawals(t *testing.T) {
 	// generate a bunch of transactions
 	signer := types.NewShanghaiSigner(zondService.BlockChain().Config().ChainID)
 	for i := 0; i < 20; i++ {
-		tx, err := types.SignTx(types.NewTransaction(uint64(i), common.Address{}, big.NewInt(1000), params.TxGas, big.NewInt(params.InitialBaseFee), nil), signer, testKey)
+		tx, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: uint64(i), To: &common.Address{}, Value: big.NewInt(1000), Gas: params.TxGas, GasFeeCap: big.NewInt(params.InitialBaseFee), Data: nil}), signer, testKey)
 		if err != nil {
 			t.Fatalf("error signing transaction, err=%v", err)
 		}
-		txs[tx.Hash()] = *tx
+		txs[tx.Hash()] = tx
 
 		if err := zondService.APIBackend.SendTx(context.Background(), tx); err != nil {
 			t.Fatal("SendTx failed", err)

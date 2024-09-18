@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/common/math"
@@ -112,7 +113,7 @@ type stTransaction struct {
 	AccessLists          []*types.AccessList `json:"accessLists,omitempty"`
 	GasLimit             []uint64            `json:"gasLimit"`
 	Value                []string            `json:"value"`
-	PrivateKey           []byte              `json:"secretKey"`
+	Seed                 string              `json:"seed"`
 	Sender               *common.Address     `json:"sender"`
 }
 
@@ -122,7 +123,7 @@ type stTransactionMarshaling struct {
 	MaxPriorityFeePerGas *math.HexOrDecimal256
 	Nonce                math.HexOrDecimal64
 	GasLimit             []math.HexOrDecimal64
-	PrivateKey           hexutil.Bytes
+	Seed                 hexutil.Bytes
 }
 
 // GetChainConfig takes a fork definition and returns a chain config.
@@ -352,13 +353,13 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (*core.Mess
 	// If 'sender' field is present, use that
 	if tx.Sender != nil {
 		from = *tx.Sender
-	} else if len(tx.PrivateKey) > 0 {
-		// Derive sender from private key if needed.
-		key, err := crypto.ToECDSA(tx.PrivateKey)
+	} else if len(tx.Seed) > 0 {
+		// Derive sender from key if needed.
+		key, err := dilithium.NewDilithiumFromHexSeed(tx.Seed)
 		if err != nil {
-			return nil, fmt.Errorf("invalid private key: %v", err)
+			return nil, fmt.Errorf("invalid seed: %v", err)
 		}
-		from = crypto.PubkeyToAddress(key.PublicKey)
+		from = common.Address(key.GetAddress())
 	}
 	// Parse recipient if present.
 	var to *common.Address

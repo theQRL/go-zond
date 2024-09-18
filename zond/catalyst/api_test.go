@@ -57,14 +57,13 @@ var (
 	testBalance = big.NewInt(2e18)
 )
 
-func generateMergeChain(n int) (*core.Genesis, []*types.Block) {
+func generateChain(n int) (*core.Genesis, []*types.Block) {
 	config := *params.AllBeaconProtocolChanges
 	engine := beaconConsensus.NewFaker()
 	genesis := &core.Genesis{
 		Config: &config,
 		Alloc: core.GenesisAlloc{
-			testAddr:                         {Balance: testBalance},
-			params.BeaconRootsStorageAddress: {Balance: common.Big0, Code: common.Hex2Bytes("3373fffffffffffffffffffffffffffffffffffffffe14604457602036146024575f5ffd5b620180005f350680545f35146037575f5ffd5b6201800001545f5260205ff35b6201800042064281555f359062018000015500")},
+			testAddr: {Balance: testBalance},
 		},
 		ExtraData: []byte("test genesis"),
 		Timestamp: 9000,
@@ -74,7 +73,15 @@ func generateMergeChain(n int) (*core.Genesis, []*types.Block) {
 	generate := func(i int, g *core.BlockGen) {
 		g.OffsetTime(5)
 		g.SetExtra([]byte("test"))
-		tx, _ := types.SignTx(types.NewTransaction(testNonce, common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a"), big.NewInt(1), params.TxGas, big.NewInt(params.InitialBaseFee*2), nil), types.LatestSigner(&config), testKey)
+		to := common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
+		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{
+			Nonce:     testNonce,
+			To:        &to,
+			Value:     big.NewInt(1),
+			Gas:       params.TxGas,
+			GasFeeCap: big.NewInt(8750000000),
+			GasTipCap: big.NewInt(params.GWei),
+			Data:      nil}), types.LatestSigner(&config), testKey)
 		g.AddTx(tx)
 		testNonce++
 	}
@@ -84,13 +91,14 @@ func generateMergeChain(n int) (*core.Genesis, []*types.Block) {
 }
 
 func TestEth2AssembleBlock(t *testing.T) {
-	genesis, blocks := generateMergeChain(10)
+	genesis, blocks := generateChain(10)
 	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 
 	api := NewConsensusAPI(zondservice)
 	signer := types.NewShanghaiSigner(zondservice.BlockChain().Config().ChainID)
-	tx, err := types.SignTx(types.NewTransaction(uint64(10), blocks[9].Coinbase(), big.NewInt(1000), params.TxGas, big.NewInt(params.InitialBaseFee), nil), signer, testKey)
+	to := blocks[9].Coinbase()
+	tx, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: uint64(10), To: &to, Value: big.NewInt(1000), Gas: params.TxGas, GasFeeCap: big.NewInt(875000000), Data: nil}), signer, testKey)
 	if err != nil {
 		t.Fatalf("error signing transaction, err=%v", err)
 	}
@@ -123,7 +131,7 @@ func assembleWithTransactions(api *ConsensusAPI, parentHash common.Hash, params 
 }
 
 func TestEth2AssembleBlockWithAnotherBlocksTxs(t *testing.T) {
-	genesis, blocks := generateMergeChain(10)
+	genesis, blocks := generateChain(10)
 	n, zondservice := startZondService(t, genesis, blocks[:9])
 	defer n.Close()
 
@@ -142,29 +150,8 @@ func TestEth2AssembleBlockWithAnotherBlocksTxs(t *testing.T) {
 	}
 }
 
-func TestSetHeadBeforeTotalDifficulty(t *testing.T) {
-	genesis, blocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, blocks)
-	defer n.Close()
-
-	api := NewConsensusAPI(zondservice)
-	fcState := engine.ForkchoiceStateV1{
-		HeadBlockHash:      blocks[5].Hash(),
-		SafeBlockHash:      common.Hash{},
-		FinalizedBlockHash: common.Hash{},
-	}
-	if resp, err := api.ForkchoiceUpdatedV2(fcState, nil); err != nil {
-		t.Errorf("fork choice updated should not error: %v", err)
-	} else if resp.PayloadStatus.Status != engine.INVALID_TERMINAL_BLOCK.Status {
-		t.Errorf("fork choice updated before total terminal difficulty should be INVALID")
-	}
-}
-
-// TODO(rgeraldes24)
-/*
 func TestEth2PrepareAndGetPayload(t *testing.T) {
-	genesis, blocks := generateMergeChain(10)
-	// We need to properly set the terminal total difficulty
+	genesis, blocks := generateChain(10)
 	n, zondservice := startZondService(t, genesis, blocks[:9])
 	defer n.Close()
 
@@ -174,7 +161,8 @@ func TestEth2PrepareAndGetPayload(t *testing.T) {
 	txs := blocks[9].Transactions()
 	zondservice.TxPool().Add(txs, true, false)
 	blockParams := engine.PayloadAttributes{
-		Timestamp: blocks[8].Time() + 5,
+		Timestamp:   blocks[8].Time() + 5,
+		Withdrawals: []*types.Withdrawal{},
 	}
 	fcState := engine.ForkchoiceStateV1{
 		HeadBlockHash:      blocks[8].Hash(),
@@ -197,8 +185,8 @@ func TestEth2PrepareAndGetPayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting payload, err=%v", err)
 	}
-	if len(execData.Transactions) != blocks[9].Transactions().Len() {
-		t.Fatalf("invalid number of transactions %d != 1", len(execData.Transactions))
+	if len(execData.ExecutionPayload.Transactions) != blocks[9].Transactions().Len() {
+		t.Fatalf("invalid number of transactions %d != 1", len(execData.ExecutionPayload.Transactions))
 	}
 	// Test invalid payloadID
 	var invPayload engine.PayloadID
@@ -209,7 +197,6 @@ func TestEth2PrepareAndGetPayload(t *testing.T) {
 		t.Fatal("expected error retrieving invalid payload")
 	}
 }
-*/
 
 func checkLogEvents(t *testing.T, logsCh <-chan []*types.Log, rmLogsCh <-chan core.RemovedLogsEvent, wantNew, wantRemoved int) {
 	t.Helper()
@@ -230,8 +217,8 @@ func checkLogEvents(t *testing.T, logsCh <-chan []*types.Log, rmLogsCh <-chan co
 }
 
 func TestInvalidPayloadTimestamp(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 	var (
 		api    = NewConsensusAPI(zondservice)
@@ -244,11 +231,8 @@ func TestInvalidPayloadTimestamp(t *testing.T) {
 		{0, true},
 		{parent.Time, true},
 		{parent.Time - 1, true},
-
-		// TODO (MariusVanDerWijden) following tests are currently broken,
-		// fixed in upcoming merge-kiln-v2 pr
-		//{parent.Time() + 1, false},
-		//{uint64(time.Now().Unix()) + uint64(time.Minute), false},
+		{parent.Time + 1, false},
+		{uint64(time.Now().Unix()) + uint64(time.Minute), false},
 	}
 
 	for i, test := range tests {
@@ -257,6 +241,7 @@ func TestInvalidPayloadTimestamp(t *testing.T) {
 				Timestamp:             test.time,
 				Random:                crypto.Keccak256Hash([]byte{byte(123)}),
 				SuggestedFeeRecipient: parent.Coinbase,
+				Withdrawals:           []*types.Withdrawal{},
 			}
 			fcState := engine.ForkchoiceStateV1{
 				HeadBlockHash:      parent.Hash(),
@@ -274,13 +259,13 @@ func TestInvalidPayloadTimestamp(t *testing.T) {
 }
 
 func TestEth2NewBlock(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 
 	var (
 		api    = NewConsensusAPI(zondservice)
-		parent = preMergeBlocks[len(preMergeBlocks)-1]
+		parent = blocks[len(blocks)-1]
 
 		// This EVM code generates a log when the contract is created.
 		logCode = common.Hex2Bytes("60606040525b7f24ec1d3ff24c2f6ff210738839dbc339cd45a5294d85c79361016243157aae7b60405180905060405180910390a15b600a8060416000396000f360606040526008565b00")
@@ -295,8 +280,15 @@ func TestEth2NewBlock(t *testing.T) {
 		statedb, _ := zondservice.BlockChain().StateAt(parent.Root())
 		nonce := statedb.GetNonce(testAddr)
 		signer := types.LatestSigner(zondservice.BlockChain().Config())
-		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), signer, testKey)
-		zondservice.TxPool().Add([]*types.Transaction{tx}, true, false)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     nonce,
+			Value:     new(big.Int),
+			Gas:       1000000,
+			GasFeeCap: big.NewInt(2 * params.InitialBaseFee),
+			Data:      logCode,
+		})
+		signedTx, _ := types.SignTx(tx, signer, testKey)
+		zondservice.TxPool().Add([]*types.Transaction{signedTx}, true, false)
 
 		execData, err := assembleWithTransactions(api, parent.Hash(), &engine.PayloadAttributes{
 			Timestamp: parent.Time() + 5,
@@ -338,7 +330,7 @@ func TestEth2NewBlock(t *testing.T) {
 	var (
 		head = zondservice.BlockChain().CurrentBlock().Number.Uint64()
 	)
-	parent = preMergeBlocks[len(preMergeBlocks)-1]
+	parent = blocks[len(blocks)-1]
 	for i := 0; i < 10; i++ {
 		execData, err := assembleBlock(api, parent.Hash(), &engine.PayloadAttributes{
 			Timestamp: parent.Time() + 6,
@@ -377,16 +369,16 @@ func TestEth2DeepReorg(t *testing.T) {
 	// TODO (MariusVanDerWijden) TestEth2DeepReorg is currently broken, because it tries to reorg
 	// before the totalTerminalDifficulty threshold
 	/*
-		genesis, preMergeBlocks := generateMergeChain(core.TriesInMemory * 2, false)
-		n, ethservice := startEthService(t, genesis, preMergeBlocks)
+		genesis, blocks := generateChain(core.TriesInMemory * 2)
+		n, zondservice := startZondService(t, genesis, blocks)
 		defer n.Close()
 
 		var (
-			api    = NewConsensusAPI(ethservice, nil)
-			parent = preMergeBlocks[len(preMergeBlocks)-core.TriesInMemory-1]
-			head   = ethservice.BlockChain().CurrentBlock().Number.Uint64()()
+			api    = NewConsensusAPI(zondservice)
+			parent = blocks[len(blocks)-core.TriesInMemory-1]
+			head   = zondservice.BlockChain().CurrentBlock().Number.Uint64()
 		)
-		if ethservice.BlockChain().HasBlockAndState(parent.Hash(), parent.NumberU64()) {
+		if zondservice.BlockChain().HasBlockAndState(parent.Hash(), parent.NumberU64()) {
 			t.Errorf("Block %d not pruned", parent.NumberU64())
 		}
 		for i := 0; i < 10; i++ {
@@ -405,13 +397,13 @@ func TestEth2DeepReorg(t *testing.T) {
 			if err != nil || newResp.Status != "VALID" {
 				t.Fatalf("Failed to insert block: %v", err)
 			}
-			if ethservice.BlockChain().CurrentBlock().Number.Uint64()() != head {
+			if zondservice.BlockChain().CurrentBlock().Number.Uint64() != head {
 				t.Fatalf("Chain head shouldn't be updated")
 			}
 			if err := api.setHead(block.Hash()); err != nil {
 				t.Fatalf("Failed to set head: %v", err)
 			}
-			if ethservice.BlockChain().CurrentBlock().Number.Uint64()() != block.NumberU64() {
+			if zondservice.BlockChain().CurrentBlock().Number.Uint64() != block.NumberU64() {
 				t.Fatalf("Chain head should be updated")
 			}
 			parent, head = block, block.NumberU64()
@@ -433,27 +425,28 @@ func startZondService(t *testing.T, genesis *core.Genesis, blocks []*types.Block
 		t.Fatal("can't create node:", err)
 	}
 
-	ethcfg := &zondconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256}
-	ethservice, err := zond.New(n, ethcfg)
+	mcfg := miner.DefaultConfig
+	mcfg.PendingFeeRecipient = testAddr
+	zondcfg := &zondconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256, Miner: mcfg}
+	zondservice, err := zond.New(n, zondcfg)
 	if err != nil {
 		t.Fatal("can't create zond service:", err)
 	}
 	if err := n.Start(); err != nil {
 		t.Fatal("can't start node:", err)
 	}
-	if _, err := ethservice.BlockChain().InsertChain(blocks); err != nil {
+	if _, err := zondservice.BlockChain().InsertChain(blocks); err != nil {
 		n.Close()
 		t.Fatal("can't import test blocks:", err)
 	}
 
-	ethservice.SetEtherbase(testAddr)
-	ethservice.SetSynced()
-	return n, ethservice
+	zondservice.SetSynced()
+	return n, zondservice
 }
 
 func TestFullAPI(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 	var (
 		parent = zondservice.BlockChain().CurrentBlock()
@@ -465,8 +458,14 @@ func TestFullAPI(t *testing.T) {
 		statedb, _ := zondservice.BlockChain().StateAt(parent.Root)
 		nonce := statedb.GetNonce(testAddr)
 		signer := types.LatestSigner(zondservice.BlockChain().Config())
-		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), signer, testKey)
-		zondservice.TxPool().Add([]*types.Transaction{tx}, true, false)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce: nonce,
+			Value: new(big.Int),
+			Gas:   1000000,
+			Data:  logCode,
+		})
+		signedTx, _ := types.SignTx(tx, signer, testKey)
+		zondservice.TxPool().Add([]*types.Transaction{signedTx}, true, false)
 	}
 
 	setupBlocks(t, zondservice, 10, parent, callback, nil)
@@ -510,7 +509,6 @@ func setupBlocks(t *testing.T, zondservice *zond.Zond, n int, parent *types.Head
 	return blocks
 }
 
-// TODO(rgeraldes24)
 /*
 TestNewPayloadOnInvalidChain sets up a valid chain and tries to feed blocks
 from an invalid chain to test if latestValidHash (LVH) works correctly.
@@ -528,10 +526,9 @@ We expect
 	                │
 	                └── P1''
 */
-/*
 func TestNewPayloadOnInvalidChain(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 
 	var (
@@ -543,12 +540,13 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 	)
 	for i := 0; i < 10; i++ {
 		statedb, _ := zondservice.BlockChain().StateAt(parent.Root)
-		tx := types.MustSignNewTx(testKey, signer, &types.LegacyTx{
-			Nonce:    statedb.GetNonce(testAddr),
-			Value:    new(big.Int),
-			Gas:      1000000,
-			GasPrice: big.NewInt(2 * params.InitialBaseFee),
-			Data:     logCode,
+		tx := types.MustSignNewTx(testKey, signer, &types.DynamicFeeTx{
+			Nonce:     statedb.GetNonce(testAddr),
+			Value:     new(big.Int),
+			Gas:       1000000,
+			GasFeeCap: big.NewInt(2 * params.InitialBaseFee),
+			GasTipCap: big.NewInt(params.GWei),
+			Data:      logCode,
 		})
 		zondservice.TxPool().Add([]*types.Transaction{tx}, false, true)
 		var (
@@ -556,13 +554,14 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 				Timestamp:             parent.Time + 1,
 				Random:                crypto.Keccak256Hash([]byte{byte(i)}),
 				SuggestedFeeRecipient: parent.Coinbase,
+				Withdrawals:           []*types.Withdrawal{},
 			}
 			fcState = engine.ForkchoiceStateV1{
 				HeadBlockHash:      parent.Hash(),
 				SafeBlockHash:      common.Hash{},
 				FinalizedBlockHash: common.Hash{},
 			}
-			payload *engine.ExecutableData
+			payload *engine.ExecutionPayloadEnvelope
 			resp    engine.ForkChoiceResponse
 			err     error
 		)
@@ -578,7 +577,7 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 			if payload, err = api.GetPayloadV2(*resp.PayloadID); err != nil {
 				t.Fatalf("can't get payload: %v", err)
 			}
-			if len(payload.Transactions) > 0 {
+			if len(payload.ExecutionPayload.Transactions) > 0 {
 				break
 			}
 			// No luck this time we need to update the params and try again.
@@ -587,7 +586,7 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 				t.Fatalf("payload should not be empty")
 			}
 		}
-		execResp, err := api.NewPayloadV2(*payload)
+		execResp, err := api.NewPayloadV2(*payload.ExecutionPayload)
 		if err != nil {
 			t.Fatalf("can't execute payload: %v", err)
 		}
@@ -595,20 +594,19 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 			t.Fatalf("invalid status: %v", execResp.Status)
 		}
 		fcState = engine.ForkchoiceStateV1{
-			HeadBlockHash:      payload.BlockHash,
-			SafeBlockHash:      payload.ParentHash,
-			FinalizedBlockHash: payload.ParentHash,
+			HeadBlockHash:      payload.ExecutionPayload.BlockHash,
+			SafeBlockHash:      payload.ExecutionPayload.ParentHash,
+			FinalizedBlockHash: payload.ExecutionPayload.ParentHash,
 		}
 		if _, err := api.ForkchoiceUpdatedV2(fcState, nil); err != nil {
 			t.Fatalf("Failed to insert block: %v", err)
 		}
-		if zondservice.BlockChain().CurrentBlock().Number.Uint64() != payload.Number {
+		if zondservice.BlockChain().CurrentBlock().Number.Uint64() != payload.ExecutionPayload.Number {
 			t.Fatalf("Chain head should be updated")
 		}
 		parent = zondservice.BlockChain().CurrentBlock()
 	}
 }
-*/
 
 func assembleBlock(api *ConsensusAPI, parentHash common.Hash, params *engine.PayloadAttributes) (*engine.ExecutableData, error) {
 	args := &miner.BuildPayloadArgs{
@@ -626,8 +624,8 @@ func assembleBlock(api *ConsensusAPI, parentHash common.Hash, params *engine.Pay
 }
 
 func TestEmptyBlocks(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 
 	commonAncestor := zondservice.BlockChain().CurrentBlock()
@@ -662,8 +660,8 @@ func TestEmptyBlocks(t *testing.T) {
 	if status.Status != engine.INVALID {
 		t.Errorf("invalid status: expected INVALID got: %v", status.Status)
 	}
-	// Expect 0x0 on INVALID block on top of PoW block
-	expected := common.Hash{}
+	// Expect parent header hash on INVALID block on top of PoS block
+	expected := commonAncestor.Hash()
 	if !bytes.Equal(status.LatestValidHash[:], expected[:]) {
 		t.Fatalf("invalid LVH: got %v want %v", status.LatestValidHash, expected)
 	}
@@ -707,21 +705,22 @@ func setBlockhash(data *engine.ExecutableData) *engine.ExecutableData {
 	number := big.NewInt(0)
 	number.SetUint64(data.Number)
 	header := &types.Header{
-		ParentHash:  data.ParentHash,
-		Coinbase:    data.FeeRecipient,
-		Root:        data.StateRoot,
-		TxHash:      types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
-		ReceiptHash: data.ReceiptsRoot,
-		Bloom:       types.BytesToBloom(data.LogsBloom),
-		Number:      number,
-		GasLimit:    data.GasLimit,
-		GasUsed:     data.GasUsed,
-		Time:        data.Timestamp,
-		BaseFee:     data.BaseFeePerGas,
-		Extra:       data.ExtraData,
-		Random:      data.Random,
+		ParentHash:      data.ParentHash,
+		Coinbase:        data.FeeRecipient,
+		Root:            data.StateRoot,
+		TxHash:          types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
+		ReceiptHash:     data.ReceiptsRoot,
+		Bloom:           types.BytesToBloom(data.LogsBloom),
+		Number:          number,
+		GasLimit:        data.GasLimit,
+		GasUsed:         data.GasUsed,
+		Time:            data.Timestamp,
+		BaseFee:         data.BaseFeePerGas,
+		Extra:           data.ExtraData,
+		Random:          data.Random,
+		WithdrawalsHash: &types.EmptyWithdrawalsHash,
 	}
-	block := types.NewBlockWithHeader(header).WithBody(txs)
+	block := types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs})
 	data.BlockHash = block.Hash()
 	return data
 }
@@ -740,9 +739,9 @@ func decodeTransactions(enc [][]byte) ([]*types.Transaction, error) {
 
 func TestTrickRemoteBlockCache(t *testing.T) {
 	// Setup two nodes
-	genesis, preMergeBlocks := generateMergeChain(10)
-	nodeA, zondserviceA := startZondService(t, genesis, preMergeBlocks)
-	nodeB, zondserviceB := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	nodeA, zondserviceA := startZondService(t, genesis, blocks)
+	nodeB, zondserviceB := startZondService(t, genesis, blocks)
 	defer nodeA.Close()
 	defer nodeB.Close()
 	for nodeB.Server().NodeInfo().Ports.Listener == 0 {
@@ -803,8 +802,8 @@ func TestTrickRemoteBlockCache(t *testing.T) {
 }
 
 func TestInvalidBloom(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 
 	commonAncestor := zondservice.BlockChain().CurrentBlock()
@@ -825,79 +824,17 @@ func TestInvalidBloom(t *testing.T) {
 	}
 }
 
-func TestNewPayloadOnInvalidTerminalBlock(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(100)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
-	defer n.Close()
-	api := NewConsensusAPI(zondservice)
-
-	// Test parent already post TTD in FCU
-	parent := preMergeBlocks[len(preMergeBlocks)-2]
-	fcState := engine.ForkchoiceStateV1{
-		HeadBlockHash:      parent.Hash(),
-		SafeBlockHash:      common.Hash{},
-		FinalizedBlockHash: common.Hash{},
-	}
-	resp, err := api.ForkchoiceUpdatedV2(fcState, nil)
-	if err != nil {
-		t.Fatalf("error sending forkchoice, err=%v", err)
-	}
-	if resp.PayloadStatus != engine.INVALID_TERMINAL_BLOCK {
-		t.Fatalf("error sending invalid forkchoice, invalid status: %v", resp.PayloadStatus.Status)
-	}
-
-	// Test parent already post TTD in NewPayload
-	args := &miner.BuildPayloadArgs{
-		Parent:       parent.Hash(),
-		Timestamp:    parent.Time() + 1,
-		Random:       crypto.Keccak256Hash([]byte{byte(1)}),
-		FeeRecipient: parent.Coinbase(),
-	}
-	payload, err := api.zond.Miner().BuildPayload(args)
-	if err != nil {
-		t.Fatalf("error preparing payload, err=%v", err)
-	}
-	data := *payload.Resolve().ExecutionPayload
-	// We need to recompute the blockhash, since the miner computes a wrong (correct) blockhash
-	txs, _ := decodeTransactions(data.Transactions)
-	header := &types.Header{
-		ParentHash:  data.ParentHash,
-		Coinbase:    data.FeeRecipient,
-		Root:        data.StateRoot,
-		TxHash:      types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
-		ReceiptHash: data.ReceiptsRoot,
-		Bloom:       types.BytesToBloom(data.LogsBloom),
-		Number:      new(big.Int).SetUint64(data.Number),
-		GasLimit:    data.GasLimit,
-		GasUsed:     data.GasUsed,
-		Time:        data.Timestamp,
-		BaseFee:     data.BaseFeePerGas,
-		Extra:       data.ExtraData,
-		Random:      data.Random,
-	}
-	block := types.NewBlockWithHeader(header).WithBody(txs)
-	data.BlockHash = block.Hash()
-	// Send the new payload
-	resp2, err := api.NewPayloadV2(data)
-	if err != nil {
-		t.Fatalf("error sending NewPayload, err=%v", err)
-	}
-	if resp2 != engine.INVALID_TERMINAL_BLOCK {
-		t.Fatalf("error sending invalid forkchoice, invalid status: %v", resp.PayloadStatus.Status)
-	}
-}
-
 // TestSimultaneousNewBlock does several parallel inserts, both as
 // newPayLoad and forkchoiceUpdate. This is to test that the api behaves
 // well even of the caller is not being 'serial'.
 func TestSimultaneousNewBlock(t *testing.T) {
-	genesis, preMergeBlocks := generateMergeChain(10)
-	n, zondservice := startZondService(t, genesis, preMergeBlocks)
+	genesis, blocks := generateChain(10)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 
 	var (
 		api    = NewConsensusAPI(zondservice)
-		parent = preMergeBlocks[len(preMergeBlocks)-1]
+		parent = blocks[len(blocks)-1]
 	)
 	for i := 0; i < 10; i++ {
 		execData, err := assembleBlock(api, parent.Hash(), &engine.PayloadAttributes{
@@ -919,11 +856,11 @@ func TestSimultaneousNewBlock(t *testing.T) {
 					defer wg.Done()
 					if newResp, err := api.NewPayloadV2(*execData); err != nil {
 						errMu.Lock()
-						testErr = fmt.Errorf("Failed to insert block: %w", err)
+						testErr = fmt.Errorf("failed to insert block: %w", err)
 						errMu.Unlock()
 					} else if newResp.Status != "VALID" {
 						errMu.Lock()
-						testErr = fmt.Errorf("Failed to insert block: %v", newResp.Status)
+						testErr = fmt.Errorf("failed to insert block: %v", newResp.Status)
 						errMu.Unlock()
 					}
 				}()
@@ -958,7 +895,7 @@ func TestSimultaneousNewBlock(t *testing.T) {
 					defer wg.Done()
 					if _, err := api.ForkchoiceUpdatedV2(fcState, nil); err != nil {
 						errMu.Lock()
-						testErr = fmt.Errorf("Failed to insert block: %w", err)
+						testErr = fmt.Errorf("failed to insert block: %w", err)
 						errMu.Unlock()
 					}
 				}()
@@ -978,15 +915,15 @@ func TestSimultaneousNewBlock(t *testing.T) {
 // TestWithdrawals creates and verifies two post-Shanghai blocks. The first
 // includes zero withdrawals and the second includes two.
 func TestWithdrawals(t *testing.T) {
-	genesis, blocks := generateMergeChain(10)
+	genesis, blocks := generateChain(10)
 
-	n, ethservice := startZondService(t, genesis, blocks)
+	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
 
-	api := NewConsensusAPI(ethservice)
+	api := NewConsensusAPI(zondservice)
 
 	// 10: Build Shanghai block with no withdrawals.
-	parent := ethservice.BlockChain().CurrentHeader()
+	parent := zondservice.BlockChain().CurrentHeader()
 	blockParams := engine.PayloadAttributes{
 		Timestamp:   parent.Time + 5,
 		Withdrawals: make([]*types.Withdrawal, 0),
@@ -1075,7 +1012,7 @@ func TestWithdrawals(t *testing.T) {
 	}
 
 	// 11: verify withdrawals were processed.
-	db, _, err := ethservice.APIBackend.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(execData.ExecutionPayload.Number))
+	db, _, err := zondservice.APIBackend.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(execData.ExecutionPayload.Number))
 	if err != nil {
 		t.Fatalf("unable to load db: %v", err)
 	}
@@ -1088,7 +1025,7 @@ func TestWithdrawals(t *testing.T) {
 }
 
 func TestNilWithdrawals(t *testing.T) {
-	genesis, blocks := generateMergeChain(10)
+	genesis, blocks := generateChain(10)
 
 	n, zondservice := startZondService(t, genesis, blocks)
 	defer n.Close()
@@ -1102,35 +1039,6 @@ func TestNilWithdrawals(t *testing.T) {
 		wantErr     bool
 	}
 	tests := []test{
-		// Before Shanghai
-		{
-			blockParams: engine.PayloadAttributes{
-				Timestamp:   parent.Time + 2,
-				Withdrawals: nil,
-			},
-			wantErr: false,
-		},
-		{
-			blockParams: engine.PayloadAttributes{
-				Timestamp:   parent.Time + 2,
-				Withdrawals: make([]*types.Withdrawal, 0),
-			},
-			wantErr: true,
-		},
-		{
-			blockParams: engine.PayloadAttributes{
-				Timestamp: parent.Time + 2,
-				Withdrawals: []*types.Withdrawal{
-					{
-						Index:   0,
-						Address: aa,
-						Amount:  32,
-					},
-				},
-			},
-			wantErr: true,
-		},
-		// After Shanghai
 		{
 			blockParams: engine.PayloadAttributes{
 				Timestamp:   parent.Time + 5,
@@ -1188,7 +1096,7 @@ func TestNilWithdrawals(t *testing.T) {
 			t.Fatalf("error getting payload, err=%v", err)
 		}
 		if status, err := api.NewPayloadV2(*execData.ExecutionPayload); err != nil {
-			t.Fatalf("error validating payload: %v", err)
+			t.Fatalf("error validating payload: %v", err.(*engine.EngineAPIError).ErrorData())
 		} else if status.Status != engine.VALID {
 			t.Fatalf("invalid payload")
 		}
@@ -1196,7 +1104,7 @@ func TestNilWithdrawals(t *testing.T) {
 }
 
 func setupBodies(t *testing.T) (*node.Node, *zond.Zond, []*types.Block) {
-	genesis, blocks := generateMergeChain(10)
+	genesis, blocks := generateChain(10)
 	n, zondservice := startZondService(t, genesis, blocks)
 
 	var (
@@ -1209,8 +1117,14 @@ func setupBodies(t *testing.T) (*node.Node, *zond.Zond, []*types.Block) {
 		statedb, _ := zondservice.BlockChain().StateAt(parent.Root)
 		nonce := statedb.GetNonce(testAddr)
 		signer := types.LatestSigner(zondservice.BlockChain().Config())
-		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), signer, testKey)
-		zondservice.TxPool().Add([]*types.Transaction{tx}, false, false)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce: nonce,
+			Value: new(big.Int),
+			Gas:   1000000,
+			Data:  logCode,
+		})
+		signedTx, _ := types.SignTx(tx, signer, testKey)
+		zondservice.TxPool().Add([]*types.Transaction{signedTx}, false, false)
 	}
 
 	withdrawals := make([][]*types.Withdrawal, 10)
@@ -1248,30 +1162,20 @@ func allBodies(blocks []*types.Block) []*types.Body {
 }
 
 func TestGetBlockBodiesByHash(t *testing.T) {
-	node, eth, blocks := setupBodies(t)
-	api := NewConsensusAPI(eth)
+	node, zond, blocks := setupBodies(t)
+	api := NewConsensusAPI(zond)
 	defer node.Close()
 
 	tests := []struct {
 		results []*types.Body
 		hashes  []common.Hash
 	}{
-		// First pow block
+		// First pos block
 		{
-			results: []*types.Body{eth.BlockChain().GetBlockByNumber(0).Body()},
-			hashes:  []common.Hash{eth.BlockChain().GetBlockByNumber(0).Hash()},
+			results: []*types.Body{zond.BlockChain().GetBlockByNumber(0).Body()},
+			hashes:  []common.Hash{zond.BlockChain().GetBlockByNumber(0).Hash()},
 		},
-		// Last pow block
-		{
-			results: []*types.Body{blocks[9].Body()},
-			hashes:  []common.Hash{blocks[9].Hash()},
-		},
-		// First post-merge block
-		{
-			results: []*types.Body{blocks[10].Body()},
-			hashes:  []common.Hash{blocks[10].Hash()},
-		},
-		// Pre & post merge blocks
+		// pos blocks
 		{
 			results: []*types.Body{blocks[0].Body(), blocks[9].Body(), blocks[14].Body()},
 			hashes:  []common.Hash{blocks[0].Hash(), blocks[9].Hash(), blocks[14].Hash()},
@@ -1304,8 +1208,8 @@ func TestGetBlockBodiesByHash(t *testing.T) {
 }
 
 func TestGetBlockBodiesByRange(t *testing.T) {
-	node, eth, blocks := setupBodies(t)
-	api := NewConsensusAPI(eth)
+	node, zond, blocks := setupBodies(t)
+	api := NewConsensusAPI(zond)
 	defer node.Close()
 
 	tests := []struct {
@@ -1385,8 +1289,8 @@ func TestGetBlockBodiesByRange(t *testing.T) {
 }
 
 func TestGetBlockBodiesByRangeInvalidParams(t *testing.T) {
-	node, eth, _ := setupBodies(t)
-	api := NewConsensusAPI(eth)
+	node, zond, _ := setupBodies(t)
+	api := NewConsensusAPI(zond)
 	defer node.Close()
 	tests := []struct {
 		start hexutil.Uint64

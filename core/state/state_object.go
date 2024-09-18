@@ -54,7 +54,7 @@ func (s Storage) Copy() Storage {
 	return cpy
 }
 
-// stateObject represents an Ethereum account which is being modified.
+// stateObject represents a Zond account which is being modified.
 //
 // The usage pattern is as follows:
 // - First you need to obtain a state object.
@@ -62,8 +62,8 @@ func (s Storage) Copy() Storage {
 // - Finally, call commit to return the changes of storage trie and update account data.
 type stateObject struct {
 	db       *StateDB
-	address  common.Address      // address of ethereum account
-	addrHash common.Hash         // hash of ethereum address of the account
+	address  common.Address      // address of zond account
+	addrHash common.Hash         // hash of zond address of the account
 	origin   *types.StateAccount // Account original data without any change applied, nil means it was not existent
 	data     types.StateAccount  // Account data with all mutations applied in the scope of block
 

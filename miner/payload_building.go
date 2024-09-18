@@ -45,7 +45,6 @@ type BuildPayloadArgs struct {
 
 // Id computes an 8-byte identifier by hashing the components of the payload arguments.
 func (args *BuildPayloadArgs) Id() engine.PayloadID {
-	// Hash
 	hasher := sha256.New()
 	hasher.Write(args.Parent[:])
 	binary.Write(hasher, binary.BigEndian, args.Timestamp)
@@ -170,7 +169,7 @@ func (payload *Payload) ResolveFull() *engine.ExecutionPayloadEnvelope {
 }
 
 // buildPayload builds the payload according to the provided parameters.
-func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
+func (miner *Miner) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 	// Build the initial version with no transaction included. It should be fast
 	// enough to run. The empty payload can at least make sure there is something
 	// to deliver for not missing slot.
@@ -183,7 +182,7 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		withdrawals: args.Withdrawals,
 		noTxs:       true,
 	}
-	empty := w.getSealingBlock(emptyParams)
+	empty := miner.generateWork(emptyParams)
 	if empty.err != nil {
 		return nil, empty.err
 	}
@@ -218,11 +217,13 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 			select {
 			case <-timer.C:
 				start := time.Now()
-				r := w.getSealingBlock(fullParams)
+				r := miner.generateWork(fullParams)
 				if r.err == nil {
 					payload.update(r, time.Since(start))
+				} else {
+					log.Info("Error while generating work", "id", payload.id, "err", r.err)
 				}
-				timer.Reset(w.recommit)
+				timer.Reset(miner.config.Recommit)
 			case <-payload.stop:
 				log.Info("Stopping work on payload", "id", payload.id, "reason", "delivery")
 				return

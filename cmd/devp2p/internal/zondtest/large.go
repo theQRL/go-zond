@@ -16,6 +16,8 @@
 
 package zondtest
 
+// TODO(now.youtrack.cloud/issue/TGZ-6)
+/*
 import (
 	"crypto/rand"
 	"math/big"
@@ -75,3 +77,4 @@ func largeHeader() *types.Header {
 		Number:      largeNumber(2),
 	}
 }
+*/

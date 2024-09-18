@@ -2409,7 +2409,7 @@ var isJson = function (str) {
 };
 
 /**
- * Returns true if given string is a valid Ethereum block header bloom.
+ * Returns true if given string is a valid Zond block header bloom.
  *
  * @method isBloom
  * @param {String} hex encoded bloom filter
@@ -3723,7 +3723,7 @@ var inputCallFormatter = function (options){
         options.to = inputAddressFormatter(options.to);
     }
 
-    ['maxFeePerGas', 'maxPriorityFeePerGas', 'gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
+    ['maxFeePerGas', 'maxPriorityFeePerGas',  'gas', 'value', 'nonce'].filter(function (key) {
         return options[key] !== undefined;
     }).forEach(function(key){
         options[key] = utils.fromDecimal(options[key]);
@@ -3748,7 +3748,7 @@ var inputTransactionFormatter = function (options){
         options.to = inputAddressFormatter(options.to);
     }
 
-    ['maxFeePerGas', 'maxPriorityFeePerGas', 'gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
+    ['maxFeePerGas', 'maxPriorityFeePerGas', 'gas', 'value', 'nonce'].filter(function (key) {
         return options[key] !== undefined;
     }).forEach(function(key){
         options[key] = utils.fromDecimal(options[key]);
@@ -3771,7 +3771,6 @@ var outputTransactionFormatter = function (tx){
         tx.transactionIndex = utils.toDecimal(tx.transactionIndex);
     tx.nonce = utils.toDecimal(tx.nonce);
     tx.gas = utils.toDecimal(tx.gas);
-    tx.gasPrice = utils.toBigNumber(tx.gasPrice);
     if(tx.maxFeePerGas !== undefined) {
       tx.maxFeePerGas = utils.toBigNumber(tx.maxFeePerGas);
     }
@@ -4500,7 +4499,7 @@ var Iban = function (iban) {
 };
 
 /**
- * This method should be used to create iban object from ethereum address
+ * This method should be used to create iban object from zond address
  *
  * @method fromAddress
  * @param {String} address
@@ -5386,30 +5385,6 @@ var methods = function () {
         params: 1
     });
 
-    var compileLLL = new Method({
-        name: 'compile.lll',
-        call: 'zond_compileLLL',
-        params: 1
-    });
-
-    var compileSerpent = new Method({
-        name: 'compile.serpent',
-        call: 'zond_compileSerpent',
-        params: 1
-    });
-
-    var submitWork = new Method({
-        name: 'submitWork',
-        call: 'zond_submitWork',
-        params: 3
-    });
-
-    var getWork = new Method({
-        name: 'getWork',
-        call: 'zond_getWork',
-        params: 0
-    });
-
     return [
         getBalance,
         getStorageAt,
@@ -5427,11 +5402,7 @@ var methods = function () {
         signTransaction,
         sendTransaction,
         sign,
-        compileSolidity,
-        compileLLL,
-        compileSerpent,
-        submitWork,
-        getWork
+        compileSolidity
     ];
 };
 
@@ -5445,11 +5416,6 @@ var properties = function () {
         new Property({
             name: 'mining',
             getter: 'zond_mining'
-        }),
-        new Property({
-            name: 'hashrate',
-            getter: 'zond_hashrate',
-            outputFormatter: utils.toDecimal
         }),
         new Property({
             name: 'syncing',
@@ -5884,7 +5850,7 @@ var errors = require('./errors');
 
 /**
  * It's responsible for passing messages to providers
- * It's also responsible for polling the ethereum node for incoming messages
+ * It's also responsible for polling the zond node for incoming messages
  * Default poll timeout is 1 second
  * Singleton
  */

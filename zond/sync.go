@@ -18,13 +18,14 @@ package zond
 
 import (
 	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core/txpool"
 	"github.com/theQRL/go-zond/zond/protocols/zond"
 )
 
 // syncTransactions starts sending all currently pending transactions to the given peer.
 func (h *handler) syncTransactions(p *zond.Peer) {
 	var hashes []common.Hash
-	for _, batch := range h.txpool.Pending(false) {
+	for _, batch := range h.txpool.Pending(txpool.PendingFilter{}) {
 		for _, tx := range batch {
 			hashes = append(hashes, tx.Hash)
 		}

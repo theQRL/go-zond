@@ -18,7 +18,6 @@
 package zond
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
@@ -65,7 +64,7 @@ type Zond struct {
 
 	blockchain         *core.BlockChain
 	handler            *handler
-	ethDialCandidates  enode.Iterator
+	zondDialCandidates enode.Iterator
 	snapDialCandidates enode.Iterator
 
 	// DB interfaces
@@ -81,9 +80,8 @@ type Zond struct {
 
 	APIBackend *ZondAPIBackend
 
-	miner     *miner.Miner
-	gasPrice  *big.Int
-	etherbase common.Address
+	miner    *miner.Miner
+	gasPrice *big.Int
 
 	networkID     uint64
 	netRPCService *zondapi.NetAPI
@@ -95,14 +93,14 @@ type Zond struct {
 	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 }
 
-// New creates a new Zond object (including the
-// initialisation of the common Zond object)
+// New creates a new Zond object (including the initialisation of the common Zond object),
+// whose lifecycle will be managed by the provided node.
 func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 	// Ensure configuration values are compatible and sane
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
-	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
+	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Sign() <= 0 {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", zondconfig.Defaults.Miner.GasPrice)
 		config.Miner.GasPrice = new(big.Int).Set(zondconfig.Defaults.Miner.GasPrice)
 	}
@@ -128,14 +126,14 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 			log.Error("Failed to recover state", "error", err)
 		}
 	}
-	// Transfer mining-related config to the ethash config.
 	chainConfig, err := core.LoadChainConfig(chainDb, config.Genesis)
 	if err != nil {
 		return nil, err
 	}
-	engine, err := zondconfig.CreateConsensusEngine(chainConfig, chainDb)
-	if err != nil {
-		return nil, err
+	engine := zondconfig.CreateConsensusEngine()
+	networkID := config.NetworkId
+	if networkID == 0 {
+		networkID = chainConfig.ChainID.Uint64()
 	}
 	zond := &Zond{
 		config:            config,
@@ -144,9 +142,8 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 		accountManager:    stack.AccountManager(),
 		engine:            engine,
 		closeBloomHandler: make(chan struct{}),
-		networkID:         config.NetworkId,
+		networkID:         networkID,
 		gasPrice:          config.Miner.GasPrice,
-		etherbase:         config.Miner.Etherbase,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      core.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		p2pServer:         stack.Server(),
@@ -157,7 +154,7 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 	if bcVersion != nil {
 		dbVer = fmt.Sprintf("%d", *bcVersion)
 	}
-	log.Info("Initialising Zond protocol", "network", config.NetworkId, "dbversion", dbVer)
+	log.Info("Initialising Zond protocol", "network", networkID, "dbversion", dbVer)
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
@@ -185,8 +182,7 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 			StateScheme:         config.StateScheme,
 		}
 	)
-	// Override the chain config with provided settings.
-	zond.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, zond.engine, vmConfig, zond.shouldPreserve, &config.TransactionHistory)
+	zond.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, zond.engine, vmConfig, &config.TransactionHistory)
 	if err != nil {
 		return nil, err
 	}
@@ -203,10 +199,11 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 	// Permit the downloader to use the trie cache allowance during fast sync
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 	if zond.handler, err = newHandler(&handlerConfig{
+		NodeID:         zond.p2pServer.Self().ID(),
 		Database:       chainDb,
 		Chain:          zond.blockchain,
 		TxPool:         zond.txPool,
-		Network:        config.NetworkId,
+		Network:        networkID,
 		Sync:           config.SyncMode,
 		BloomCache:     uint64(cacheLimit),
 		EventMux:       zond.eventMux,
@@ -215,7 +212,7 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 		return nil, err
 	}
 
-	zond.miner = miner.New(zond, &config.Miner, zond.blockchain.Config(), zond.EventMux(), zond.engine, zond.isLocalBlock)
+	zond.miner = miner.New(zond, config.Miner, zond.engine)
 	zond.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	zond.APIBackend = &ZondAPIBackend{stack.Config().ExtRPCEnabled(), zond, nil}
@@ -228,7 +225,7 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 
 	// Setup DNS discovery iterators.
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
-	zond.ethDialCandidates, err = dnsclient.NewIterator(zond.config.ZondDiscoveryURLs...)
+	zond.zondDialCandidates, err = dnsclient.NewIterator(zond.config.ZondDiscoveryURLs...)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +235,7 @@ func New(stack *node.Node, config *zondconfig.Config) (*Zond, error) {
 	}
 
 	// Start the RPC service
-	zond.netRPCService = zondapi.NewNetAPI(zond.p2pServer, config.NetworkId)
+	zond.netRPCService = zondapi.NewNetAPI(zond.p2pServer, networkID)
 
 	// Register the backend on the node
 	stack.RegisterAPIs(zond.APIs())
@@ -279,9 +276,6 @@ func (s *Zond) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "zond",
-			Service:   NewZondAPI(s),
-		}, {
 			Namespace: "miner",
 			Service:   NewMinerAPI(s),
 		}, {
@@ -304,62 +298,6 @@ func (s *Zond) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Zond) Etherbase() (eb common.Address, err error) {
-	s.lock.RLock()
-	etherbase := s.etherbase
-	s.lock.RUnlock()
-
-	if etherbase != (common.Address{}) {
-		return etherbase, nil
-	}
-	return common.Address{}, errors.New("etherbase must be explicitly specified")
-}
-
-// isLocalBlock checks whether the specified block is mined
-// by local miner accounts.
-//
-// We regard two types of accounts as local miner account: etherbase
-// and accounts specified via `txpool.locals` flag.
-func (s *Zond) isLocalBlock(header *types.Header) bool {
-	author, err := s.engine.Author(header)
-	if err != nil {
-		log.Warn("Failed to retrieve block author", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
-		return false
-	}
-	// Check whether the given address is etherbase.
-	s.lock.RLock()
-	etherbase := s.etherbase
-	s.lock.RUnlock()
-	if author == etherbase {
-		return true
-	}
-	// Check whether the given address is specified by `txpool.local`
-	// CLI flag.
-	for _, account := range s.config.TxPool.Locals {
-		if account == author {
-			return true
-		}
-	}
-	return false
-}
-
-// shouldPreserve checks whether we should preserve the given block
-// during the chain reorg depending on whether the author of block
-// is a local account.
-func (zond *Zond) shouldPreserve(header *types.Header) bool {
-	return zond.isLocalBlock(header)
-}
-
-// SetEtherbase sets the mining reward address.
-func (zond *Zond) SetEtherbase(etherbase common.Address) {
-	zond.lock.Lock()
-	zond.etherbase = etherbase
-	zond.lock.Unlock()
-
-	zond.miner.SetEtherbase(etherbase)
-}
-
-func (s *Zond) IsMining() bool      { return s.miner.Mining() }
 func (s *Zond) Miner() *miner.Miner { return s.miner }
 
 func (s *Zond) AccountManager() *accounts.Manager  { return s.accountManager }
@@ -370,7 +308,7 @@ func (s *Zond) Engine() consensus.Engine           { return s.engine }
 func (s *Zond) ChainDb() zonddb.Database           { return s.chainDb }
 func (s *Zond) IsListening() bool                  { return true } // Always listening
 func (s *Zond) Downloader() *downloader.Downloader { return s.handler.downloader }
-func (s *Zond) Synced() bool                       { return s.handler.acceptTxs.Load() }
+func (s *Zond) Synced() bool                       { return s.handler.synced.Load() }
 func (s *Zond) SetSynced()                         { s.handler.enableSyncedFeatures() }
 func (s *Zond) ArchiveMode() bool                  { return s.config.NoPruning }
 func (s *Zond) BloomIndexer() *core.ChainIndexer   { return s.bloomIndexer }
@@ -378,7 +316,7 @@ func (s *Zond) BloomIndexer() *core.ChainIndexer   { return s.bloomIndexer }
 // Protocols returns all the currently configured
 // network protocols to start.
 func (s *Zond) Protocols() []p2p.Protocol {
-	protos := zond.MakeProtocols((*zondHandler)(s.handler), s.networkID, s.ethDialCandidates)
+	protos := zond.MakeProtocols((*zondHandler)(s.handler), s.networkID, s.zondDialCandidates)
 	if s.config.SnapshotCache > 0 {
 		protos = append(protos, snap.MakeProtocols((*snapHandler)(s.handler), s.snapDialCandidates)...)
 	}
@@ -408,7 +346,7 @@ func (s *Zond) Start() error {
 // Zond protocol.
 func (s *Zond) Stop() error {
 	// Stop all the peer-related stuff first.
-	s.ethDialCandidates.Close()
+	s.zondDialCandidates.Close()
 	s.snapDialCandidates.Close()
 	s.handler.Stop()
 
@@ -416,7 +354,6 @@ func (s *Zond) Stop() error {
 	s.bloomIndexer.Close()
 	close(s.closeBloomHandler)
 	s.txPool.Close()
-	s.miner.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
 

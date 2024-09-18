@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -43,7 +44,6 @@ import (
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/zond/tracers/logger"
 	"github.com/theQRL/go-zond/zonddb"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -80,7 +80,7 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 		SnapshotLimit:     0,
 		TrieDirtyDisabled: true, // Archive mode
 	}
-	chain, err := core.NewBlockChain(backend.chaindb, cacheConfig, gspec, backend.engine, vm.Config{}, nil, nil)
+	chain, err := core.NewBlockChain(backend.chaindb, cacheConfig, gspec, backend.engine, vm.Config{}, nil)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
@@ -199,13 +199,21 @@ func TestTraceCall(t *testing.T) {
 		},
 	}
 	genBlocks := 10
-	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(1)}
 	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
-		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
-		b.AddTx(tx)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     uint64(i),
+			To:        &accounts[1].addr,
+			Value:     big.NewInt(1000),
+			Gas:       params.TxGas,
+			GasFeeCap: b.BaseFee(),
+			Data:      nil,
+		})
+		signedTx, _ := types.SignTx(tx, signer, accounts[0].key)
+		b.AddTx(signedTx)
 	})
 	defer backend.teardown()
 	api := NewAPI(backend)
@@ -285,9 +293,9 @@ func TestTraceCall(t *testing.T) {
 				BlockOverrides: &zondapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
 			},
 			expectErr: nil,
-			expect: ` {"gas":53018,"failed":false,"returnValue":"","structLogs":[
-		{"pc":0,"op":"NUMBER","gas":24946984,"gasCost":2,"depth":1,"stack":[]},
-		{"pc":1,"op":"STOP","gas":24946982,"gasCost":0,"depth":1,"stack":["0x1337"]}]}`,
+			expect: ` {"gas":53020,"failed":false,"returnValue":"","structLogs":[
+				{"pc":0,"op":"NUMBER","gas":24946982,"gasCost":2,"depth":1,"stack":[]},
+				{"pc":1,"op":"STOP","gas":24946980,"gasCost":0,"depth":1,"stack":["0x1337"]}]}`,
 		},
 	}
 	for i, testspec := range testSuite {
@@ -333,14 +341,22 @@ func TestTraceTransaction(t *testing.T) {
 		},
 	}
 	target := common.Hash{}
-	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(1)}
 	backend := newTestBackend(t, 1, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
-		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
-		b.AddTx(tx)
-		target = tx.Hash()
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     uint64(i),
+			To:        &accounts[1].addr,
+			Value:     big.NewInt(1000),
+			Gas:       params.TxGas,
+			GasFeeCap: b.BaseFee(),
+			Data:      nil,
+		})
+		signedTx, _ := types.SignTx(tx, signer, accounts[0].key)
+		b.AddTx(signedTx)
+		target = signedTx.Hash()
 	})
 	defer backend.chain.Stop()
 	api := NewAPI(backend)
@@ -382,15 +398,23 @@ func TestTraceBlock(t *testing.T) {
 		},
 	}
 	genBlocks := 10
-	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(1)}
 	var txHash common.Hash
 	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
-		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
-		b.AddTx(tx)
-		txHash = tx.Hash()
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     uint64(i),
+			To:        &accounts[1].addr,
+			Value:     big.NewInt(1000),
+			Gas:       params.TxGas,
+			GasFeeCap: b.BaseFee(),
+			Data:      nil,
+		})
+		signedTx, _ := types.SignTx(tx, signer, accounts[0].key)
+		b.AddTx(signedTx)
+		txHash = signedTx.Hash()
 	})
 	defer backend.chain.Stop()
 	api := NewAPI(backend)
@@ -473,13 +497,21 @@ func TestTracingWithOverrides(t *testing.T) {
 		},
 	}
 	genBlocks := 10
-	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(1)}
 	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
-		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
-		b.AddTx(tx)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     uint64(i),
+			To:        &accounts[1].addr,
+			Value:     big.NewInt(1000),
+			Gas:       params.TxGas,
+			GasFeeCap: b.BaseFee(),
+			Data:      nil,
+		})
+		signedTx, _ := types.SignTx(tx, signer, accounts[0].key)
+		b.AddTx(signedTx)
 	})
 	defer backend.chain.Stop()
 	api := NewAPI(backend)
@@ -567,7 +599,7 @@ func TestTracingWithOverrides(t *testing.T) {
 			config: &TraceCallConfig{
 				BlockOverrides: &zondapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
 			},
-			want: `{"gas":59537,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000001337"}`,
+			want: `{"gas":59539,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000001337"}`,
 		},
 		{ // Override blocknumber, and query a blockhash
 			blockNumber: rpc.LatestBlockNumber,
@@ -587,7 +619,7 @@ func TestTracingWithOverrides(t *testing.T) {
 			config: &TraceCallConfig{
 				BlockOverrides: &zondapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
 			},
-			want: `{"gas":72666,"failed":false,"returnValue":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}`,
+			want: `{"gas":72668,"failed":false,"returnValue":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}`,
 		},
 		/*
 			pragma solidity =0.8.12;
@@ -638,7 +670,6 @@ func TestTracingWithOverrides(t *testing.T) {
 					},
 				},
 			},
-			//want: `{"gas":46900,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000000539"}`,
 			want: `{"gas":44100,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000000001"}`,
 		},
 		{ // No state override
@@ -827,7 +858,7 @@ func TestTraceChain(t *testing.T) {
 		},
 	}
 	genBlocks := 50
-	signer := types.ShanghaiSigner{ChainId: big.NewInt(0)}
+	signer := types.ShanghaiSigner{ChainId: big.NewInt(1)}
 
 	var (
 		ref   atomic.Uint32 // total refs has made
@@ -839,8 +870,16 @@ func TestTraceChain(t *testing.T) {
 		//    value: 1000 wei
 		//    fee:   0 wei
 		for j := 0; j < i+1; j++ {
-			tx, _ := types.SignTx(types.NewTransaction(nonce, accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
-			b.AddTx(tx)
+			tx := types.NewTx(&types.DynamicFeeTx{
+				Nonce:     nonce,
+				To:        &accounts[1].addr,
+				Value:     big.NewInt(1000),
+				Gas:       params.TxGas,
+				GasFeeCap: b.BaseFee(),
+				Data:      nil,
+			})
+			signedTx, _ := types.SignTx(tx, signer, accounts[0].key)
+			b.AddTx(signedTx)
 			nonce += 1
 		}
 	})

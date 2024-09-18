@@ -249,9 +249,9 @@ func dnsNukeRoute53(ctx *cli.Context) error {
 	return client.deleteDomain(ctx.Args().First())
 }
 
-// loadSigningKey loads a private key in Ethereum keystore format.
+// TODO(now.youtrack.cloud/issue/TGZ-6)
+// loadSigningKey loads da private key in Ethereum keystore format.
 func loadSigningKey(keyfile string) *ecdsa.PrivateKey {
-	// TODO(rgeraldes24)
 	/*
 		keyjson, err := os.ReadFile(keyfile)
 		if err != nil {

@@ -81,11 +81,11 @@ var (
 	debExecutables = []debExecutable{
 		{
 			BinaryName:  "abigen",
-			Description: "Source code generator to convert Ethereum contract definitions into easy to use, compile-time type-safe Go packages.",
+			Description: "Source code generator to convert Zond contract definitions into easy to use, compile-time type-safe Go packages.",
 		},
 		{
 			BinaryName:  "bootnode",
-			Description: "Ethereum bootnode.",
+			Description: "Zond bootnode.",
 		},
 		{
 			BinaryName:  "evm",
@@ -93,7 +93,7 @@ var (
 		},
 		{
 			BinaryName:  "gzond",
-			Description: "Ethereum CLI client.",
+			Description: "Zond CLI client.",
 		},
 		{
 			BinaryName:  "rlpdump",
@@ -101,20 +101,20 @@ var (
 		},
 		{
 			BinaryName:  "clef",
-			Description: "Ethereum account management tool.",
+			Description: "Zond account management tool.",
 		},
 	}
 
 	// A debian package is created for all executables listed here.
-	debEthereum = debPackage{
-		Name:        "ethereum",
+	debZond = debPackage{
+		Name:        "zond",
 		Version:     params.Version,
 		Executables: debExecutables,
 	}
 
 	// Debian meta packages to build and push to Ubuntu PPA
 	debPackages = []debPackage{
-		debEthereum,
+		debZond,
 	}
 
 	// Distros for which packages are created.
@@ -184,10 +184,12 @@ func main() {
 		doLint(os.Args[2:])
 	case "archive":
 		doArchive(os.Args[2:])
-	case "docker":
-		doDocker(os.Args[2:])
-	case "debsrc":
-		doDebianSource(os.Args[2:])
+	// TODO(now.youtrack.cloud/issue/TGZ-15)
+	// case "docker":
+	// doDocker(os.Args[2:])
+	// TODO(now.youtrack.cloud/issue/TGZ-22)
+	// case "debsrc":
+	// doDebianSource(os.Args[2:])
 	case "nsis":
 		doWindowsInstaller(os.Args[2:])
 	case "purge":
@@ -296,13 +298,14 @@ func doTest(cmdline []string) {
 		coverage = flag.Bool("coverage", false, "Whether to record code coverage")
 		verbose  = flag.Bool("v", false, "Whether to log verbosely")
 		race     = flag.Bool("race", false, "Execute the race detector")
-		cachedir = flag.String("cachedir", "./build/cache", "directory for caching downloads")
+		// cachedir = flag.String("cachedir", "./build/cache", "directory for caching downloads")
 	)
 	flag.CommandLine.Parse(cmdline)
 
 	// Get test fixtures.
 	csdb := build.MustLoadChecksums("build/checksums.txt")
-	downloadSpecTestFixtures(csdb, *cachedir)
+	// TODO(now.youtrack.cloud/issue/TGZ-23)
+	// downloadSpecTestFixtures(csdb, *cachedir)
 
 	// Configure the toolchain.
 	tc := build.GoToolchain{GOARCH: *arch, CC: *cc}
@@ -522,14 +525,14 @@ func doDocker(cmdline []string) {
 		build.MustRun(auther)
 	}
 	// Retrieve the version infos to build and push to the following paths:
-	//  - ethereum/client-go:latest                            - Pushes to the master branch, Gzond only
-	//  - ethereum/client-go:stable                            - Version tag publish on GitHub, Gzond only
-	//  - ethereum/client-go:alltools-latest                   - Pushes to the master branch, Gzond & tools
-	//  - ethereum/client-go:alltools-stable                   - Version tag publish on GitHub, Gzond & tools
-	//  - ethereum/client-go:release-<major>.<minor>           - Version tag publish on GitHub, Gzond only
-	//  - ethereum/client-go:alltools-release-<major>.<minor>  - Version tag publish on GitHub, Gzond & tools
-	//  - ethereum/client-go:v<major>.<minor>.<patch>          - Version tag publish on GitHub, Gzond only
-	//  - ethereum/client-go:alltools-v<major>.<minor>.<patch> - Version tag publish on GitHub, Gzond & tools
+	//  - theqrl/client-go:latest                            - Pushes to the master branch, Gzond only
+	//  - theqrl/client-go:stable                            - Version tag publish on GitHub, Gzond only
+	//  - theqrl/client-go:alltools-latest                   - Pushes to the master branch, Gzond & tools
+	//  - theqrl/client-go:alltools-stable                   - Version tag publish on GitHub, Gzond & tools
+	//  - theqrl/client-go:release-<major>.<minor>           - Version tag publish on GitHub, Gzond only
+	//  - theqrl/client-go:alltools-release-<major>.<minor>  - Version tag publish on GitHub, Gzond & tools
+	//  - theqrl/client-go:v<major>.<minor>.<patch>          - Version tag publish on GitHub, Gzond only
+	//  - theqrl/client-go:alltools-v<major>.<minor>.<patch> - Version tag publish on GitHub, Gzond & tools
 	var tags []string
 
 	switch {
@@ -670,7 +673,7 @@ func doDebianSource(cmdline []string) {
 	var (
 		cachedir = flag.String("cachedir", "./build/cache", `Filesystem path to cache the downloaded Go bundles at`)
 		signer   = flag.String("signer", "", `Signing key name, also used as package author`)
-		upload   = flag.String("upload", "", `Where to upload the source package (usually "ethereum/ethereum")`)
+		upload   = flag.String("upload", "", `Where to upload the source package (usually "theqrl/zond")`)
 		sshUser  = flag.String("sftp-user", "", `Username for SFTP upload (usually "gzond-ci")`)
 		workdir  = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 		now      = time.Now()
@@ -704,7 +707,7 @@ func doDebianSource(cmdline []string) {
 	// Create Debian packages and upload them.
 	for _, pkg := range debPackages {
 		for distro, goboot := range debDistroGoBoots {
-			// Prepare the debian package with the go-ethereum sources.
+			// Prepare the debian package with the go-zond sources.
 			meta := newDebMetadata(distro, goboot, *signer, env, now, pkg.Name, pkg.Version, pkg.Executables)
 			pkgdir := stageDebianSource(*workdir, meta)
 
@@ -827,7 +830,7 @@ func isUnstableBuild(env build.Environment) bool {
 }
 
 type debPackage struct {
-	Name        string          // the name of the Debian package to produce, e.g. "ethereum"
+	Name        string          // the name of the Debian package to produce, e.g. "zond"
 	Version     string          // the clean version of the debPackage, e.g. 1.8.12, without any metadata
 	Executables []debExecutable // executables to be included in the package
 }
@@ -839,7 +842,7 @@ type debMetadata struct {
 
 	PackageName string
 
-	// go-ethereum version being built. Note that this
+	// go-zond version being built. Note that this
 	// is not the debian package version. The package version
 	// is constructed by VersionString.
 	Version string
@@ -867,7 +870,7 @@ func (d debExecutable) Package() string {
 func newDebMetadata(distro, goboot, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
 	if author == "" {
 		// No signing key, use default author.
-		author = "Ethereum Builds <fjl@ethereum.org>"
+		author = "Zond Builds <someone@theqrl.org>"
 	}
 	return debMetadata{
 		GoBootPackage: goboot,
@@ -932,7 +935,7 @@ func (meta debMetadata) ExeConflicts(exe debExecutable) string {
 		// be preferred and the conflicting files should be handled via
 		// alternates. We might do this eventually but using a conflict is
 		// easier now.
-		return "ethereum, " + exe.Package()
+		return "zond, " + exe.Package()
 	}
 	return ""
 }

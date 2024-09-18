@@ -28,9 +28,17 @@ import (
 	"github.com/theQRL/go-zond/event"
 )
 
-func pricedValuedTransaction(nonce uint64, value int64, gaslimit uint64, gasprice *big.Int, key *dilithium.Dilithium) *types.Transaction {
-	tx, _ := types.SignTx(types.NewTransaction(nonce, common.Address{}, big.NewInt(value), gaslimit, gasprice, nil), types.ShanghaiSigner{ChainId: big.NewInt(0)}, key)
-	return tx
+func dynamicFeeValuedTransaction(nonce uint64, value int64, gaslimit uint64, gasFeeCap *big.Int, key *dilithium.Dilithium) *types.Transaction {
+	tx := types.NewTx(&types.DynamicFeeTx{
+		Nonce:     nonce,
+		To:        &common.Address{},
+		Value:     big.NewInt(value),
+		Gas:       gaslimit,
+		GasFeeCap: gasFeeCap,
+		Data:      nil,
+	})
+	signedTx, _ := types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, key)
+	return signedTx
 }
 
 func count(t *testing.T, pool *LegacyPool) (pending int, queued int) {
@@ -52,7 +60,7 @@ func fillPool(t testing.TB, pool *LegacyPool) {
 		pool.currentState.AddBalance(key.GetAddress(), big.NewInt(10000000000))
 		// Add executable ones
 		for j := 0; j < int(pool.config.AccountSlots); j++ {
-			executableTxs = append(executableTxs, pricedTransaction(uint64(j), 100000, big.NewInt(300), key))
+			executableTxs = append(executableTxs, dynamicFeeTx(uint64(j), 100000, big.NewInt(300), big.NewInt(0), key))
 		}
 	}
 	// Import the batch and verify that limits have been enforced
@@ -94,7 +102,7 @@ func TestTransactionFutureAttack(t *testing.T) {
 		pool.currentState.AddBalance(key.GetAddress(), big.NewInt(100000000000))
 		futureTxs := types.Transactions{}
 		for j := 0; j < int(pool.config.GlobalSlots+pool.config.GlobalQueue); j++ {
-			futureTxs = append(futureTxs, pricedTransaction(1000+uint64(j), 100000, big.NewInt(500), key))
+			futureTxs = append(futureTxs, dynamicFeeTx(1000+uint64(j), 100000, big.NewInt(500), big.NewInt(0), key))
 		}
 		for i := 0; i < 5; i++ {
 			pool.addRemotesSync(futureTxs)
@@ -183,7 +191,7 @@ func TestTransactionZAttack(t *testing.T) {
 		futureTxs := types.Transactions{}
 		key, _ := crypto.GenerateDilithiumKey()
 		pool.currentState.AddBalance(key.GetAddress(), big.NewInt(100000000000))
-		futureTxs = append(futureTxs, pricedTransaction(1000+uint64(j), 21000, big.NewInt(500), key))
+		futureTxs = append(futureTxs, dynamicFeeTx(1000+uint64(j), 21000, big.NewInt(500), big.NewInt(0), key))
 		pool.addRemotesSync(futureTxs)
 	}
 
@@ -192,7 +200,7 @@ func TestTransactionZAttack(t *testing.T) {
 		key, _ := crypto.GenerateDilithiumKey()
 		pool.currentState.AddBalance(key.GetAddress(), big.NewInt(100000000000))
 		for j := 0; j < int(pool.config.GlobalSlots); j++ {
-			overDraftTxs = append(overDraftTxs, pricedValuedTransaction(uint64(j), 600000000000, 21000, big.NewInt(500), key))
+			overDraftTxs = append(overDraftTxs, dynamicFeeValuedTransaction(uint64(j), 600000000000, 21000, big.NewInt(500), key))
 		}
 	}
 	pool.addRemotesSync(overDraftTxs)
@@ -231,7 +239,7 @@ func BenchmarkFutureAttack(b *testing.B) {
 	futureTxs := types.Transactions{}
 
 	for n := 0; n < b.N; n++ {
-		futureTxs = append(futureTxs, pricedTransaction(1000+uint64(n), 100000, big.NewInt(500), key))
+		futureTxs = append(futureTxs, dynamicFeeTx(1000+uint64(n), 100000, big.NewInt(500), big.NewInt(0), key))
 	}
 	b.ResetTimer()
 	for i := 0; i < 5; i++ {

@@ -100,7 +100,7 @@ or
 {"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"Request denied"}}
 ```
 
-Apart from listing accounts, you can also *request* creating a new account; signing transactions and data; and recovering signatures. You can find the available methods in the Clef [External API Spec](https://github.com/theQRL/go-zond/tree/master/cmd/clef#external-api-1) and the [External API Changelog](https://github.com/theQRL/go-zond/blob/master/cmd/clef/extapi_changelog.md).
+Apart from listing accounts, you can also *request* creating a new account and signing transactions and data. You can find the available methods in the Clef [External API Spec](https://github.com/theQRL/go-zond/tree/master/cmd/clef#external-api-1) and the [External API Changelog](https://github.com/theQRL/go-zond/blob/master/cmd/clef/extapi_changelog.md).
 
 *Note, the number of things you can do from the External API is deliberately small, since we want to limit the power of remote calls by as much as possible! Clef has an [Internal API](https://github.com/theQRL/go-zond/tree/master/cmd/clef#ui-api-1) too for the UI (User Interface) which is much richer and can support custom interfaces on top. But that's out of scope here.*
 
@@ -330,12 +330,13 @@ Lastly, when we requested a transaction to be sent, Clef prompted us in the orig
 
 ```text
 --------- Transaction request-------------
-to:       0xD9C9Cd5f6779558b6e0eD4e6Acf6b1947E7fA1F3
-from:     0xD9C9Cd5f6779558b6e0eD4e6Acf6b1947E7fA1F3 [chksum ok]
-value:    0 wei
-gas:      0x5208 (21000)
-gasprice: 1000000000 wei
-nonce:    0x2366 (9062)
+to:           0xD9C9Cd5f6779558b6e0eD4e6Acf6b1947E7fA1F3
+from:         0xD9C9Cd5f6779558b6e0eD4e6Acf6b1947E7fA1F3 [chksum ok]
+value:        0 wei
+gas:          0x5208 (21000)
+maxFeePerGas: 1000000000 wei
+maxPriorityFeePerGas:  0 wei
+nonce:        0x2366 (9062)
 
 Request context:
 	NA -> NA -> NA

@@ -51,9 +51,6 @@ func TestBlockchain(t *testing.T) {
 	bt.walk(t, blockTestDir, func(t *testing.T, name string, test *BlockTest) {
 		execBlockTest(t, bt, test)
 	})
-	// There is also a LegacyTests folder, containing blockchain tests generated
-	// prior to Istanbul. However, they are all derived from GeneralStateTests,
-	// which run natively, so there's no reason to run them here.
 }
 
 // TestExecutionSpec runs the test fixtures from execution-spec-tests.

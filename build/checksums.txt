@@ -1,6 +1,6 @@
 # This file contains sha256 checksums of optional build dependencies.
 
-# TODO(theQRL/go-zond/issues/35)
+# TODO(now.youtrack.cloud/issue/TGZ-12)
 # https://github.com/ethereum/execution-spec-tests/releases
 24bac679f3a2d8240d8e08e7f6a70b70c2dabf673317d924cf1d1887b9fe1f81  fixtures.tar.gz
 

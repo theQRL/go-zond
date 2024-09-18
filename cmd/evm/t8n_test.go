@@ -30,7 +30,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// Run the app if we've been exec'd as "ethkey-test" in runEthkey.
+	// Run the app if we've been exec'd as "zondkey-test" in runZondkey.
 	reexec.Register("evm-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -118,7 +118,7 @@ func TestT8n(t *testing.T) {
 		{ // Test exit (3) on bad config
 			base: "./testdata/1",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Frontier+1346", "",
+				"alloc.json", "txs.json", "env.json", "Shanghai+1346", "",
 			},
 			output:      t8nOutput{alloc: true, result: true},
 			expExitCode: 3,
@@ -126,7 +126,7 @@ func TestT8n(t *testing.T) {
 		{
 			base: "./testdata/1",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Byzantium", "",
+				"alloc.json", "txs.json", "env.json", "Shanghai", "",
 			},
 			output: t8nOutput{alloc: true, result: true},
 			expOut: "exp.json",
@@ -134,7 +134,7 @@ func TestT8n(t *testing.T) {
 		{ // blockhash test
 			base: "./testdata/3",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Berlin", "",
+				"alloc.json", "txs.json", "env.json", "Shanghai", "",
 			},
 			output: t8nOutput{alloc: true, result: true},
 			expOut: "exp.json",
@@ -142,7 +142,7 @@ func TestT8n(t *testing.T) {
 		{ // missing blockhash test
 			base: "./testdata/4",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Berlin", "",
+				"alloc.json", "txs.json", "env.json", "Shanghai", "",
 			},
 			output:      t8nOutput{alloc: true, result: true},
 			expExitCode: 4,
@@ -150,7 +150,7 @@ func TestT8n(t *testing.T) {
 		{ // Sign json transactions
 			base: "./testdata/13",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "London", "",
+				"alloc.json", "txs.json", "env.json", "Shanghai", "",
 			},
 			output: t8nOutput{body: true},
 			expOut: "exp.json",
@@ -158,23 +158,15 @@ func TestT8n(t *testing.T) {
 		{ // Already signed transactions
 			base: "./testdata/13",
 			input: t8nInput{
-				"alloc.json", "signed_txs.rlp", "env.json", "London", "",
+				"alloc.json", "signed_txs.rlp", "env.json", "Shanghai", "",
 			},
 			output: t8nOutput{result: true},
 			expOut: "exp2.json",
 		},
-		{ // Sign unprotected (pre-EIP155) transaction
-			base: "./testdata/23",
-			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Berlin", "",
-			},
-			output: t8nOutput{result: true},
-			expOut: "exp.json",
-		},
 		{ // Test post-merge transition
 			base: "./testdata/24",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Merge", "",
+				"alloc.json", "txs.json", "env.json", "Shanghai", "",
 			},
 			output: t8nOutput{alloc: true, result: true},
 			expOut: "exp.json",
@@ -182,7 +174,7 @@ func TestT8n(t *testing.T) {
 		{ // Test post-merge transition where input is missing random
 			base: "./testdata/24",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env-missingrandom.json", "Merge", "",
+				"alloc.json", "txs.json", "env-missingrandom.json", "Shanghai", "",
 			},
 			output:      t8nOutput{alloc: false, result: false},
 			expExitCode: 3,
@@ -190,7 +182,7 @@ func TestT8n(t *testing.T) {
 		{ // Test base fee calculation
 			base: "./testdata/25",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Merge", "",
+				"alloc.json", "txs.json", "env.json", "Shanghai", "",
 			},
 			output: t8nOutput{alloc: true, result: true},
 			expOut: "exp.json",
@@ -266,51 +258,38 @@ func TestT9n(t *testing.T) {
 		expExitCode int
 		expOut      string
 	}{
-		{ // London txs on homestead
+		{ // txs on Shanghai
 			base: "./testdata/15",
 			input: t9nInput{
-				inTxs:  "signed_txs.rlp",
-				stFork: "Homestead",
-			},
-			expOut: "exp.json",
-		},
-		{ // London txs on London
-			base: "./testdata/15",
-			input: t9nInput{
-				inTxs:  "signed_txs.rlp",
-				stFork: "London",
+				inTxs: "signed_txs.rlp",
 			},
 			expOut: "exp2.json",
 		},
 		{ // An RLP list (a blockheader really)
 			base: "./testdata/15",
 			input: t9nInput{
-				inTxs:  "blockheader.rlp",
-				stFork: "London",
+				inTxs: "blockheader.rlp",
 			},
 			expOut: "exp3.json",
 		},
 		{ // Transactions with too low gas
 			base: "./testdata/16",
 			input: t9nInput{
-				inTxs:  "signed_txs.rlp",
-				stFork: "London",
+				inTxs: "signed_txs.rlp",
 			},
 			expOut: "exp.json",
 		},
 		{ // Transactions with value exceeding 256 bits
 			base: "./testdata/17",
 			input: t9nInput{
-				inTxs:  "signed_txs.rlp",
-				stFork: "London",
+				inTxs: "signed_txs.rlp",
 			},
 			expOut: "exp.json",
 		},
 		{ // Invalid RLP
 			base: "./testdata/18",
 			input: t9nInput{
-				inTxs:  "invalid.rlp",
-				stFork: "London",
+				inTxs: "invalid.rlp",
 			},
 			expExitCode: t8ntool.ErrorIO,
 		},
@@ -347,10 +326,6 @@ type b11rInput struct {
 	inEnv         string
 	inWithdrawals string
 	inTxsRlp      string
-	inClique      string
-	ethash        bool
-	ethashMode    string
-	ethashDir     string
 }
 
 func (args *b11rInput) get(base string) []string {
@@ -365,21 +340,6 @@ func (args *b11rInput) get(base string) []string {
 	}
 	if opt := args.inTxsRlp; opt != "" {
 		out = append(out, "--input.txs")
-		out = append(out, fmt.Sprintf("%v/%v", base, opt))
-	}
-	if opt := args.inClique; opt != "" {
-		out = append(out, "--seal.clique")
-		out = append(out, fmt.Sprintf("%v/%v", base, opt))
-	}
-	if args.ethash {
-		out = append(out, "--seal.ethash")
-	}
-	if opt := args.ethashMode; opt != "" {
-		out = append(out, "--seal.ethash.mode")
-		out = append(out, fmt.Sprintf("%v/%v", base, opt))
-	}
-	if opt := args.ethashDir; opt != "" {
-		out = append(out, "--seal.ethash.dir")
 		out = append(out, fmt.Sprintf("%v/%v", base, opt))
 	}
 	out = append(out, "--output.block")
@@ -398,31 +358,6 @@ func TestB11r(t *testing.T) {
 	}{
 		{ // unsealed block
 			base: "./testdata/20",
-			input: b11rInput{
-				inEnv:    "header.json",
-				inTxsRlp: "txs.rlp",
-			},
-			expOut: "exp.json",
-		},
-		{ // ethash test seal
-			base: "./testdata/21",
-			input: b11rInput{
-				inEnv:    "header.json",
-				inTxsRlp: "txs.rlp",
-			},
-			expOut: "exp.json",
-		},
-		{ // clique test seal
-			base: "./testdata/21",
-			input: b11rInput{
-				inEnv:    "header.json",
-				inTxsRlp: "txs.rlp",
-				inClique: "clique.json",
-			},
-			expOut: "exp-clique.json",
-		},
-		{ // block with ommers
-			base: "./testdata/22",
 			input: b11rInput{
 				inEnv:    "header.json",
 				inTxsRlp: "txs.rlp",

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package tests implements execution of Ethereum JSON tests.
+// Package tests implements execution of Zond JSON tests.
 package tests
 
 import (
@@ -137,7 +137,7 @@ func (t *BlockTest) Run(snapshotter bool, scheme string, tracer vm.EVMLogger) er
 	}
 	chain, err := core.NewBlockChain(db, cache, gspec, engine, vm.Config{
 		Tracer: tracer,
-	}, nil, nil)
+	}, nil)
 	if err != nil {
 		return err
 	}

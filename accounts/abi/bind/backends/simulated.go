@@ -61,7 +61,7 @@ var (
 // DeployBackend, GasEstimator, GasPricer, LogFilterer, PendingContractCaller, TransactionReader, and TransactionSender
 type SimulatedBackend struct {
 	database   zonddb.Database  // In memory database to store our testing data
-	blockchain *core.BlockChain // Ethereum blockchain to handle the consensus
+	blockchain *core.BlockChain // Zond blockchain to handle the consensus
 
 	mu              sync.Mutex
 	pendingBlock    *types.Block   // Currently pending block that will be imported on request
@@ -83,7 +83,7 @@ func NewSimulatedBackendWithDatabase(database zonddb.Database, alloc core.Genesi
 		GasLimit: gasLimit,
 		Alloc:    alloc,
 	}
-	blockchain, _ := core.NewBlockChain(database, nil, &genesis, beacon.NewFaker(), vm.Config{}, nil, nil)
+	blockchain, _ := core.NewBlockChain(database, nil, &genesis, beacon.NewFaker(), vm.Config{}, nil)
 
 	backend := &SimulatedBackend{
 		database:   database,
@@ -518,11 +518,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call zond.CallMsg) (
 	}
 	// Normalize the max fee per gas the call is willing to spend.
 	var feeCap *big.Int
-	if call.GasPrice != nil && (call.GasFeeCap != nil || call.GasTipCap != nil) {
-		return 0, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
-	} else if call.GasPrice != nil {
-		feeCap = call.GasPrice
-	} else if call.GasFeeCap != nil {
+	if call.GasFeeCap != nil {
 		feeCap = call.GasFeeCap
 	} else {
 		feeCap = common.Big0
@@ -606,28 +602,18 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call zond.CallMsg) (
 // callContract implements common code between normal and pending contract calls.
 // state is modified during execution, make sure to copy it if necessary.
 func (b *SimulatedBackend) callContract(ctx context.Context, call zond.CallMsg, header *types.Header, stateDB *state.StateDB) (*core.ExecutionResult, error) {
-	// Gas prices post 1559 need to be initialized
-	if call.GasPrice != nil && (call.GasFeeCap != nil || call.GasTipCap != nil) {
-		return nil, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
+	// User specified 1559 gas fields (or none), use those
+	if call.GasFeeCap == nil {
+		call.GasFeeCap = new(big.Int)
 	}
-	head := b.blockchain.CurrentHeader()
-	// A basefee is provided, necessitating 1559-type execution
-	if call.GasPrice != nil {
-		// User specified the legacy gas field, convert to 1559 gas typing
-		call.GasFeeCap, call.GasTipCap = call.GasPrice, call.GasPrice
-	} else {
-		// User specified 1559 gas fields (or none), use those
-		if call.GasFeeCap == nil {
-			call.GasFeeCap = new(big.Int)
-		}
-		if call.GasTipCap == nil {
-			call.GasTipCap = new(big.Int)
-		}
-		// Backfill the legacy gasPrice for EVM execution, unless we're all zeroes
-		call.GasPrice = new(big.Int)
-		if call.GasFeeCap.BitLen() > 0 || call.GasTipCap.BitLen() > 0 {
-			call.GasPrice = math.BigMin(new(big.Int).Add(call.GasTipCap, head.BaseFee), call.GasFeeCap)
-		}
+	if call.GasTipCap == nil {
+		call.GasTipCap = new(big.Int)
+	}
+	// Backfill the legacy gasPrice for EVM execution, unless we're all zeroes
+	gasPrice := new(big.Int)
+	if call.GasFeeCap.BitLen() > 0 || call.GasTipCap.BitLen() > 0 {
+		head := b.blockchain.CurrentHeader()
+		gasPrice = math.BigMin(new(big.Int).Add(call.GasTipCap, head.BaseFee), call.GasFeeCap)
 	}
 
 	// Ensure message is initialized properly.
@@ -648,7 +634,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call zond.CallMsg, 
 		To:                call.To,
 		Value:             call.Value,
 		GasLimit:          call.Gas,
-		GasPrice:          call.GasPrice,
+		GasPrice:          gasPrice,
 		GasFeeCap:         call.GasFeeCap,
 		GasTipCap:         call.GasTipCap,
 		Data:              call.Data,
@@ -716,7 +702,7 @@ func (b *SimulatedBackend) FilterLogs(ctx context.Context, query zond.FilterQuer
 		if query.FromBlock != nil {
 			from = query.FromBlock.Int64()
 		}
-		to := int64(-1)
+		to := int64(-2)
 		if query.ToBlock != nil {
 			to = query.ToBlock.Int64()
 		}
@@ -903,10 +889,6 @@ func (fb *filterBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEve
 
 func (fb *filterBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return fb.bc.SubscribeLogsEvent(ch)
-}
-
-func (fb *filterBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
-	return nullSubscription()
 }
 
 func (fb *filterBackend) BloomStatus() (uint64, uint64) { return 4096, 0 }

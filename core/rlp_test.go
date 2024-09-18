@@ -31,7 +31,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-func getBlock(transactions int, uncles int, dataSize int) *types.Block {
+func getBlock(transactions int, dataSize int) *types.Block {
 	var (
 		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 		engine = beacon.NewFaker()
@@ -45,16 +45,23 @@ func getBlock(transactions int, uncles int, dataSize int) *types.Block {
 			Alloc:  GenesisAlloc{address: {Balance: funds}},
 		}
 	)
-	// We need to generate as many blocks +1 as uncles
-	_, blocks, _ := GenerateChainWithGenesis(gspec, engine, uncles+1,
+	_, blocks, _ := GenerateChainWithGenesis(gspec, engine, 1,
 		func(n int, b *BlockGen) {
-			if n == uncles {
+			if n == 0 {
 				// Add transactions and stuff on the last block
 				for i := 0; i < transactions; i++ {
-					tx, _ := types.SignTx(types.NewTransaction(uint64(i), aa,
-						big.NewInt(0), 50000, b.header.BaseFee, make([]byte, dataSize)), types.ShanghaiSigner{ChainId: big.NewInt(0)}, d)
-					b.AddTx(tx)
+					tx := types.NewTx(&types.DynamicFeeTx{
+						Nonce:     uint64(i),
+						To:        &aa,
+						Value:     big.NewInt(0),
+						Gas:       50000,
+						GasFeeCap: b.header.BaseFee,
+						Data:      make([]byte, dataSize),
+					})
+					signedTx, _ := types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(1)}, d)
+					b.AddTx(signedTx)
 				}
+
 			}
 		})
 	block := blocks[len(blocks)-1]
@@ -66,22 +73,19 @@ func getBlock(transactions int, uncles int, dataSize int) *types.Block {
 func TestRlpIterator(t *testing.T) {
 	for _, tt := range []struct {
 		txs      int
-		uncles   int
 		datasize int
 	}{
-		{0, 0, 0},
-		{0, 2, 0},
-		{10, 0, 0},
-		{10, 2, 0},
-		{10, 2, 50},
+		{0, 0},
+		{10, 0},
+		{10, 50},
 	} {
-		testRlpIterator(t, tt.txs, tt.uncles, tt.datasize)
+		testRlpIterator(t, tt.txs, tt.datasize)
 	}
 }
 
-func testRlpIterator(t *testing.T, txs, uncles, datasize int) {
-	desc := fmt.Sprintf("%d txs [%d datasize] and %d uncles", txs, datasize, uncles)
-	bodyRlp, _ := rlp.EncodeToBytes(getBlock(txs, uncles, datasize).Body())
+func testRlpIterator(t *testing.T, txs, datasize int) {
+	desc := fmt.Sprintf("%d txs [%d datasize]", txs, datasize)
+	bodyRlp, _ := rlp.EncodeToBytes(getBlock(txs, datasize).Body())
 	it, err := rlp.NewListIterator(bodyRlp)
 	if err != nil {
 		t.Fatal(err)
@@ -91,7 +95,7 @@ func testRlpIterator(t *testing.T, txs, uncles, datasize int) {
 		t.Fatal("expected two elems, got zero")
 	}
 	txdata := it.Value()
-	// Check that uncles exist
+	// Check that withdrawals exist
 	if !it.Next() {
 		t.Fatal("expected two elems, got one")
 	}
@@ -106,7 +110,9 @@ func testRlpIterator(t *testing.T, txs, uncles, datasize int) {
 	var gotHashes []common.Hash
 	var expHashes []common.Hash
 	for txIt.Next() {
-		gotHashes = append(gotHashes, crypto.Keccak256Hash(txIt.Value()))
+		// NOTE(rgeraldes24): ignore rlp metadata bytes(3): kind: case b < 0xC0(b9)
+		typeAndInnerRLP := txIt.Value()[3:]
+		gotHashes = append(gotHashes, crypto.Keccak256Hash([][]byte{typeAndInnerRLP}...))
 	}
 
 	var expBody types.Body
@@ -140,7 +146,7 @@ func BenchmarkHashing(b *testing.B) {
 		blockRlp []byte
 	)
 	{
-		block := getBlock(200, 2, 50)
+		block := getBlock(200, 50)
 		bodyRlp, _ = rlp.EncodeToBytes(block.Body())
 		blockRlp, _ = rlp.EncodeToBytes(block)
 	}

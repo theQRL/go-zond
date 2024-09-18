@@ -160,7 +160,11 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs).WithWithdrawals(body.Withdrawals), nil
+	return types.NewBlockWithHeader(head).WithBody(
+		types.Body{
+			Transactions: txs,
+			Withdrawals:  body.Withdrawals,
+		}), nil
 }
 
 // HeaderByHash returns the block header with the given hash.
@@ -210,7 +214,7 @@ func (ec *Client) TransactionByHash(ctx context.Context, hash common.Hash) (tx *
 		return nil, false, err
 	} else if json == nil {
 		return nil, false, zond.NotFound
-	} else if r := json.tx.RawSignatureValue(); r == nil {
+	} else if sig := json.tx.RawSignatureValue(); sig == nil {
 		return nil, false, errors.New("server returned transaction without signature")
 	}
 	if json.From != nil && json.BlockHash != nil {
@@ -262,7 +266,7 @@ func (ec *Client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 	}
 	if json == nil {
 		return nil, zond.NotFound
-	} else if r := json.tx.RawSignatureValue(); r == nil {
+	} else if sig := json.tx.RawSignatureValue(); sig == nil {
 		return nil, errors.New("server returned transaction without signature")
 	}
 	if json.From != nil && json.BlockHash != nil {
@@ -276,10 +280,8 @@ func (ec *Client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 func (ec *Client) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	var r *types.Receipt
 	err := ec.c.CallContext(ctx, &r, "zond_getTransactionReceipt", txHash)
-	if err == nil {
-		if r == nil {
-			return nil, zond.NotFound
-		}
+	if err == nil && r == nil {
+		return nil, zond.NotFound
 	}
 	return r, err
 }
@@ -492,15 +494,15 @@ func (ec *Client) PendingCallContract(ctx context.Context, msg zond.CallMsg) ([]
 
 // SuggestGasPrice retrieves the currently suggested gas price to allow a timely
 // execution of a transaction.
-func (ec *Client) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+func (zc *Client) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
-	if err := ec.c.CallContext(ctx, &hex, "zond_gasPrice"); err != nil {
+	if err := zc.c.CallContext(ctx, &hex, "zond_gasPrice"); err != nil {
 		return nil, err
 	}
 	return (*big.Int)(&hex), nil
 }
 
-// SuggestGasTipCap retrieves the currently suggested gas tip cap after 1559 to
+// SuggestGasTipCap retrieves the currently suggested gas tip cap to
 // allow a timely execution of a transaction.
 func (ec *Client) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
@@ -596,8 +598,14 @@ func toCallArg(msg zond.CallMsg) interface{} {
 	if msg.Gas != 0 {
 		arg["gas"] = hexutil.Uint64(msg.Gas)
 	}
-	if msg.GasPrice != nil {
-		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+	if msg.GasFeeCap != nil {
+		arg["maxFeePerGas"] = (*hexutil.Big)(msg.GasFeeCap)
+	}
+	if msg.GasTipCap != nil {
+		arg["maxPriorityFeePerGas"] = (*hexutil.Big)(msg.GasTipCap)
+	}
+	if msg.AccessList != nil {
+		arg["accessList"] = msg.AccessList
 	}
 	return arg
 }

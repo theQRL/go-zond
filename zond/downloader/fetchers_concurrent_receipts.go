@@ -88,7 +88,7 @@ func (q *receiptQueue) request(peer *peerConnection, req *fetchRequest, resCh ch
 // deliver is responsible for taking a generic response packet from the concurrent
 // fetcher, unpacking the receipt data and delivering it to the downloader's queue.
 func (q *receiptQueue) deliver(peer *peerConnection, packet *zond.Response) (int, error) {
-	receipts := *packet.Res.(*zond.ReceiptsPacket)
+	receipts := *packet.Res.(*zond.ReceiptsResponse)
 	hashes := packet.Meta.([]common.Hash) // {receipt hashes}
 
 	accepted, err := q.queue.DeliverReceipts(peer.id, receipts, hashes)

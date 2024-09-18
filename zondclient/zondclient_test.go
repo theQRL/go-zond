@@ -193,20 +193,22 @@ var genesis = &core.Genesis{
 	BaseFee:   big.NewInt(params.InitialBaseFee),
 }
 
-var testTx1 = types.MustSignNewTx(testKey, types.ShanghaiSigner{ChainId: genesis.Config.ChainID}, &types.LegacyTx{
-	Nonce:    0,
-	Value:    big.NewInt(12),
-	GasPrice: big.NewInt(params.InitialBaseFee),
-	Gas:      params.TxGas,
-	To:       &common.Address{2},
+var testTx1 = types.MustSignNewTx(testKey, types.LatestSigner(genesis.Config), &types.DynamicFeeTx{
+	Nonce:     0,
+	Value:     big.NewInt(12),
+	Gas:       params.TxGas,
+	GasTipCap: big.NewInt(765625000),
+	GasFeeCap: big.NewInt(1000000000),
+	To:        &common.Address{2},
 })
 
-var testTx2 = types.MustSignNewTx(testKey, types.ShanghaiSigner{ChainId: genesis.Config.ChainID}, &types.LegacyTx{
-	Nonce:    1,
-	Value:    big.NewInt(8),
-	GasPrice: big.NewInt(params.InitialBaseFee),
-	Gas:      params.TxGas,
-	To:       &common.Address{2},
+var testTx2 = types.MustSignNewTx(testKey, types.LatestSigner(genesis.Config), &types.DynamicFeeTx{
+	Nonce:     1,
+	Value:     big.NewInt(8),
+	Gas:       params.TxGas,
+	GasTipCap: big.NewInt(765625000),
+	GasFeeCap: big.NewInt(1000000000),
+	To:        &common.Address{2},
 })
 
 func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
@@ -264,7 +266,7 @@ func TestZondClient(t *testing.T) {
 			func(t *testing.T) { testBalanceAt(t, client) },
 		},
 		"TxInBlockInterrupted": {
-			func(t *testing.T) { testTransactionInBlockInterrupted(t, client) },
+			func(t *testing.T) { testTransactionInBlock(t, client) },
 		},
 		"ChainID": {
 			func(t *testing.T) { testChainID(t, client) },
@@ -317,11 +319,11 @@ func testHeader(t *testing.T, chain []*types.Block, client *rpc.Client) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			ec := NewClient(client)
+			zc := NewClient(client)
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
 
-			got, err := ec.HeaderByNumber(ctx, tt.block)
+			got, err := zc.HeaderByNumber(ctx, tt.block)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("HeaderByNumber(%v) error = %q, want %q", tt.block, err, tt.wantErr)
 			}
@@ -329,7 +331,7 @@ func testHeader(t *testing.T, chain []*types.Block, client *rpc.Client) {
 				got.Number = big.NewInt(0) // hack to make DeepEqual work
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Fatalf("HeaderByNumber(%v)\n   = %v\nwant %v", tt.block, got, tt.want)
+				t.Fatalf("HeaderByNumber(%v) got = %v, want %v", tt.block, got, tt.want)
 			}
 		})
 	}
@@ -366,11 +368,11 @@ func testBalanceAt(t *testing.T, client *rpc.Client) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			ec := NewClient(client)
+			zc := NewClient(client)
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
 
-			got, err := ec.BalanceAt(ctx, tt.account, tt.block)
+			got, err := zc.BalanceAt(ctx, tt.account, tt.block)
 			if tt.wantErr != nil && (err == nil || err.Error() != tt.wantErr.Error()) {
 				t.Fatalf("BalanceAt(%x, %v) error = %q, want %q", tt.account, tt.block, err, tt.wantErr)
 			}
@@ -381,7 +383,7 @@ func testBalanceAt(t *testing.T, client *rpc.Client) {
 	}
 }
 
-func testTransactionInBlockInterrupted(t *testing.T, client *rpc.Client) {
+func testTransactionInBlock(t *testing.T, client *rpc.Client) {
 	ec := NewClient(client)
 
 	// Get current block by number.
@@ -390,26 +392,32 @@ func testTransactionInBlockInterrupted(t *testing.T, client *rpc.Client) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Test tx in block interrupted.
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	tx, err := ec.TransactionInBlock(ctx, block.Hash(), 0)
-	if tx != nil {
-		t.Fatal("transaction should be nil")
-	}
-	if err == nil || err == zond.NotFound {
-		t.Fatal("error should not be nil/notfound")
-	}
-
 	// Test tx in block not found.
 	if _, err := ec.TransactionInBlock(context.Background(), block.Hash(), 20); err != zond.NotFound {
 		t.Fatal("error should be zond.NotFound")
 	}
+
+	// Test tx in block found.
+	tx, err := ec.TransactionInBlock(context.Background(), block.Hash(), 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tx.Hash() != testTx1.Hash() {
+		t.Fatalf("unexpected transaction: %v", tx)
+	}
+
+	tx, err = ec.TransactionInBlock(context.Background(), block.Hash(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tx.Hash() != testTx2.Hash() {
+		t.Fatalf("unexpected transaction: %v", tx)
+	}
 }
 
 func testChainID(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
-	id, err := ec.ChainID(context.Background())
+	zc := NewClient(client)
+	id, err := zc.ChainID(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -419,10 +427,10 @@ func testChainID(t *testing.T, client *rpc.Client) {
 }
 
 func testGetBlock(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
+	zc := NewClient(client)
 
 	// Get current block number
-	blockNumber, err := ec.BlockNumber(context.Background())
+	blockNumber, err := zc.BlockNumber(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -430,7 +438,7 @@ func testGetBlock(t *testing.T, client *rpc.Client) {
 		t.Fatalf("BlockNumber returned wrong number: %d", blockNumber)
 	}
 	// Get current block by number
-	block, err := ec.BlockByNumber(context.Background(), new(big.Int).SetUint64(blockNumber))
+	block, err := zc.BlockByNumber(context.Background(), new(big.Int).SetUint64(blockNumber))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -438,7 +446,7 @@ func testGetBlock(t *testing.T, client *rpc.Client) {
 		t.Fatalf("BlockByNumber returned wrong block: want %d got %d", blockNumber, block.NumberU64())
 	}
 	// Get current block by hash
-	blockH, err := ec.BlockByHash(context.Background(), block.Hash())
+	blockH, err := zc.BlockByHash(context.Background(), block.Hash())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -446,7 +454,7 @@ func testGetBlock(t *testing.T, client *rpc.Client) {
 		t.Fatalf("BlockByHash returned wrong block: want %v got %v", block.Hash().Hex(), blockH.Hash().Hex())
 	}
 	// Get header by number
-	header, err := ec.HeaderByNumber(context.Background(), new(big.Int).SetUint64(blockNumber))
+	header, err := zc.HeaderByNumber(context.Background(), new(big.Int).SetUint64(blockNumber))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -454,7 +462,7 @@ func testGetBlock(t *testing.T, client *rpc.Client) {
 		t.Fatalf("HeaderByNumber returned wrong header: want %v got %v", block.Header().Hash().Hex(), header.Hash().Hex())
 	}
 	// Get header by hash
-	headerH, err := ec.HeaderByHash(context.Background(), block.Hash())
+	headerH, err := zc.HeaderByHash(context.Background(), block.Hash())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -464,10 +472,10 @@ func testGetBlock(t *testing.T, client *rpc.Client) {
 }
 
 func testStatusFunctions(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
+	zc := NewClient(client)
 
 	// Sync progress
-	progress, err := ec.SyncProgress(context.Background())
+	progress, err := zc.SyncProgress(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -476,16 +484,16 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 	}
 
 	// NetworkID
-	networkID, err := ec.NetworkID(context.Background())
+	networkID, err := zc.NetworkID(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if networkID.Cmp(big.NewInt(0)) != 0 {
+	if networkID.Cmp(big.NewInt(1337)) != 0 {
 		t.Fatalf("unexpected networkID: %v", networkID)
 	}
 
 	// SuggestGasPrice
-	gasPrice, err := ec.SuggestGasPrice(context.Background())
+	gasPrice, err := zc.SuggestGasPrice(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -494,7 +502,7 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 	}
 
 	// SuggestGasTipCap
-	gasTipCap, err := ec.SuggestGasTipCap(context.Background())
+	gasTipCap, err := zc.SuggestGasTipCap(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -503,7 +511,7 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 	}
 
 	// FeeHistory
-	history, err := ec.FeeHistory(context.Background(), 1, big.NewInt(2), []float64{95, 99})
+	history, err := zc.FeeHistory(context.Background(), 1, big.NewInt(2), []float64{95, 99})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -527,7 +535,7 @@ func testStatusFunctions(t *testing.T, client *rpc.Client) {
 }
 
 func testCallContractAtHash(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
+	zc := NewClient(client)
 
 	// EstimateGas
 	msg := zond.CallMsg{
@@ -536,25 +544,25 @@ func testCallContractAtHash(t *testing.T, client *rpc.Client) {
 		Gas:   21000,
 		Value: big.NewInt(1),
 	}
-	gas, err := ec.EstimateGas(context.Background(), msg)
+	gas, err := zc.EstimateGas(context.Background(), msg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if gas != 21000 {
 		t.Fatalf("unexpected gas price: %v", gas)
 	}
-	block, err := ec.HeaderByNumber(context.Background(), big.NewInt(1))
+	block, err := zc.HeaderByNumber(context.Background(), big.NewInt(1))
 	if err != nil {
 		t.Fatalf("BlockByNumber error: %v", err)
 	}
 	// CallContract
-	if _, err := ec.CallContractAtHash(context.Background(), msg, block.Hash()); err != nil {
+	if _, err := zc.CallContractAtHash(context.Background(), msg, block.Hash()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func testCallContract(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
+	zc := NewClient(client)
 
 	// EstimateGas
 	msg := zond.CallMsg{
@@ -563,7 +571,7 @@ func testCallContract(t *testing.T, client *rpc.Client) {
 		Gas:   21000,
 		Value: big.NewInt(1),
 	}
-	gas, err := ec.EstimateGas(context.Background(), msg)
+	gas, err := zc.EstimateGas(context.Background(), msg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -571,36 +579,43 @@ func testCallContract(t *testing.T, client *rpc.Client) {
 		t.Fatalf("unexpected gas price: %v", gas)
 	}
 	// CallContract
-	if _, err := ec.CallContract(context.Background(), msg, big.NewInt(1)); err != nil {
+	if _, err := zc.CallContract(context.Background(), msg, big.NewInt(1)); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// PendingCallContract
-	if _, err := ec.PendingCallContract(context.Background(), msg); err != nil {
+	if _, err := zc.PendingCallContract(context.Background(), msg); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func testAtFunctions(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
+	zc := NewClient(client)
 
 	// send a transaction for some interesting pending status
-	sendTransaction(ec)
-	time.Sleep(100 * time.Millisecond)
+	// and wait for the transaction to be included in the pending block
+	if err := sendTransaction(zc); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	// Check pending transaction count
-	pending, err := ec.PendingTransactionCount(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	// wait for the transaction to be included in the pending block
+	for {
+		// Check pending transaction count
+		pending, err := zc.PendingTransactionCount(context.Background())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if pending == 1 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	if pending != 1 {
-		t.Fatalf("unexpected pending, wanted 1 got: %v", pending)
-	}
+
 	// Query balance
-	balance, err := ec.BalanceAt(context.Background(), testAddr, nil)
+	balance, err := zc.BalanceAt(context.Background(), testAddr, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	penBalance, err := ec.PendingBalanceAt(context.Background(), testAddr)
+	penBalance, err := zc.PendingBalanceAt(context.Background(), testAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -608,11 +623,11 @@ func testAtFunctions(t *testing.T, client *rpc.Client) {
 		t.Fatalf("unexpected balance: %v %v", balance, penBalance)
 	}
 	// NonceAt
-	nonce, err := ec.NonceAt(context.Background(), testAddr, nil)
+	nonce, err := zc.NonceAt(context.Background(), testAddr, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	penNonce, err := ec.PendingNonceAt(context.Background(), testAddr)
+	penNonce, err := zc.PendingNonceAt(context.Background(), testAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -620,11 +635,11 @@ func testAtFunctions(t *testing.T, client *rpc.Client) {
 		t.Fatalf("unexpected nonce: %v %v", nonce, penNonce)
 	}
 	// StorageAt
-	storage, err := ec.StorageAt(context.Background(), testAddr, common.Hash{}, nil)
+	storage, err := zc.StorageAt(context.Background(), testAddr, common.Hash{}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	penStorage, err := ec.PendingStorageAt(context.Background(), testAddr, common.Hash{})
+	penStorage, err := zc.PendingStorageAt(context.Background(), testAddr, common.Hash{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -632,11 +647,11 @@ func testAtFunctions(t *testing.T, client *rpc.Client) {
 		t.Fatalf("unexpected storage: %v %v", storage, penStorage)
 	}
 	// CodeAt
-	code, err := ec.CodeAt(context.Background(), testAddr, nil)
+	code, err := zc.CodeAt(context.Background(), testAddr, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	penCode, err := ec.PendingCodeAt(context.Background(), testAddr)
+	penCode, err := zc.PendingCodeAt(context.Background(), testAddr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -646,15 +661,15 @@ func testAtFunctions(t *testing.T, client *rpc.Client) {
 }
 
 func testTransactionSender(t *testing.T, client *rpc.Client) {
-	ec := NewClient(client)
+	zc := NewClient(client)
 	ctx := context.Background()
 
 	// Retrieve testTx1 via RPC.
-	block2, err := ec.HeaderByNumber(ctx, big.NewInt(2))
+	block2, err := zc.HeaderByNumber(ctx, big.NewInt(2))
 	if err != nil {
 		t.Fatal("can't get block 1:", err)
 	}
-	tx1, err := ec.TransactionInBlock(ctx, block2.Hash(), 0)
+	tx1, err := zc.TransactionInBlock(ctx, block2.Hash(), 0)
 	if err != nil {
 		t.Fatal("can't get tx:", err)
 	}
@@ -666,7 +681,8 @@ func testTransactionSender(t *testing.T, client *rpc.Client) {
 	// TransactionSender. Ensure the server is not asked by canceling the context here.
 	canceledCtx, cancel := context.WithCancel(context.Background())
 	cancel()
-	sender1, err := ec.TransactionSender(canceledCtx, tx1, block2.Hash(), 0)
+	<-canceledCtx.Done() // Ensure the close of the Done channel
+	sender1, err := zc.TransactionSender(canceledCtx, tx1, block2.Hash(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -676,7 +692,7 @@ func testTransactionSender(t *testing.T, client *rpc.Client) {
 
 	// Now try to get the sender of testTx2, which was not fetched through RPC.
 	// TransactionSender should query the server here.
-	sender2, err := ec.TransactionSender(ctx, testTx2, block2.Hash(), 1)
+	sender2, err := zc.TransactionSender(ctx, testTx2, block2.Hash(), 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -685,26 +701,26 @@ func testTransactionSender(t *testing.T, client *rpc.Client) {
 	}
 }
 
-func sendTransaction(ec *Client) error {
-	chainID, err := ec.ChainID(context.Background())
+func sendTransaction(zc *Client) error {
+	chainID, err := zc.ChainID(context.Background())
 	if err != nil {
 		return err
 	}
-	nonce, err := ec.PendingNonceAt(context.Background(), testAddr)
+	nonce, err := zc.NonceAt(context.Background(), testAddr, nil)
 	if err != nil {
 		return err
 	}
 
 	signer := types.LatestSignerForChainID(chainID)
-	tx, err := types.SignNewTx(testKey, signer, &types.LegacyTx{
-		Nonce:    nonce,
-		To:       &common.Address{2},
-		Value:    big.NewInt(1),
-		Gas:      22000,
-		GasPrice: big.NewInt(params.InitialBaseFee),
+	tx, err := types.SignNewTx(testKey, signer, &types.DynamicFeeTx{
+		Nonce:     nonce,
+		To:        &common.Address{2},
+		Value:     big.NewInt(1),
+		Gas:       22000,
+		GasFeeCap: big.NewInt(765625000),
 	})
 	if err != nil {
 		return err
 	}
-	return ec.SendTransaction(context.Background(), tx)
+	return zc.SendTransaction(context.Background(), tx)
 }

@@ -225,10 +225,6 @@ func (b *BlockGen) OffsetTime(seconds int64) {
 // every block. Any transactions added to the generator
 // become part of the block. If gen is nil, the blocks will be empty
 // and their coinbase will be the zero address.
-//
-// Blocks created by GenerateChain do not contain valid proof of work
-// values. Inserting them into BlockChain requires use of FakePow or
-// a similar non-validating proof of work implementation.
 func GenerateChain(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db zonddb.Database, n int, gen func(int, *BlockGen)) ([]*types.Block, []types.Receipts) {
 	if config == nil {
 		config = params.TestChainConfig
@@ -244,7 +240,8 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			gen(i, b)
 		}
 		if b.engine != nil {
-			block, err := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.receipts, b.withdrawals)
+			body := types.Body{Transactions: b.txs, Withdrawals: b.withdrawals}
+			block, err := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, &body, b.receipts)
 			if err != nil {
 				panic(err)
 			}

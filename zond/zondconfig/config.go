@@ -30,7 +30,6 @@ import (
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/zond/downloader"
 	"github.com/theQRL/go-zond/zond/gasprice"
-	"github.com/theQRL/go-zond/zonddb"
 )
 
 // FullNodeGPO contains default gasprice oracle settings for full node.
@@ -43,7 +42,7 @@ var FullNodeGPO = gasprice.Config{
 	IgnorePrice:      gasprice.DefaultIgnorePrice,
 }
 
-// Defaults contains default settings for use on the Ethereum main net.
+// Defaults contains default settings for use on the Zond main net.
 var Defaults = Config{
 	SyncMode:           downloader.SnapSync,
 	NetworkId:          1,
@@ -72,8 +71,9 @@ type Config struct {
 	// If nil, the Zond main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
-	// Protocol options
-	NetworkId uint64 // Network ID to use for selecting peers to connect to
+	// Network ID separates blockchains on the peer-to-peer networking level. When left
+	// zero, the chain ID is used as network ID.
+	NetworkId uint64
 	SyncMode  downloader.SyncMode
 
 	// This can be set to list of enrtree:// URLs which will be queried for
@@ -86,7 +86,11 @@ type Config struct {
 
 	TransactionHistory uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 	StateHistory       uint64 `toml:",omitempty"` // The maximum number of blocks from head whose state histories are reserved.
-	StateScheme        string `toml:",omitempty"` // State scheme used to store zond state and merkle trie nodes on top
+
+	// State scheme represents the scheme used to store zond states and trie
+	// nodes on top. It can be 'hash', 'path', or none which means use the scheme
+	// consistent with persistent state.
+	StateScheme string `toml:",omitempty"`
 
 	// RequiredBlocks is a set of block number -> hash mappings which must be in the
 	// canonical chain of all remote peers. Setting the option makes gzond verify the
@@ -135,6 +139,6 @@ type Config struct {
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain config.
-func CreateConsensusEngine(config *params.ChainConfig, db zonddb.Database) (consensus.Engine, error) {
-	return beacon.New(), nil
+func CreateConsensusEngine() consensus.Engine {
+	return beacon.New()
 }

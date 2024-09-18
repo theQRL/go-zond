@@ -59,7 +59,7 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
-	BaseFee    *big.Int    `json:"baseFeePerGas"` // EIP-1559
+	BaseFee    *big.Int    `json:"baseFeePerGas"`
 }
 
 func ReadGenesis(db zonddb.Database) (*Genesis, error) {
@@ -203,11 +203,11 @@ func CommitGenesisState(db zonddb.Database, triedb *trie.Database, blockhash com
 
 // GenesisAccount is an account in the state of the genesis block.
 type GenesisAccount struct {
-	Code       []byte                      `json:"code,omitempty"`
-	Storage    map[common.Hash]common.Hash `json:"storage,omitempty"`
-	Balance    *big.Int                    `json:"balance" gencodec:"required"`
-	Nonce      uint64                      `json:"nonce,omitempty"`
-	PrivateKey []byte                      `json:"secretKey,omitempty"` // for tests
+	Code    []byte                      `json:"code,omitempty"`
+	Storage map[common.Hash]common.Hash `json:"storage,omitempty"`
+	Balance *big.Int                    `json:"balance" gencodec:"required"`
+	Nonce   uint64                      `json:"nonce,omitempty"`
+	Seed    []byte                      `json:"seed,omitempty"` // for tests
 }
 
 // field type overrides for gencodec
@@ -436,7 +436,7 @@ func (g *Genesis) ToBlock() *types.Block {
 		head.WithdrawalsHash = &types.EmptyWithdrawalsHash
 		withdrawals = make([]*types.Withdrawal, 0)
 	}
-	return types.NewBlock(head, nil, nil, trie.NewStackTrie(nil)).WithWithdrawals(withdrawals)
+	return types.NewBlock(head, &types.Body{Withdrawals: withdrawals}, nil, trie.NewStackTrie(nil))
 }
 
 // Commit writes the block and state of a genesis specification to the database.
@@ -479,7 +479,8 @@ func (g *Genesis) MustCommit(db zonddb.Database, triedb *trie.Database) *types.B
 	return block
 }
 
-// DefaultGenesisBlock returns the Ethereum main net genesis block.
+// TODO(now.youtrack.cloud/issue/TGZ-16)
+// DefaultGenesisBlock returns the Zond main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:    params.MainnetChainConfig,

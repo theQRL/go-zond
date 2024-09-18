@@ -38,10 +38,11 @@ import (
 )
 
 type callContext struct {
-	Number   math.HexOrDecimal64 `json:"number"`
-	Time     math.HexOrDecimal64 `json:"timestamp"`
-	GasLimit math.HexOrDecimal64 `json:"gasLimit"`
-	Miner    common.Address      `json:"miner"`
+	Number   math.HexOrDecimal64   `json:"number"`
+	Time     math.HexOrDecimal64   `json:"timestamp"`
+	GasLimit math.HexOrDecimal64   `json:"gasLimit"`
+	Miner    common.Address        `json:"miner"`
+	BaseFee  *math.HexOrDecimal256 `json:"baseFeePerGas"`
 }
 
 // callLog is the result of LOG opCode
@@ -77,22 +78,16 @@ type callTracerTest struct {
 	Result       *callTrace      `json:"result"`
 }
 
-// Iterates over all the input-output datasets in the tracer test harness and
-// runs the JavaScript tracers against them.
-func TestCallTracerLegacy(t *testing.T) {
-	testCallTracer("callTracerLegacy", "call_tracer_legacy", t)
-}
-
 func TestCallTracerNative(t *testing.T) {
 	testCallTracer("callTracer", "call_tracer", t)
 }
 
+// TODO(now.youtrack.cloud/issue/TGZ-13)
 func TestCallTracerNativeWithLog(t *testing.T) {
 	testCallTracer("callTracer", "call_tracer_withLog", t)
 }
 
 func testCallTracer(tracerName string, dirPath string, t *testing.T) {
-	isLegacy := strings.HasSuffix(dirPath, "_legacy")
 	files, err := os.ReadDir(filepath.Join("testdata", dirPath))
 	if err != nil {
 		t.Fatalf("failed to retrieve tracer test suite: %v", err)
@@ -156,15 +151,6 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			res, err := tracer.GetResult()
 			if err != nil {
 				t.Fatalf("failed to retrieve trace result: %v", err)
-			}
-			// The legacy javascript calltracer marshals json in js, which
-			// is not deterministic (as opposed to the golang json encoder).
-			if isLegacy {
-				// This is a tweak to make it deterministic. Can be removed when
-				// we remove the legacy tracer.
-				var x callTrace
-				json.Unmarshal(res, &x)
-				res, _ = json.Marshal(x)
 			}
 			want, err := json.Marshal(test.Result)
 			if err != nil {
@@ -274,6 +260,7 @@ func TestInternals(t *testing.T) {
 			BlockNumber: new(big.Int).SetUint64(8000000),
 			Time:        5,
 			GasLimit:    uint64(6000000),
+			BaseFee:     new(big.Int),
 		}
 	)
 	mkTracer := func(name string, cfg json.RawMessage) tracers.Tracer {
@@ -301,7 +288,7 @@ func TestInternals(t *testing.T) {
 				byte(vm.CALL),
 			},
 			tracer: mkTracer("callTracer", nil),
-			want:   `{"from":"0x000000000000000000000000000000000000feed","gas":"0x13880","gasUsed":"0x54d8","to":"0x00000000000000000000000000000000deadbeef","input":"0x","calls":[{"from":"0x00000000000000000000000000000000deadbeef","gas":"0xe01a","gasUsed":"0x0","to":"0x00000000000000000000000000000000000000ff","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`,
+			want:   `{"from":"0x000000000000000000000000000000000000feed","gas":"0x13880","gasUsed":"0x5c44","to":"0x00000000000000000000000000000000deadbeef","input":"0x","calls":[{"from":"0x00000000000000000000000000000000deadbeef","gas":"0xd8cc","gasUsed":"0x0","to":"0x00000000000000000000000000000000000000ff","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`,
 		},
 		{
 			name:   "Stack depletion in LOG0",

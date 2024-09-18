@@ -63,8 +63,7 @@ type bbInput struct {
 	TxRlp       string              `json:"txs,omitempty"`
 	Withdrawals []*types.Withdrawal `json:"withdrawals,omitempty"`
 
-	Ethash bool                 `json:"-"`
-	Txs    []*types.Transaction `json:"-"`
+	Txs []*types.Transaction `json:"-"`
 }
 
 // ToBlock converts i into a *types.Block
@@ -96,7 +95,7 @@ func (i *bbInput) ToBlock() *types.Block {
 	if i.Header.ReceiptHash != nil {
 		header.ReceiptHash = *i.Header.ReceiptHash
 	}
-	return types.NewBlockWithHeader(header).WithBody(i.Txs).WithWithdrawals(i.Withdrawals)
+	return types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: i.Txs, Withdrawals: i.Withdrawals})
 }
 
 // SealBlock seals the given block using the configured engine.

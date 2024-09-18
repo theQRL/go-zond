@@ -191,7 +191,7 @@ func ExecutableDataToBlock(params ExecutableData) (*types.Block, error) {
 		Random:          params.Random,
 		WithdrawalsHash: withdrawalsRoot,
 	}
-	block := types.NewBlockWithHeader(header).WithBody(txs).WithWithdrawals(params.Withdrawals)
+	block := types.NewBlockWithHeader(header).WithBody(types.Body{Transactions: txs, Withdrawals: params.Withdrawals})
 	if block.Hash() != params.BlockHash {
 		return nil, fmt.Errorf("blockhash mismatch, want %x, got %x", params.BlockHash, block.Hash())
 	}

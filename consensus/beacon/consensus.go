@@ -28,10 +28,8 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/trie"
-	"golang.org/x/crypto/sha3"
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -42,14 +40,7 @@ var (
 	errInvalidTimestamp = errors.New("invalid timestamp")
 )
 
-// Beacon is a consensus engine that combines the eth1 consensus and proof-of-stake
-// algorithm. There is a special flag inside to decide whether to use legacy consensus
-// rules or new rules. The transition rule is described in the eth1/2 merge spec.
-// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-3675.md
-//
-// The beacon here is a half-functional consensus engine with partial functions which
-// is only used for necessary consensus checks. The legacy consensus engine can be any
-// engine implements the consensus interface (except the beacon itself).
+// Beacon is a consensus engine that uses the proof-of-stake algorithm.
 type Beacon struct {
 	fakeFail  *uint64        // Block number which fails PoW check even in fake mode
 	fakeDelay *time.Duration // Time delay to sleep for before returning from verify
@@ -89,7 +80,7 @@ func (beacon *Beacon) Author(header *types.Header) (common.Address, error) {
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules of the
-// stock Ethereum consensus engine.
+// stock Zond consensus engine.
 func (beacon *Beacon) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header) error {
 	// Short circuit if the parent is not known
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
@@ -110,7 +101,7 @@ func (beacon *Beacon) VerifyHeaders(chain consensus.ChainHeaderReader, headers [
 }
 
 // verifyHeader checks whether a header conforms to the consensus rules of the
-// stock Ethereum consensus engine. The difference between the beacon and classic is
+// stock Zond consensus engine. The difference between the beacon and classic is
 // (a) The following fields are expected to be constants:
 //
 //	to be the desired constants
@@ -203,15 +194,10 @@ func (beacon *Beacon) verifyHeaders(chain consensus.ChainHeaderReader, headers [
 	return abort, results
 }
 
-// Prepare implements consensus.Engine.
-func (beacon *Beacon) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
-	return nil
-}
-
 // Finalize implements consensus.Engine and processes withdrawals on top.
-func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, withdrawals []*types.Withdrawal) {
+func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, body *types.Body) {
 	// Withdrawals processing.
-	for _, w := range withdrawals {
+	for _, w := range body.Withdrawals {
 		// Convert amount from gwei to wei.
 		amount := new(big.Int).SetUint64(w.Amount)
 		amount = amount.Mul(amount, big.NewInt(params.GWei))
@@ -222,60 +208,19 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 
 // FinalizeAndAssemble implements consensus.Engine, setting the final state and
 // assembling the block.
-func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
+func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, body *types.Body, receipts []*types.Receipt) (*types.Block, error) {
 	// All blocks after Shanghai must include a withdrawals root.
-	if withdrawals == nil {
-		withdrawals = make([]*types.Withdrawal, 0)
+	if body.Withdrawals == nil {
+		body.Withdrawals = make([]*types.Withdrawal, 0)
 	}
 	// Finalize and assemble the block.
-	beacon.Finalize(chain, header, state, txs, withdrawals)
+	beacon.Finalize(chain, header, state, body)
 
 	// Assign the final state root to header.
 	header.Root = state.IntermediateRoot(true)
 
 	// Assemble and return the final block.
-	return types.NewBlockWithWithdrawals(header, txs, receipts, withdrawals, trie.NewStackTrie(nil)), nil
-}
-
-// Seal generates a new sealing request for the given input block and pushes
-// the result into the given channel.
-//
-// Note, the method returns immediately and will send the result async. More
-// than one result may also be returned depending on the consensus algorithm.
-func (beacon *Beacon) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
-	// The seal verification is done by the external consensus engine,
-	// return directly without pushing any block back. In another word
-	// beacon won't return any result by `results` channel which may
-	// blocks the receiver logic forever.
-	return nil
-}
-
-// SealHash returns the hash of a block prior to it being sealed.
-func (beacon *Beacon) SealHash(header *types.Header) (hash common.Hash) {
-	hasher := sha3.NewLegacyKeccak256()
-
-	enc := []interface{}{
-		header.ParentHash,
-		header.Coinbase,
-		header.Root,
-		header.TxHash,
-		header.ReceiptHash,
-		header.Bloom,
-		header.Number,
-		header.GasLimit,
-		header.GasUsed,
-		header.Time,
-		header.Extra,
-	}
-	if header.BaseFee != nil {
-		enc = append(enc, header.BaseFee)
-	}
-	if header.WithdrawalsHash != nil {
-		panic("withdrawal hash set on ethash")
-	}
-	rlp.Encode(hasher, enc)
-	hasher.Sum(hash[:0])
-	return hash
+	return types.NewBlock(header, body, receipts, trie.NewStackTrie(nil)), nil
 }
 
 // APIs implements consensus.Engine, returning the user facing RPC APIs.

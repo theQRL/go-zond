@@ -154,9 +154,7 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 			}
 			sort.Sort(&peerCapacitySort{idles, caps})
 
-			var (
-				throttled bool
-			)
+			var throttled bool
 			for _, peer := range idles {
 				// Short circuit if throttling activated or there are no more
 				// queued tasks to be retrieved
@@ -170,7 +168,6 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 				// no more headers are available, or that the peer is known not to
 				// have them.
 				request, _, throttle := queue.reserve(peer, queue.capacity(peer, d.peers.rates.TargetRoundTrip()))
-
 				if throttle {
 					throttled = true
 					throttleCounter.Inc(1)
@@ -302,16 +299,6 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 				queue.updateCapacity(peer, 0, 0)
 			} else {
 				d.dropPeer(peer.id)
-
-				// If this peer was the master peer, abort sync immediately
-				d.cancelLock.RLock()
-				master := peer.id == d.cancelPeer
-				d.cancelLock.RUnlock()
-
-				if master {
-					d.cancel()
-					return errTimeout
-				}
 			}
 
 		case res := <-responses:

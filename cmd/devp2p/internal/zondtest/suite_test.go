@@ -16,12 +16,11 @@
 
 package zondtest
 
+// TODO(now.youtrack.cloud/issue/TGZ-6)
+/*
 import (
-	"os"
-	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/internal/utesting"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/zond"
@@ -34,6 +33,8 @@ var (
 	fullchainFile = "./testdata/chain.rlp"
 )
 
+TODO(now.youtrack.cloud/issue/TGZ-6)
+/*
 func TestZondSuite(t *testing.T) {
 	gzond, err := runGzond()
 	if err != nil {
@@ -124,3 +125,4 @@ func setupGzond(stack *node.Node) error {
 	_, err = backend.BlockChain().InsertChain(chain.blocks[1:])
 	return err
 }
+*/

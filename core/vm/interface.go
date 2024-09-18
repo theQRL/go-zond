@@ -48,13 +48,8 @@ type StateDB interface {
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
 
-	GetTransientState(addr common.Address, key common.Hash) common.Hash
-	SetTransientState(addr common.Address, key, value common.Hash)
-
 	SelfDestruct(common.Address)
 	HasSelfDestructed(common.Address) bool
-
-	Selfdestruct6780(common.Address)
 
 	// Exist reports whether the given account exists in state.
 	// Notably this should also return true for self-destructed accounts.
@@ -85,9 +80,8 @@ type StateDB interface {
 type CallContext interface {
 	// Call calls another contract.
 	Call(env *EVM, me ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error)
-	// CallCode takes another contracts code and execute within our own context
-	CallCode(env *EVM, me ContractRef, addr common.Address, data []byte, gas, value *big.Int) ([]byte, error)
-	// DelegateCall is same as CallCode except sender and value is propagated from parent to child scope
+	// DelegateCall takes another contracts code and execute within our own context.
+	// Sender and value are propagated from parent to child scope.
 	DelegateCall(env *EVM, me ContractRef, addr common.Address, data []byte, gas *big.Int) ([]byte, error)
 	// Create creates a new contract
 	Create(env *EVM, me ContractRef, data []byte, gas, value *big.Int) ([]byte, common.Address, error)

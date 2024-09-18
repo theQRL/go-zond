@@ -18,9 +18,7 @@ package zond
 
 import (
 	"math/big"
-	"time"
 
-	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 )
 
@@ -49,6 +47,7 @@ func (api *MinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 	api.z.lock.Unlock()
 
 	api.z.txPool.SetGasTip((*big.Int)(&gasPrice))
+	api.z.Miner().SetGasTip((*big.Int)(&gasPrice))
 	return true
 }
 
@@ -56,15 +55,4 @@ func (api *MinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
 func (api *MinerAPI) SetGasLimit(gasLimit hexutil.Uint64) bool {
 	api.z.Miner().SetGasCeil(uint64(gasLimit))
 	return true
-}
-
-// SetEtherbase sets the etherbase of the miner.
-func (api *MinerAPI) SetEtherbase(etherbase common.Address) bool {
-	api.z.SetEtherbase(etherbase)
-	return true
-}
-
-// SetRecommitInterval updates the interval for miner sealing work recommitting.
-func (api *MinerAPI) SetRecommitInterval(interval int) {
-	api.z.Miner().SetRecommitInterval(time.Duration(interval) * time.Millisecond)
 }

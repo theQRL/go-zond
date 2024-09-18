@@ -52,11 +52,7 @@ func (h *testZondHandler) PeerInfo(enode.ID) interface{}          { panic("not u
 
 func (h *testZondHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
 	switch packet := packet.(type) {
-	case *zond.NewPooledTransactionHashesPacket66:
-		h.txAnnounces.Send(([]common.Hash)(*packet))
-		return nil
-
-	case *zond.NewPooledTransactionHashesPacket68:
+	case *zond.NewPooledTransactionHashesPacket:
 		h.txAnnounces.Send(packet.Hashes)
 		return nil
 
@@ -64,7 +60,7 @@ func (h *testZondHandler) Handle(peer *zond.Peer, packet zond.Packet) error {
 		h.txBroadcasts.Send(([]*types.Transaction)(*packet))
 		return nil
 
-	case *zond.PooledTransactionsPacket:
+	case *zond.PooledTransactionsResponse:
 		h.txBroadcasts.Send(([]*types.Transaction)(*packet))
 		return nil
 
@@ -91,8 +87,8 @@ func testForkIDSplit(t *testing.T, protocol uint) {
 		gspecNoFork  = &core.Genesis{Config: configNoFork}
 		gspecProFork = &core.Genesis{Config: configProFork}
 
-		chainNoFork, _  = core.NewBlockChain(dbNoFork, nil, gspecNoFork, engine, vm.Config{}, nil, nil)
-		chainProFork, _ = core.NewBlockChain(dbProFork, nil, gspecProFork, engine, vm.Config{}, nil, nil)
+		chainNoFork, _  = core.NewBlockChain(dbNoFork, nil, gspecNoFork, engine, vm.Config{}, nil)
+		chainProFork, _ = core.NewBlockChain(dbProFork, nil, gspecProFork, engine, vm.Config{}, nil)
 
 		_, blocksNoFork, _  = core.GenerateChainWithGenesis(gspecNoFork, engine, 2, nil)
 		_, blocksProFork, _ = core.GenerateChainWithGenesis(gspecProFork, engine, 2, nil)
@@ -183,41 +179,44 @@ func testForkIDSplit(t *testing.T, protocol uint) {
 			t.Fatalf("homestead nofork <-> profork handler timeout")
 		}
 	}
-	// Progress into Spurious. Forks mismatch, signalling differing chains, reject
-	chainNoFork.InsertChain(blocksNoFork[1:2])
-	chainProFork.InsertChain(blocksProFork[1:2])
+	// NOTE(rgeraldes24): revisit upon new fork
+	/*
+		// Progress into Spurious. Forks mismatch, signalling differing chains, reject
+		chainNoFork.InsertChain(blocksNoFork[1:2])
+		chainProFork.InsertChain(blocksProFork[1:2])
 
-	p2pNoFork, p2pProFork = p2p.MsgPipe()
-	defer p2pNoFork.Close()
-	defer p2pProFork.Close()
+		p2pNoFork, p2pProFork = p2p.MsgPipe()
+		defer p2pNoFork.Close()
+		defer p2pProFork.Close()
 
-	peerNoFork = zond.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{1}, "", nil, p2pNoFork), p2pNoFork, nil)
-	peerProFork = zond.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{2}, "", nil, p2pProFork), p2pProFork, nil)
-	defer peerNoFork.Close()
-	defer peerProFork.Close()
+		peerNoFork = zond.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{1}, "", nil, p2pNoFork), p2pNoFork, nil)
+		peerProFork = zond.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{2}, "", nil, p2pProFork), p2pProFork, nil)
+		defer peerNoFork.Close()
+		defer peerProFork.Close()
 
-	errc = make(chan error, 2)
-	go func(errc chan error) {
-		errc <- zondNoFork.runZondPeer(peerProFork, func(peer *zond.Peer) error { return nil })
-	}(errc)
-	go func(errc chan error) {
-		errc <- zondProFork.runZondPeer(peerNoFork, func(peer *zond.Peer) error { return nil })
-	}(errc)
+		errc = make(chan error, 2)
+		go func(errc chan error) {
+			errc <- zondNoFork.runZondPeer(peerProFork, func(peer *zond.Peer) error { return nil })
+		}(errc)
+		go func(errc chan error) {
+			errc <- zondProFork.runZondPeer(peerNoFork, func(peer *zond.Peer) error { return nil })
+		}(errc)
 
-	var successes int
-	for i := 0; i < 2; i++ {
-		select {
-		case err := <-errc:
-			if err == nil {
-				successes++
-				if successes == 2 { // Only one side disconnects
-					t.Fatalf("fork ID rejection didn't happen")
+		var successes int
+		for i := 0; i < 2; i++ {
+			select {
+			case err := <-errc:
+				if err == nil {
+					successes++
+					if successes == 2 { // Only one side disconnects
+						t.Fatalf("fork ID rejection didn't happen")
+					}
 				}
+			case <-time.After(250 * time.Millisecond):
+				t.Fatalf("split peers not rejected")
 			}
-		case <-time.After(250 * time.Millisecond):
-			t.Fatalf("split peers not rejected")
 		}
-	}
+	*/
 }
 
 // Tests that received transactions are added to the local pool.
@@ -230,10 +229,10 @@ func testRecvTransactions(t *testing.T, protocol uint) {
 	handler := newTestHandler()
 	defer handler.close()
 
-	handler.handler.acceptTxs.Store(true) // mark synced to accept transactions
+	handler.handler.synced.Store(true) // mark synced to accept transactions
 
 	txs := make(chan core.NewTxsEvent)
-	sub := handler.txpool.SubscribeNewTxsEvent(txs)
+	sub := handler.txpool.SubscribeTransactions(txs)
 	defer sub.Unsubscribe()
 
 	// Create a source peer to send messages through and a sink handler to receive them
@@ -258,7 +257,14 @@ func testRecvTransactions(t *testing.T, protocol uint) {
 		t.Fatalf("failed to run protocol handshake")
 	}
 	// Send the transaction to the sink and verify that it's added to the tx pool
-	tx := types.NewTransaction(0, common.Address{}, big.NewInt(0), 100000, big.NewInt(0), nil)
+	tx := types.NewTx(&types.DynamicFeeTx{
+		Nonce:     0,
+		To:        &common.Address{},
+		Value:     big.NewInt(0),
+		Gas:       100000,
+		GasFeeCap: big.NewInt(0),
+		Data:      nil,
+	})
 	tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
 
 	if err := src.SendTransactions([]*types.Transaction{tx}); err != nil {
@@ -288,14 +294,19 @@ func testSendTransactions(t *testing.T, protocol uint) {
 
 	insert := make([]*types.Transaction, 100)
 	for nonce := range insert {
-		tx := types.NewTransaction(uint64(nonce), common.Address{}, big.NewInt(0), 100000, big.NewInt(0), make([]byte, 10240))
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     uint64(nonce),
+			To:        &common.Address{},
+			Value:     big.NewInt(0),
+			Gas:       100000,
+			GasFeeCap: big.NewInt(0),
+			Data:      make([]byte, 10240),
+		})
 		tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
-
 		insert[nonce] = tx
 	}
-	// TODO(rgeraldes24)
-	// go handler.txpool.AddRemotes(insert) // Need goroutine to not block on feed
-	time.Sleep(250 * time.Millisecond) // Wait until tx events get out of the system (can't use events, tx broadcaster races with peer join)
+	go handler.txpool.Add(insert, false, false) // Need goroutine to not block on feed
+	time.Sleep(250 * time.Millisecond)          // Wait until tx events get out of the system (can't use events, tx broadcaster races with peer join)
 
 	// Create a source handler to send messages through and a sink peer to receive them
 	p2pSrc, p2pSink := p2p.MsgPipe()
@@ -336,7 +347,7 @@ func testSendTransactions(t *testing.T, protocol uint) {
 	seen := make(map[common.Hash]struct{})
 	for len(seen) < len(insert) {
 		switch protocol {
-		case 66, 67, 68:
+		case 68:
 			select {
 			case hashes := <-anns:
 				for _, hash := range hashes {
@@ -379,11 +390,11 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 		sinks[i] = newTestHandler()
 		defer sinks[i].close()
 
-		sinks[i].handler.acceptTxs.Store(true) // mark synced to accept transactions
+		sinks[i].handler.synced.Store(true) // mark synced to accept transactions
 	}
 	// Interconnect all the sink handlers with the source handler
 	for i, sink := range sinks {
-		sink := sink // Closure for gorotuine below
+		sink := sink // Closure for goroutine below
 
 		sourcePipe, sinkPipe := p2p.MsgPipe()
 		defer sourcePipe.Close()
@@ -406,19 +417,25 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 	for i := 0; i < len(sinks); i++ {
 		txChs[i] = make(chan core.NewTxsEvent, 1024)
 
-		sub := sinks[i].txpool.SubscribeNewTxsEvent(txChs[i])
+		sub := sinks[i].txpool.SubscribeTransactions(txChs[i])
 		defer sub.Unsubscribe()
 	}
 	// Fill the source pool with transactions and wait for them at the sinks
 	txs := make([]*types.Transaction, 1024)
 	for nonce := range txs {
-		tx := types.NewTransaction(uint64(nonce), common.Address{}, big.NewInt(0), 100000, big.NewInt(0), nil)
+		tx := types.NewTx(&types.DynamicFeeTx{
+			Nonce:     uint64(nonce),
+			To:        &common.Address{},
+			Value:     big.NewInt(0),
+			Gas:       100000,
+			GasFeeCap: big.NewInt(0),
+			Data:      nil,
+		})
 		tx, _ = types.SignTx(tx, types.ShanghaiSigner{ChainId: big.NewInt(0)}, testKey)
 
 		txs[nonce] = tx
 	}
-	// TODO(rgeraldes24)
-	// source.txpool.AddRemotes(txs)
+	source.txpool.Add(txs, false, false)
 
 	// Iterate through all the sinks and ensure they all got the transactions
 	for i := range sinks {

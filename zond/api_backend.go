@@ -34,7 +34,6 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/event"
-	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/zond/gasprice"
@@ -66,7 +65,7 @@ func (b *ZondAPIBackend) SetHead(number uint64) {
 func (b *ZondAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
 	if number == rpc.PendingBlockNumber {
-		block := b.zond.miner.PendingBlock()
+		block, _, _ := b.zond.miner.Pending()
 		if block == nil {
 			return nil, errors.New("pending block is not available")
 		}
@@ -117,7 +116,7 @@ func (b *ZondAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*t
 func (b *ZondAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error) {
 	// Pending block is only known by the miner
 	if number == rpc.PendingBlockNumber {
-		block := b.zond.miner.PendingBlock()
+		block, _, _ := b.zond.miner.Pending()
 		if block == nil {
 			return nil, errors.New("pending block is not available")
 		}
@@ -181,14 +180,14 @@ func (b *ZondAPIBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHash 
 	return nil, errors.New("invalid arguments; neither block nor hash specified")
 }
 
-func (b *ZondAPIBackend) PendingBlockAndReceipts() (*types.Block, types.Receipts) {
-	return b.zond.miner.PendingBlockAndReceipts()
+func (b *ZondAPIBackend) Pending() (*types.Block, types.Receipts, *state.StateDB) {
+	return b.zond.miner.Pending()
 }
 
 func (b *ZondAPIBackend) StateAndHeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
 	// Pending state is only known by the miner
 	if number == rpc.PendingBlockNumber {
-		block, state := b.zond.miner.Pending()
+		block, _, state := b.zond.miner.Pending()
 		if block == nil || state == nil {
 			return nil, nil, errors.New("pending state is not available")
 		}
@@ -203,7 +202,10 @@ func (b *ZondAPIBackend) StateAndHeaderByNumber(ctx context.Context, number rpc.
 		return nil, nil, errors.New("header not found")
 	}
 	stateDb, err := b.zond.BlockChain().StateAt(header.Root)
-	return stateDb, header, err
+	if err != nil {
+		return nil, nil, err
+	}
+	return stateDb, header, nil
 }
 
 func (b *ZondAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error) {
@@ -222,7 +224,10 @@ func (b *ZondAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, block
 			return nil, nil, errors.New("hash is not currently canonical")
 		}
 		stateDb, err := b.zond.BlockChain().StateAt(header.Root)
-		return stateDb, header, err
+		if err != nil {
+			return nil, nil, err
+		}
+		return stateDb, header, nil
 	}
 	return nil, nil, errors.New("invalid arguments; neither block nor hash specified")
 }
@@ -235,7 +240,7 @@ func (b *ZondAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number u
 	return rawdb.ReadLogs(b.zond.chainDb, hash, number), nil
 }
 
-func (b *ZondAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) (*vm.EVM, func() error) {
+func (b *ZondAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) *vm.EVM {
 	if vmConfig == nil {
 		vmConfig = b.zond.blockchain.GetVMConfig()
 	}
@@ -246,15 +251,11 @@ func (b *ZondAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *s
 	} else {
 		context = core.NewEVMBlockContext(header, b.zond.BlockChain(), nil)
 	}
-	return vm.NewEVM(context, txContext, state, b.zond.blockchain.Config(), *vmConfig), state.Error
+	return vm.NewEVM(context, txContext, state, b.ChainConfig(), *vmConfig)
 }
 
 func (b *ZondAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
 	return b.zond.BlockChain().SubscribeRemovedLogsEvent(ch)
-}
-
-func (b *ZondAPIBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription {
-	return b.zond.miner.SubscribePendingLogs(ch)
 }
 
 func (b *ZondAPIBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription {
@@ -278,7 +279,7 @@ func (b *ZondAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction
 }
 
 func (b *ZondAPIBackend) GetPoolTransactions() (types.Transactions, error) {
-	pending := b.zond.txPool.Pending(false)
+	pending := b.zond.txPool.Pending(txpool.PendingFilter{})
 	var txs types.Transactions
 	for _, batch := range pending {
 		for _, lazy := range batch {
@@ -320,7 +321,7 @@ func (b *ZondAPIBackend) TxPool() *txpool.TxPool {
 }
 
 func (b *ZondAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription {
-	return b.zond.txPool.SubscribeNewTxsEvent(ch)
+	return b.zond.txPool.SubscribeTransactions(ch)
 }
 
 func (b *ZondAPIBackend) SyncProgress() zond.SyncProgress {
@@ -380,10 +381,6 @@ func (b *ZondAPIBackend) Engine() consensus.Engine {
 
 func (b *ZondAPIBackend) CurrentHeader() *types.Header {
 	return b.zond.blockchain.CurrentHeader()
-}
-
-func (b *ZondAPIBackend) Miner() *miner.Miner {
-	return b.zond.Miner()
 }
 
 func (b *ZondAPIBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, tracers.StateReleaseFunc, error) {

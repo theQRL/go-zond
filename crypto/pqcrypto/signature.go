@@ -11,5 +11,8 @@ func Sign(digestHash []byte, d *dilithium.Dilithium) ([]byte, error) {
 		return nil, fmt.Errorf("hash is required to be exactly %d bytes (%d)", DigestLength, len(digestHash))
 	}
 	signature, err := d.Sign(digestHash)
-	return signature[:], err
+	if err != nil {
+		return nil, err
+	}
+	return signature[:], nil
 }

@@ -104,29 +104,29 @@ func TestStreamErrors(t *testing.T) {
 		error     error
 	}{
 		{"C0", calls{"Bytes"}, nil, ErrExpectedString},
-		{"C0", calls{"Uint"}, nil, ErrExpectedString},
-		{"89000000000000000001", calls{"Uint"}, nil, errUintOverflow},
+		{"C0", calls{"Uint64"}, nil, ErrExpectedString},
+		{"89000000000000000001", calls{"Uint64"}, nil, errUintOverflow},
 		{"00", calls{"List"}, nil, ErrExpectedList},
 		{"80", calls{"List"}, nil, ErrExpectedList},
-		{"C0", calls{"List", "Uint"}, nil, EOL},
+		{"C0", calls{"List", "Uint64"}, nil, EOL},
 		{"C8C9010101010101010101", calls{"List", "Kind"}, nil, ErrElemTooLarge},
-		{"C3C2010201", calls{"List", "List", "Uint", "Uint", "ListEnd", "Uint"}, nil, EOL},
+		{"C3C2010201", calls{"List", "List", "Uint64", "Uint64", "ListEnd", "Uint64"}, nil, EOL},
 		{"00", calls{"ListEnd"}, nil, errNotInList},
-		{"C401020304", calls{"List", "Uint", "ListEnd"}, nil, errNotAtEOL},
+		{"C401020304", calls{"List", "Uint64", "ListEnd"}, nil, errNotAtEOL},
 
 		// Non-canonical integers (e.g. leading zero bytes).
-		{"00", calls{"Uint"}, nil, ErrCanonInt},
-		{"820002", calls{"Uint"}, nil, ErrCanonInt},
-		{"8133", calls{"Uint"}, nil, ErrCanonSize},
-		{"817F", calls{"Uint"}, nil, ErrCanonSize},
-		{"8180", calls{"Uint"}, nil, nil},
+		{"00", calls{"Uint64"}, nil, ErrCanonInt},
+		{"820002", calls{"Uint64"}, nil, ErrCanonInt},
+		{"8133", calls{"Uint64"}, nil, ErrCanonSize},
+		{"817F", calls{"Uint64"}, nil, ErrCanonSize},
+		{"8180", calls{"Uint64"}, nil, nil},
 
 		// Non-valid boolean
 		{"02", calls{"Bool"}, nil, errors.New("rlp: invalid boolean value: 2")},
 
 		// Size tags must use the smallest possible encoding.
 		// Leading zero bytes in the size tag are also rejected.
-		{"8100", calls{"Uint"}, nil, ErrCanonSize},
+		{"8100", calls{"Uint64"}, nil, ErrCanonSize},
 		{"8100", calls{"Bytes"}, nil, ErrCanonSize},
 		{"8101", calls{"Bytes"}, nil, ErrCanonSize},
 		{"817F", calls{"Bytes"}, nil, ErrCanonSize},
@@ -142,41 +142,41 @@ func TestStreamErrors(t *testing.T) {
 
 		// Expected EOF
 		{"", calls{"Kind"}, nil, io.EOF},
-		{"", calls{"Uint"}, nil, io.EOF},
+		{"", calls{"Uint64"}, nil, io.EOF},
 		{"", calls{"List"}, nil, io.EOF},
-		{"8180", calls{"Uint", "Uint"}, nil, io.EOF},
+		{"8180", calls{"Uint64", "Uint64"}, nil, io.EOF},
 		{"C0", calls{"List", "ListEnd", "List"}, nil, io.EOF},
 
 		{"", calls{"List"}, withoutInputLimit, io.EOF},
-		{"8180", calls{"Uint", "Uint"}, withoutInputLimit, io.EOF},
+		{"8180", calls{"Uint64", "Uint64"}, withoutInputLimit, io.EOF},
 		{"C0", calls{"List", "ListEnd", "List"}, withoutInputLimit, io.EOF},
 
 		// Input limit errors.
 		{"81", calls{"Bytes"}, nil, ErrValueTooLarge},
-		{"81", calls{"Uint"}, nil, ErrValueTooLarge},
+		{"81", calls{"Uint64"}, nil, ErrValueTooLarge},
 		{"81", calls{"Raw"}, nil, ErrValueTooLarge},
 		{"BFFFFFFFFFFFFFFFFFFF", calls{"Bytes"}, nil, ErrValueTooLarge},
 		{"C801", calls{"List"}, nil, ErrValueTooLarge},
 
 		// Test for list element size check overflow.
-		{"CD04040404FFFFFFFFFFFFFFFFFF0303", calls{"List", "Uint", "Uint", "Uint", "Uint", "List"}, nil, ErrElemTooLarge},
+		{"CD04040404FFFFFFFFFFFFFFFFFF0303", calls{"List", "Uint64", "Uint64", "Uint64", "Uint64", "List"}, nil, ErrElemTooLarge},
 
 		// Test for input limit overflow. Since we are counting the limit
 		// down toward zero in Stream.remaining, reading too far can overflow
 		// remaining to a large value, effectively disabling the limit.
-		{"C40102030401", calls{"Raw", "Uint"}, withCustomInputLimit(5), io.EOF},
-		{"C4010203048180", calls{"Raw", "Uint"}, withCustomInputLimit(6), ErrValueTooLarge},
+		{"C40102030401", calls{"Raw", "Uint64"}, withCustomInputLimit(5), io.EOF},
+		{"C4010203048180", calls{"Raw", "Uint64"}, withCustomInputLimit(6), ErrValueTooLarge},
 
 		// Check that the same calls are fine without a limit.
-		{"C40102030401", calls{"Raw", "Uint"}, withoutInputLimit, nil},
-		{"C4010203048180", calls{"Raw", "Uint"}, withoutInputLimit, nil},
+		{"C40102030401", calls{"Raw", "Uint64"}, withoutInputLimit, nil},
+		{"C4010203048180", calls{"Raw", "Uint64"}, withoutInputLimit, nil},
 
 		// Unexpected EOF. This only happens when there is
 		// no input limit, so the reader needs to be 'dumbed down'.
 		{"81", calls{"Bytes"}, withoutInputLimit, io.ErrUnexpectedEOF},
-		{"81", calls{"Uint"}, withoutInputLimit, io.ErrUnexpectedEOF},
+		{"81", calls{"Uint64"}, withoutInputLimit, io.ErrUnexpectedEOF},
 		{"BFFFFFFFFFFFFFFF", calls{"Bytes"}, withoutInputLimit, io.ErrUnexpectedEOF},
-		{"C801", calls{"List", "Uint", "Uint"}, withoutInputLimit, io.ErrUnexpectedEOF},
+		{"C801", calls{"List", "Uint64", "Uint64"}, withoutInputLimit, io.ErrUnexpectedEOF},
 
 		// This test verifies that the input position is advanced
 		// correctly when calling Bytes for empty strings. Kind can be called

@@ -101,7 +101,7 @@ func (t *fourByteTracer) CaptureEnter(op vm.OpCode, from common.Address, to comm
 	}
 	// primarily we want to avoid CREATE/CREATE2/SELFDESTRUCT
 	if op != vm.DELEGATECALL && op != vm.STATICCALL &&
-		op != vm.CALL && op != vm.CALLCODE {
+		op != vm.CALL {
 		return
 	}
 	// Skip any pre-compile invocations, those are just fancy opcodes

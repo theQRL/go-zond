@@ -22,6 +22,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -35,24 +36,20 @@ import (
 
 // Header represents a block header in the Zond blockchain.
 type Header struct {
-	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
-	Coinbase    common.Address `json:"miner"`
-	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
-	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
-	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-	Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
-	Number      *big.Int       `json:"number"           gencodec:"required"`
-	GasLimit    uint64         `json:"gasLimit"         gencodec:"required"`
-	GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
-	Time        uint64         `json:"timestamp"        gencodec:"required"`
-	Extra       []byte         `json:"extraData"        gencodec:"required"`
-	Random      common.Hash    `json:"prevRandao"`
-
-	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
-	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
-
-	// WithdrawalsHash was added by EIP-4895 and is ignored in legacy headers.
-	WithdrawalsHash *common.Hash `json:"withdrawalsRoot" rlp:"optional"`
+	ParentHash      common.Hash    `json:"parentHash"       gencodec:"required"`
+	Coinbase        common.Address `json:"miner"`
+	Root            common.Hash    `json:"stateRoot"        gencodec:"required"`
+	TxHash          common.Hash    `json:"transactionsRoot" gencodec:"required"`
+	ReceiptHash     common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+	Bloom           Bloom          `json:"logsBloom"        gencodec:"required"`
+	Number          *big.Int       `json:"number"           gencodec:"required"`
+	GasLimit        uint64         `json:"gasLimit"         gencodec:"required"`
+	GasUsed         uint64         `json:"gasUsed"          gencodec:"required"`
+	Time            uint64         `json:"timestamp"        gencodec:"required"`
+	Extra           []byte         `json:"extraData"        gencodec:"required"`
+	Random          common.Hash    `json:"prevRandao"`
+	BaseFee         *big.Int       `json:"baseFeePerGas"`
+	WithdrawalsHash *common.Hash   `json:"withdrawalsRoot"`
 }
 
 // field type overrides for gencodec
@@ -169,10 +166,16 @@ type extblock struct {
 // The values of TxHash, ReceiptHash and Bloom in header
 // are ignored and set to values derived from the given txs
 // and receipts.
-func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher TrieHasher) *Block {
-	b := &Block{header: CopyHeader(header)}
+func NewBlock(header *Header, body *Body, receipts []*Receipt, hasher TrieHasher) *Block {
+	if body == nil {
+		body = &Body{}
+	}
+	var (
+		b           = NewBlockWithHeader(header)
+		txs         = body.Transactions
+		withdrawals = body.Withdrawals
+	)
 
-	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyTxsHash
 	} else {
@@ -188,27 +191,18 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher Tr
 		b.header.Bloom = CreateBloom(receipts)
 	}
 
-	return b
-}
-
-// NewBlockWithWithdrawals creates a new block with withdrawals. The input data is copied,
-// changes to header and to the field values will not affect the block.
-//
-// The values of TxHash, ReceiptHash and Bloom in header are ignored and set to
-// values derived from the given txs and receipts.
-func NewBlockWithWithdrawals(header *Header, txs []*Transaction, receipts []*Receipt, withdrawals []*Withdrawal, hasher TrieHasher) *Block {
-	b := NewBlock(header, txs, receipts, hasher)
-
 	if withdrawals == nil {
 		b.header.WithdrawalsHash = nil
 	} else if len(withdrawals) == 0 {
 		b.header.WithdrawalsHash = &EmptyWithdrawalsHash
+		b.withdrawals = Withdrawals{}
 	} else {
-		h := DeriveSha(Withdrawals(withdrawals), hasher)
-		b.header.WithdrawalsHash = &h
+		hash := DeriveSha(Withdrawals(withdrawals), hasher)
+		b.header.WithdrawalsHash = &hash
+		b.withdrawals = slices.Clone(withdrawals)
 	}
 
-	return b.WithWithdrawals(withdrawals)
+	return b
 }
 
 // CopyHeader creates a deep copy of a block header.
@@ -344,26 +338,13 @@ func (b *Block) WithSeal(header *Header) *Block {
 	}
 }
 
-// WithBody returns a copy of the block with the given transaction contents.
-func (b *Block) WithBody(transactions []*Transaction) *Block {
+// WithBody returns a new block with the original header and a deep copy of the
+// provided body.
+func (b *Block) WithBody(body Body) *Block {
 	block := &Block{
 		header:       b.header,
-		transactions: make([]*Transaction, len(transactions)),
-		withdrawals:  b.withdrawals,
-	}
-	copy(block.transactions, transactions)
-	return block
-}
-
-// WithWithdrawals returns a copy of the block containing the given withdrawals.
-func (b *Block) WithWithdrawals(withdrawals []*Withdrawal) *Block {
-	block := &Block{
-		header:       b.header,
-		transactions: b.transactions,
-	}
-	if withdrawals != nil {
-		block.withdrawals = make([]*Withdrawal, len(withdrawals))
-		copy(block.withdrawals, withdrawals)
+		transactions: slices.Clone(body.Transactions),
+		withdrawals:  slices.Clone(body.Withdrawals),
 	}
 	return block
 }

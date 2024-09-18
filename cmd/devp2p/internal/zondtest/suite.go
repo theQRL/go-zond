@@ -16,12 +16,8 @@
 
 package zondtest
 
-import (
-	"github.com/theQRL/go-zond/internal/utesting"
-	"github.com/theQRL/go-zond/p2p/enode"
-	"github.com/theQRL/go-zond/zond/protocols/zond"
-)
-
+// TODO(now.youtrack.cloud/issue/TGZ-6)
+/*
 // Suite represents a structure used to test a node's conformance
 // to the zond protocol.
 type Suite struct {
@@ -411,7 +407,7 @@ func (s *Suite) TestBlockHashAnnounce(t *utesting.T) {
 		t.Fatalf("block hash announcement failed: %v", err)
 	}
 }
-*/
+
 
 // TestMaliciousHandshake tries to send malicious data during the handshake.
 func (s *Suite) TestMaliciousHandshake(t *utesting.T) {

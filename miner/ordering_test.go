@@ -29,11 +29,8 @@ import (
 	"github.com/theQRL/go-zond/crypto"
 )
 
-func TestTransactionPriceNonceSortLegacy(t *testing.T) {
-	testTransactionPriceNonceSort(t, nil)
-}
-
 func TestTransactionPriceNonceSort1559(t *testing.T) {
+	t.Parallel()
 	testTransactionPriceNonceSort(t, big.NewInt(0))
 	testTransactionPriceNonceSort(t, big.NewInt(5))
 	testTransactionPriceNonceSort(t, big.NewInt(50))
@@ -59,28 +56,17 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 		for i := 0; i < 25; i++ {
 			var tx *types.Transaction
 			gasFeeCap := rand.Intn(50)
-			if baseFee == nil {
-				tx = types.NewTx(&types.LegacyTx{
-					Nonce:    uint64(start + i),
-					To:       &common.Address{},
-					Value:    big.NewInt(100),
-					Gas:      100,
-					GasPrice: big.NewInt(int64(gasFeeCap)),
-					Data:     nil,
-				})
-			} else {
-				tx = types.NewTx(&types.DynamicFeeTx{
-					Nonce:     uint64(start + i),
-					To:        &common.Address{},
-					Value:     big.NewInt(100),
-					Gas:       100,
-					GasFeeCap: big.NewInt(int64(gasFeeCap)),
-					GasTipCap: big.NewInt(int64(rand.Intn(gasFeeCap + 1))),
-					Data:      nil,
-				})
-				if count == 25 && int64(gasFeeCap) < baseFee.Int64() {
-					count = i
-				}
+			tx = types.NewTx(&types.DynamicFeeTx{
+				Nonce:     uint64(start + i),
+				To:        &common.Address{},
+				Value:     big.NewInt(100),
+				Gas:       100,
+				GasFeeCap: big.NewInt(int64(gasFeeCap)),
+				GasTipCap: big.NewInt(int64(rand.Intn(gasFeeCap + 1))),
+				Data:      nil,
+			})
+			if count == 25 && int64(gasFeeCap) < baseFee.Int64() {
+				count = i
 			}
 			tx, err := types.SignTx(tx, signer, key)
 			if err != nil {
@@ -92,6 +78,7 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 				Time:      tx.Time(),
 				GasFeeCap: tx.GasFeeCap(),
 				GasTipCap: tx.GasTipCap(),
+				Gas:       tx.Gas(),
 			})
 		}
 		expectedCount += count
@@ -100,7 +87,7 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	txset := newTransactionsByPriceAndNonce(signer, groups, baseFee)
 
 	txs := types.Transactions{}
-	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
+	for tx, _ := txset.Peek(); tx != nil; tx, _ = txset.Peek() {
 		txs = append(txs, tx.Tx)
 		txset.Shift()
 	}
@@ -136,6 +123,7 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 // Tests that if multiple transactions have the same price, the ones seen earlier
 // are prioritized to avoid network spam attacks aiming for a specific ordering.
 func TestTransactionTimeSort(t *testing.T) {
+	t.Parallel()
 	// Generate a batch of accounts to start with
 	keys := make([]*dilithium.Dilithium, 5)
 	for i := 0; i < len(keys); i++ {
@@ -148,7 +136,7 @@ func TestTransactionTimeSort(t *testing.T) {
 	for start, key := range keys {
 		addr := key.GetAddress()
 
-		tx, _ := types.SignTx(types.NewTransaction(0, common.Address{}, big.NewInt(100), 100, big.NewInt(1), nil), signer, key)
+		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: 0, To: &common.Address{}, Value: big.NewInt(100), Gas: 100, Data: nil}), signer, key)
 		tx.SetTime(time.Unix(0, int64(len(keys)-start)))
 
 		groups[addr] = append(groups[addr], &txpool.LazyTransaction{
@@ -157,13 +145,14 @@ func TestTransactionTimeSort(t *testing.T) {
 			Time:      tx.Time(),
 			GasFeeCap: tx.GasFeeCap(),
 			GasTipCap: tx.GasTipCap(),
+			Gas:       tx.Gas(),
 		})
 	}
 	// Sort the transactions and cross check the nonce ordering
 	txset := newTransactionsByPriceAndNonce(signer, groups, nil)
 
 	txs := types.Transactions{}
-	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
+	for tx, _ := txset.Peek(); tx != nil; tx, _ = txset.Peek() {
 		txs = append(txs, tx.Tx)
 		txset.Shift()
 	}

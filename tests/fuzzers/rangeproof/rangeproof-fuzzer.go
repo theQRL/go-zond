@@ -21,12 +21,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/trie"
 	"github.com/theQRL/go-zond/zonddb/memorydb"
-	"golang.org/x/exp/slices"
 )
 
 type kv struct {

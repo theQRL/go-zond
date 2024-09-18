@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"net"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -34,7 +35,6 @@ import (
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/enr"
 	"github.com/theQRL/go-zond/rlp"
-	"golang.org/x/exp/slices"
 )
 
 // Real sockets, real crypto: this test checks end-to-end connectivity for UDPv5.

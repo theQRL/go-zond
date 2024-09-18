@@ -88,7 +88,7 @@ class StdIOHandler:
         """
         Example request:
 
-        {"jsonrpc":"2.0","id":20,"method":"ui_approveTx","params":[{"transaction":{"from":"0xDEADbEeF000000000000000000000000DeaDbeEf","to":"0xDEADbEeF000000000000000000000000DeaDbeEf","gas":"0x3e8","gasPrice":"0x5","maxFeePerGas":null,"maxPriorityFeePerGas":null,"value":"0x6","nonce":"0x1","data":"0x"},"call_info":null,"meta":{"remote":"clef binary","local":"main","scheme":"in-proc","User-Agent":"","Origin":""}}]}
+        {"jsonrpc":"2.0","id":20,"method":"ui_approveTx","params":[{"transaction":{"from":"0xDEADbEeF000000000000000000000000DeaDbeEf","to":"0xDEADbEeF000000000000000000000000DeaDbeEf","gas":"0x3e8","maxFeePerGas":"0x5","maxPriorityFeePerGas":"0x0","value":"0x6","nonce":"0x1","data":"0x"},"call_info":null,"meta":{"remote":"clef binary","local":"main","scheme":"in-proc","User-Agent":"","Origin":""}}]}
 
         :param transaction: transaction info
         :param call_info: info about the call, e.g. if ABI info could not be

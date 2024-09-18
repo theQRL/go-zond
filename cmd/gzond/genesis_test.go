@@ -34,15 +34,14 @@ var customGenesisTests = []struct {
 		genesis: `{
 			"alloc"      : {},
 			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"extraData"  : "",
+			"extraData"  : "0x0000000000001338",
 			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000001338",
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
 			"config"     : {}
 		}`,
-		query:  "zond.getBlock(0).nonce",
+		query:  "zond.getBlock(0).extraData",
 		result: "0x0000000000001338",
 	},
 	// Genesis file with specific chain configurations
@@ -50,15 +49,14 @@ var customGenesisTests = []struct {
 		genesis: `{
 			"alloc"      : {},
 			"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"extraData"  : "",
+			"extraData"  : "0x0000000000001339",
 			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000001339",
 			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
 			"config"     : {}
 		}`,
-		query:  "zond.getBlock(0).nonce",
+		query:  "zond.getBlock(0).extraData",
 		result: "0x0000000000001339",
 	},
 }
@@ -98,14 +96,13 @@ func TestCustomBackend(t *testing.T) {
 	genesis := `{
 		"alloc"      : {},
 		"coinbase"   : "0x0000000000000000000000000000000000000000",
-			"extraData"  : "",
-			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x0000000000001338",
-			"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
-			"timestamp"  : "0x00",
-			"config"     : {}
-		}`
+		"extraData"  : "0x0000000000001338",
+		"gasLimit"   : "0x2fefd8",
+		"mixhash"    : "0x0000000000000000000000000000000000000000000000000000000000000000",
+		"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
+		"timestamp"  : "0x00",
+		"config"     : {}
+	}`
 	type backendTest struct {
 		initArgs   []string
 		initExpect string
@@ -131,7 +128,7 @@ func TestCustomBackend(t *testing.T) {
 			args := append(tt.execArgs, "--networkid", "1337", "--syncmode=full", "--cache", "16",
 				"--datadir", datadir, "--maxpeers", "0", "--port", "0", "--authrpc.port", "0",
 				"--nodiscover", "--nat", "none", "--ipcdisable",
-				"--exec", "zond.getBlock(0).nonce", "console")
+				"--exec", "zond.getBlock(0).extraData", "console")
 			gzond := runGzond(t, args...)
 			gzond.ExpectRegexp(tt.execExpect)
 			gzond.ExpectExit()
@@ -176,7 +173,7 @@ func TestCustomBackend(t *testing.T) {
 			initExpect: `Fatal: Invalid choice for db.engine 'mssql', allowed 'leveldb' or 'pebble'`,
 			// Since the init fails, this will return the (default) mainnet genesis
 			// block nonce
-			execExpect: `0x0000000000000042`,
+			execExpect: `0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa`,
 		},
 	} {
 		if err := testfunc(t, tt); err != nil {

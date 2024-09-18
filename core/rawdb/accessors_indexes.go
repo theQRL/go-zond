@@ -24,7 +24,6 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/zonddb"
 )
 
@@ -35,22 +34,9 @@ func ReadTxLookupEntry(db zonddb.Reader, hash common.Hash) *uint64 {
 	if len(data) == 0 {
 		return nil
 	}
-	// Database v6 tx lookup just stores the block number
-	if len(data) < common.HashLength {
-		number := new(big.Int).SetBytes(data).Uint64()
-		return &number
-	}
-	// Database v4-v5 tx lookup format just stores the hash
-	if len(data) == common.HashLength {
-		return ReadHeaderNumber(db, common.BytesToHash(data))
-	}
-	// Finally try database v3 tx lookup format
-	var entry LegacyTxLookupEntry
-	if err := rlp.DecodeBytes(data, &entry); err != nil {
-		log.Error("Invalid transaction lookup entry RLP", "hash", hash, "blob", data, "err", err)
-		return nil
-	}
-	return &entry.BlockIndex
+
+	number := new(big.Int).SetBytes(data).Uint64()
+	return &number
 }
 
 // writeTxLookupEntry stores a positional metadata for a transaction,

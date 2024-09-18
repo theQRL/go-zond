@@ -17,7 +17,6 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -29,7 +28,6 @@ import (
 	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
-	"github.com/theQRL/go-zond/common/math"
 	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rpc"
@@ -60,8 +58,6 @@ type ExternalAPI interface {
 	SignTypedData(ctx context.Context, addr common.MixedcaseAddress, data apitypes.TypedData) (hexutil.Bytes, error)
 	// Version info about the APIs
 	Version(ctx context.Context) (string, error)
-	// SignGnosisSafeTransaction signs/confirms a gnosis-safe multisig transaction
-	SignGnosisSafeTx(ctx context.Context, signerAddress common.MixedcaseAddress, gnosisTx GnosisSafeTx, methodSelector *string) (*GnosisSafeTx, error)
 }
 
 // UIClientAPI specifies what method a UI needs to implement to be able to be used as a
@@ -138,6 +134,7 @@ func StartClefAccountManager(ksLocation string /*usbEnabled bool,*/, lightKDF bo
 		backends = append(backends, keystore.NewKeyStore(ksLocation, n, p))
 	}
 
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
 	/*
 		if usbEnabled {
 			// Start a USB hub for Ledger hardware wallets
@@ -486,10 +483,6 @@ func logDiff(original *SignTxRequest, new *SignTxResponse) bool {
 		modified = true
 		log.Info("Gas changed by UI", "was", g0, "is", g1)
 	}
-	if a, b := original.Transaction.GasPrice, new.Transaction.GasPrice; intPtrModified(a, b) {
-		log.Info("GasPrice changed by UI", "was", a, "is", b)
-		modified = true
-	}
 	if a, b := original.Transaction.MaxPriorityFeePerGas, new.Transaction.MaxPriorityFeePerGas; intPtrModified(a, b) {
 		log.Info("maxPriorityFeePerGas changed by UI", "was", a, "is", b)
 		modified = true
@@ -617,53 +610,6 @@ func (api *SignerAPI) SignTransaction(ctx context.Context, args apitypes.SendTxA
 	api.UI.OnApprovedTx(response)
 	// ...and to the external caller
 	return &response, nil
-}
-
-func (api *SignerAPI) SignGnosisSafeTx(ctx context.Context, signerAddress common.MixedcaseAddress, gnosisTx GnosisSafeTx, methodSelector *string) (*GnosisSafeTx, error) {
-	// Do the usual validations, but on the last-stage transaction
-	args := gnosisTx.ArgsForValidation()
-	msgs, err := api.validator.ValidateTransaction(methodSelector, args)
-	if err != nil {
-		return nil, err
-	}
-	// If we are in 'rejectMode', then reject rather than show the user warnings
-	if api.rejectMode {
-		if err := msgs.GetWarnings(); err != nil {
-			log.Info("Signing aborted due to warnings. In order to continue despite warnings, please use the flag '--advanced'.")
-			return nil, err
-		}
-	}
-	typedData := gnosisTx.ToTypedData()
-	// might aswell error early.
-	// we are expected to sign. If our calculated hash does not match what they want,
-	// The gnosis safetx input contains a 'safeTxHash' which is the expected safeTxHash that
-	sighash, _, err := apitypes.TypedDataAndHash(typedData)
-	if err != nil {
-		return nil, err
-	}
-	if !bytes.Equal(sighash, gnosisTx.InputExpHash.Bytes()) {
-		// It might be the case that the json is missing chain id.
-		if gnosisTx.ChainId == nil {
-			gnosisTx.ChainId = (*math.HexOrDecimal256)(api.chainID)
-			typedData = gnosisTx.ToTypedData()
-			sighash, _, _ = apitypes.TypedDataAndHash(typedData)
-			if !bytes.Equal(sighash, gnosisTx.InputExpHash.Bytes()) {
-				return nil, fmt.Errorf("mismatched safeTxHash; have %#x want %#x", sighash, gnosisTx.InputExpHash[:])
-			}
-		}
-	}
-	signature, preimage, err := api.signTypedData(ctx, signerAddress, typedData, msgs)
-
-	if err != nil {
-		return nil, err
-	}
-	checkSummedSender, _ := common.NewMixedcaseAddressFromString(signerAddress.Address().Hex())
-
-	gnosisTx.Signature = signature
-	gnosisTx.SafeTxHash = common.BytesToHash(preimage)
-	gnosisTx.Sender = *checkSummedSender // Must be checksummed to be accepted by relay
-
-	return &gnosisTx, nil
 }
 
 // Returns the external api version. This method does not require user acceptance. Available methods are

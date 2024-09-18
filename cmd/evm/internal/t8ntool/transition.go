@@ -180,7 +180,7 @@ func Transition(ctx *cli.Context) error {
 	// Set the chain id
 	chainConfig.ChainID = big.NewInt(ctx.Int64(ChainIDFlag.Name))
 
-	if txs, err = loadTransactions(txStr, inputData, prestate.Env, chainConfig); err != nil {
+	if txs, err = loadTransactions(txStr, inputData, chainConfig); err != nil {
 		return err
 	}
 	if err := applyLondonChecks(&prestate.Env, chainConfig); err != nil {
@@ -205,35 +205,28 @@ func Transition(ctx *cli.Context) error {
 }
 
 // txWithKey is a helper-struct, to allow us to use the types.Transaction along with
-// a `secretKey`-field, for input
+// a `seed`-field, for input
 type txWithKey struct {
-	key       *dilithium.Dilithium
-	tx        *types.Transaction
-	protected bool
+	key *dilithium.Dilithium
+	tx  *types.Transaction
 }
 
 func (t *txWithKey) UnmarshalJSON(input []byte) error {
 	// Read the metadata, if present
 	type txMetadata struct {
-		Key       *common.Hash `json:"secretKey"`
-		Protected *bool        `json:"protected"`
+		Seed *string `json:"seed"`
 	}
 	var data txMetadata
 	if err := json.Unmarshal(input, &data); err != nil {
 		return err
 	}
-	if data.Key != nil {
-		k := data.Key.Hex()[2:]
-		if dilithiumKey, err := pqcrypto.HexToDilithium(k); err != nil {
+	if data.Seed != nil {
+		sd := *data.Seed
+		if dilithiumKey, err := pqcrypto.HexToDilithium(sd[2:]); err != nil {
 			return err
 		} else {
 			t.key = dilithiumKey
 		}
-	}
-	if data.Protected != nil {
-		t.protected = *data.Protected
-	} else {
-		t.protected = true
 	}
 	// Now, read the transaction itself
 	var tx types.Transaction
@@ -244,39 +237,33 @@ func (t *txWithKey) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-// TODO(rgeraldes24)
 // signUnsignedTransactions converts the input txs to canonical transactions.
 //
 // The transactions can have two forms, either
 //  1. unsigned or
 //  2. signed
 //
-// For (1), r, s, v, need so be zero, and the `secretKey` needs to be set.
-// If so, we sign it here and now, with the given `secretKey`
+// For (1), signature, need so be zero, and the `seed` needs to be set.
+// If so, we sign it here and now, with the given `seed`
 // If the condition above is not met, then it's considered a signed transaction.
 //
-// To manage this, we read the transactions twice, first trying to read the secretKeys,
+// To manage this, we read the transactions twice, first trying to read the seeds,
 // and secondly to read them with the standard tx json format
-/*
+
 func signUnsignedTransactions(txs []*txWithKey, signer types.Signer) (types.Transactions, error) {
 	var signedTxs []*types.Transaction
 	for i, tx := range txs {
 		var (
-			signature = tx.tx.RawSignatureValues()
+			signature = tx.tx.RawSignatureValue()
 			signed    *types.Transaction
 			err       error
 		)
-		if tx.key == nil || signature != nil {
+		if tx.key == nil || len(signature) != 0 {
 			// Already signed
 			signedTxs = append(signedTxs, tx.tx)
 			continue
 		}
-		// This transaction needs to be signed
-		if tx.protected {
-			signed, err = types.SignTx(tx.tx, signer, tx.key)
-		} else {
-			signed, err = types.SignTx(tx.tx, types.FrontierSigner{}, tx.key)
-		}
+		signed, err = types.SignTx(tx.tx, signer, tx.key)
 		if err != nil {
 			return nil, NewError(ErrorJson, fmt.Errorf("tx %d: failed to sign tx: %v", i, err))
 		}
@@ -284,9 +271,8 @@ func signUnsignedTransactions(txs []*txWithKey, signer types.Signer) (types.Tran
 	}
 	return signedTxs, nil
 }
-*/
 
-func loadTransactions(txStr string, inputData *input, env stEnv, chainConfig *params.ChainConfig) (types.Transactions, error) {
+func loadTransactions(txStr string, inputData *input, chainConfig *params.ChainConfig) (types.Transactions, error) {
 	var txsWithKeys []*txWithKey
 	var signed types.Transactions
 	if txStr != stdinSelector {
@@ -322,10 +308,8 @@ func loadTransactions(txStr string, inputData *input, env stEnv, chainConfig *pa
 		txsWithKeys = inputData.Txs
 	}
 	// We may have to sign the transactions.
-	// TODO(rgeraldes24)
-	// signer := types.MakeSigner(chainConfig, big.NewInt(int64(env.Number)), env.Timestamp)
-	// return signUnsignedTransactions(txsWithKeys, signer)
-	return nil, nil
+	signer := types.MakeSigner(chainConfig)
+	return signUnsignedTransactions(txsWithKeys, signer)
 }
 
 func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
@@ -335,7 +319,7 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 		return nil
 	}
 	if env.ParentBaseFee == nil || env.Number == 0 {
-		return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
+		return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'parentBaseFee' in env section"))
 	}
 	env.BaseFee = eip1559.CalcBaseFee(chainConfig, &types.Header{
 		Number:   new(big.Int).SetUint64(env.Number - 1),
@@ -348,16 +332,13 @@ func applyLondonChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 
 func applyShanghaiChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 	if env.Withdrawals == nil {
-		return NewError(ErrorConfig, errors.New("Shanghai config but missing 'withdrawals' in env section"))
+		return NewError(ErrorConfig, errors.New("shanghai config but missing 'withdrawals' in env section"))
 	}
 	return nil
 }
 
 func applyMergeChecks(env *stEnv, chainConfig *params.ChainConfig) error {
-	// post-merge:
-	// - random must be supplied
-	switch {
-	case env.Random == nil:
+	if env.Random == nil {
 		return NewError(ErrorConfig, errors.New("post-merge requires currentRandom to be defined in env"))
 	}
 	return nil
