@@ -280,9 +280,6 @@ contract OpCodes {
          bytes32(_id)
 
      );
-
-     //selfdestruct
-     assembly { selfdestruct(0x02) }
    }
 
   function test_revert() public {

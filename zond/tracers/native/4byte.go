@@ -90,7 +90,7 @@ func (t *fourByteTracer) CaptureStart(env *vm.EVM, from common.Address, to commo
 	}
 }
 
-// CaptureEnter is called when EVM enters a new scope (via call, create or selfdestruct).
+// CaptureEnter is called when EVM enters a new scope (via call or create).
 func (t *fourByteTracer) CaptureEnter(op vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	// Skip if tracing was interrupted
 	if t.interrupt.Load() {
@@ -99,7 +99,7 @@ func (t *fourByteTracer) CaptureEnter(op vm.OpCode, from common.Address, to comm
 	if len(input) < 4 {
 		return
 	}
-	// primarily we want to avoid CREATE/CREATE2/SELFDESTRUCT
+	// primarily we want to avoid CREATE/CREATE2
 	if op != vm.DELEGATECALL && op != vm.STATICCALL &&
 		op != vm.CALL {
 		return

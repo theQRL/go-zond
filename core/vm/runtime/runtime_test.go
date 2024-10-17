@@ -629,13 +629,6 @@ func TestColdAccountAccessCost(t *testing.T) {
 			step: 6,
 			want: 2855,
 		},
-		{ // SELFDESTRUCT(0xff)
-			code: []byte{
-				byte(vm.PUSH1), 0xff, byte(vm.SELFDESTRUCT),
-			},
-			step: 1,
-			want: 7600,
-		},
 	} {
 		tracer := logger.NewStructLogger(nil)
 		Execute(tc.code, nil, &Config{
@@ -756,28 +749,11 @@ func TestRuntimeJSTracer(t *testing.T) {
 			},
 			results: []string{`"1,1,981799,6,12"`, `"1,1,981799,6,0"`},
 		},
-		{
-			// CALL self-destructing contract
-			code: []byte{
-				// outsize, outoffset, insize, inoffset
-				byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0,
-				byte(vm.PUSH1), 0, // value
-				byte(vm.PUSH1), 0xff, //address
-				byte(vm.GAS), // gas
-				byte(vm.CALL),
-				byte(vm.POP),
-			},
-			results: []string{`"2,2,0,5003,12"`, `"2,2,0,5003,0"`},
-		},
 	}
 	calleeCode := []byte{
 		byte(vm.PUSH1), 0,
 		byte(vm.PUSH1), 0,
 		byte(vm.RETURN),
-	}
-	suicideCode := []byte{
-		byte(vm.PUSH1), 0xaa,
-		byte(vm.SELFDESTRUCT),
 	}
 	main := common.HexToAddress("0xaa")
 	for i, jsTracer := range jsTracers {
@@ -788,7 +764,6 @@ func TestRuntimeJSTracer(t *testing.T) {
 			statedb.SetCode(common.HexToAddress("0xcc"), calleeCode)
 			statedb.SetCode(common.HexToAddress("0xdd"), calleeCode)
 			statedb.SetCode(common.HexToAddress("0xee"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xff"), suicideCode)
 
 			tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 			if err != nil {

@@ -53,7 +53,6 @@ type flatCallFrame struct {
 type flatCallAction struct {
 	Author         *common.Address `json:"author,omitempty"`
 	RewardType     string          `json:"rewardType,omitempty"`
-	SelfDestructed *common.Address `json:"address,omitempty"`
 	Balance        *big.Int        `json:"balance,omitempty"`
 	CallType       string          `json:"callType,omitempty"`
 	CreationMethod string          `json:"creationMethod,omitempty"`
@@ -147,7 +146,7 @@ func (t *flatCallTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64,
 	t.tracer.CaptureFault(pc, op, gas, cost, scope, depth, err)
 }
 
-// CaptureEnter is called when EVM enters a new scope (via call, create or selfdestruct).
+// CaptureEnter is called when EVM enters a new scope (via call or create).
 func (t *flatCallTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	t.tracer.CaptureEnter(typ, from, to, input, gas, value)
 
@@ -228,8 +227,6 @@ func flatFromNested(input *callFrame, traceAddress []int, ctx *tracers.Context) 
 	switch input.Type {
 	case vm.CREATE, vm.CREATE2:
 		frame = newFlatCreate(input)
-	case vm.SELFDESTRUCT:
-		frame = newFlatSelfdestruct(input)
 	case vm.CALL, vm.STATICCALL, vm.DELEGATECALL:
 		frame = newFlatCall(input)
 	default:
@@ -304,17 +301,6 @@ func newFlatCall(input *callFrame) *flatCallFrame {
 		Result: &flatCallResult{
 			GasUsed: &input.GasUsed,
 			Output:  &resultOutput,
-		},
-	}
-}
-
-func newFlatSelfdestruct(input *callFrame) *flatCallFrame {
-	return &flatCallFrame{
-		Type: "suicide",
-		Action: flatCallAction{
-			SelfDestructed: &input.From,
-			Balance:        input.Value,
-			RefundAddress:  input.To,
 		},
 	}
 }

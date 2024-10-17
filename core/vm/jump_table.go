@@ -854,13 +854,6 @@ func newShanghaiInstructionSet() JumpTable {
 			maxStack:   maxStack(2, 0),
 			memorySize: memoryReturn,
 		},
-		SELFDESTRUCT: {
-			constantGas: params.SelfdestructGasEIP150,
-			execute:     opSelfdestruct,
-			dynamicGas:  gasSelfdestructEIP3529,
-			minStack:    minStack(1, 0),
-			maxStack:    maxStack(1, 0),
-		},
 		DELEGATECALL: {
 			execute:     opDelegateCall,
 			dynamicGas:  gasDelegateCallEIP2929,

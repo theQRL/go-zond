@@ -83,6 +83,50 @@ func TestEIP2930Signer(t *testing.T) {
 		tx0     = NewTx(&DynamicFeeTx{Nonce: 1})
 		tx1     = NewTx(&DynamicFeeTx{ChainID: big.NewInt(1), Nonce: 1})
 		tx2, _  = SignNewTx(key, signer2, &DynamicFeeTx{ChainID: big.NewInt(2), Nonce: 1})
+		to      = common.HexToAddress("cccccccccccccccccccccccccccccccccccccccc")
+		tx3, _  = SignNewTx(key, signer1, &DynamicFeeTx{
+			Data:      common.Hex2Bytes("00"),
+			Value:     big.NewInt(0),
+			ChainID:   big.NewInt(1),
+			Nonce:     1,
+			Gas:       4000000,
+			GasFeeCap: big.NewInt(2000),
+			GasTipCap: big.NewInt(10),
+			To:        &to,
+			AccessList: []AccessTuple{
+				{
+					Address: to,
+					StorageKeys: []common.Hash{
+						common.HexToHash("0000000000000000000000000000000000000000000000000000000000000000"),
+						common.HexToHash("0000000000000000000000000000000000000000000000000000000000000001"),
+					},
+				},
+			},
+		})
+		to2    = common.HexToAddress("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
+		tx4, _ = SignNewTx(key, signer1, &DynamicFeeTx{
+			Data:       common.Hex2Bytes("095ea7b30000000000000000000000001111111254eeb25477b68fb85ed929f73a960582ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+			Value:      big.NewInt(0),
+			ChainID:    big.NewInt(1),
+			Nonce:      47,
+			Gas:        53319,
+			GasFeeCap:  big.NewInt(14358031378),
+			GasTipCap:  big.NewInt(576312105),
+			To:         &to2,
+			AccessList: []AccessTuple{},
+		})
+		to3    = common.HexToAddress("535b918f3724001fd6fb52fcc6cbc220592990a3")
+		tx5, _ = SignNewTx(key, signer1, &DynamicFeeTx{
+			Data:       []byte{},
+			Value:      big.NewInt(73360267083380739),
+			ChainID:    big.NewInt(1),
+			Nonce:      132949,
+			Gas:        30000,
+			GasFeeCap:  big.NewInt(14237787676),
+			GasTipCap:  big.NewInt(0),
+			To:         &to3,
+			AccessList: []AccessTuple{},
+		})
 	)
 
 	tests := []struct {
@@ -125,6 +169,27 @@ func TestEIP2930Signer(t *testing.T) {
 			wantSenderErr:  ErrInvalidChainId,
 			wantSignerHash: common.HexToHash("b6afee4d44e0392fb5d3204b350596d6677440bced7ebd998db73c9671527c57"),
 			wantSignErr:    ErrInvalidChainId,
+		},
+		{
+			// evmone example
+			tx:             tx3,
+			signer:         signer1,
+			wantSignerHash: common.HexToHash("00c89f03a2c0fe998bcccb984e0a6ec7c1eeabc6f46657915a402a3247219d28"),
+			wantHash:       common.HexToHash("167da6f024b270d25a7ca05c1bf373c9636517b16a4b5f7a9fb975a668dc00e9"),
+		},
+		{
+			// evmone example
+			tx:             tx4,
+			signer:         signer1,
+			wantSignerHash: common.HexToHash("840f004a0ca908700b48a591f09afb36132e0767109c0485ab94f1daf115d4a8"),
+			wantHash:       common.HexToHash("53cea615852ed646b052395a3349eca21a141a0d1abfaa2fe4af284059162785"),
+		},
+		{
+			// evmone example
+			tx:             tx5,
+			signer:         signer1,
+			wantSignerHash: common.HexToHash("2004db20334ebe7941961d9abd937b952bb688f9a5d58b998b24a8179c8dac6f"),
+			wantHash:       common.HexToHash("3e31bab04d22c2db320644ffea4366b99cb866f17f28a1d0069871f97d5bac7f"),
 		},
 	}
 

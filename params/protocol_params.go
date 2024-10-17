@@ -54,33 +54,26 @@ const (
 
 	JumpdestGas uint64 = 1 // Once per JUMPDEST operation.
 
-	CreateDataGas         uint64 = 200   //
-	CallCreateDepth       uint64 = 1024  // Maximum depth of call/create stack.
-	ExpGas                uint64 = 10    // Once per EXP instruction
-	LogGas                uint64 = 375   // Per LOG* operation.
-	CopyGas               uint64 = 3     //
-	StackLimit            uint64 = 1024  // Maximum size of VM stack allowed.
-	LogTopicGas           uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
-	CreateGas             uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
-	Create2Gas            uint64 = 32000 // Once per CREATE2 operation
-	SelfdestructRefundGas uint64 = 24000 // Refunded following a selfdestruct operation.
-	MemoryGas             uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
+	CreateDataGas   uint64 = 200   //
+	CallCreateDepth uint64 = 1024  // Maximum depth of call/create stack.
+	ExpGas          uint64 = 10    // Once per EXP instruction
+	LogGas          uint64 = 375   // Per LOG* operation.
+	CopyGas         uint64 = 3     //
+	StackLimit      uint64 = 1024  // Maximum size of VM stack allowed.
+	LogTopicGas     uint64 = 375   // Multiplied by the * of the LOG*, per LOG transaction. e.g. LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
+	CreateGas       uint64 = 32000 // Once per CREATE operation & contract-creation transaction.
+	Create2Gas      uint64 = 32000 // Once per CREATE2 operation
+	MemoryGas       uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 
 	TxDataNonZeroGasEIP2028   uint64 = 16   // Per byte of non zero data attached to a transaction after EIP 2028
 	TxAccessListAddressGas    uint64 = 2400 // Per address specified in EIP 2930 access list
 	TxAccessListStorageKeyGas uint64 = 1900 // Per storage key specified in EIP 2930 access list
 
 	// These have been changed during the course of the chain
-	SloadGasEIP2200       uint64 = 800  // Cost of SLOAD
-	SelfdestructGasEIP150 uint64 = 5000 // Cost of SELFDESTRUCT
+	SloadGasEIP2200 uint64 = 800 // Cost of SLOAD
 
 	// EXP has a dynamic portion depending on the size of the exponent
 	ExpByteEIP158 uint64 = 50 // was raised to 50 during Eip158
-
-	// CreateBySelfdestructGas is used when the refunded account is one that does
-	// not exist. This logic is similar to call.
-	// Introduced in Tangerine Whistle (Eip 150)
-	CreateBySelfdestructGas uint64 = 25000
 
 	DefaultBaseFeeChangeDenominator = 8          // Bounds the amount the base fee can change between blocks.
 	DefaultElasticityMultiplier     = 2          // Bounds the maximum gas limit a block may have.

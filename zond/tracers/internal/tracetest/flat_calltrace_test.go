@@ -42,7 +42,6 @@ type flatCallTrace struct {
 type flatCallTraceAction struct {
 	Author         common.Address `json:"author,omitempty"`
 	RewardType     string         `json:"rewardType,omitempty"`
-	SelfDestructed common.Address `json:"address,omitempty"`
 	Balance        hexutil.Big    `json:"balance,omitempty"`
 	CallType       string         `json:"callType,omitempty"`
 	CreationMethod string         `json:"creationMethod,omitempty"`

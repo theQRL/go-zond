@@ -299,7 +299,7 @@ func (t *jsTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	}
 }
 
-// CaptureEnter is called when EVM enters a new scope (via call, create or selfdestruct).
+// CaptureEnter is called when EVM enters a new scope (via call or create).
 func (t *jsTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	if !t.traceFrame {
 		return

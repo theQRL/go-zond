@@ -115,7 +115,6 @@ const (
 	MSIZE    OpCode = 0x59
 	GAS      OpCode = 0x5a
 	JUMPDEST OpCode = 0x5b
-	MCOPY    OpCode = 0x5e
 	PUSH0    OpCode = 0x5f
 )
 
@@ -212,10 +211,9 @@ const (
 	DELEGATECALL OpCode = 0xf4
 	CREATE2      OpCode = 0xf5
 
-	STATICCALL   OpCode = 0xfa
-	REVERT       OpCode = 0xfd
-	INVALID      OpCode = 0xfe
-	SELFDESTRUCT OpCode = 0xff
+	STATICCALL OpCode = 0xfa
+	REVERT     OpCode = 0xfd
+	INVALID    OpCode = 0xfe
 )
 
 // Since the opcodes aren't all in order we can't use a regular slice.
@@ -295,7 +293,6 @@ var opCodeToString = map[OpCode]string{
 	MSIZE:    "MSIZE",
 	GAS:      "GAS",
 	JUMPDEST: "JUMPDEST",
-	MCOPY:    "MCOPY",
 	PUSH0:    "PUSH0",
 
 	// 0x60 range - pushes.
@@ -384,7 +381,6 @@ var opCodeToString = map[OpCode]string{
 	STATICCALL:   "STATICCALL",
 	REVERT:       "REVERT",
 	INVALID:      "INVALID",
-	SELFDESTRUCT: "SELFDESTRUCT",
 }
 
 func (op OpCode) String() string {
@@ -463,7 +459,6 @@ var stringToOp = map[string]OpCode{
 	"MSIZE":          MSIZE,
 	"GAS":            GAS,
 	"JUMPDEST":       JUMPDEST,
-	"MCOPY":          MCOPY,
 	"PUSH0":          PUSH0,
 	"PUSH1":          PUSH1,
 	"PUSH2":          PUSH2,
@@ -540,7 +535,6 @@ var stringToOp = map[string]OpCode{
 	"RETURN":         RETURN,
 	"REVERT":         REVERT,
 	"INVALID":        INVALID,
-	"SELFDESTRUCT":   SELFDESTRUCT,
 }
 
 // StringToOp finds the opcode whose name is stored in `str`.

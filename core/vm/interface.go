@@ -48,9 +48,6 @@ type StateDB interface {
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
 
-	SelfDestruct(common.Address)
-	HasSelfDestructed(common.Address) bool
-
 	// Exist reports whether the given account exists in state.
 	// Notably this should also return true for self-destructed accounts.
 	Exist(common.Address) bool

@@ -356,14 +356,6 @@ func (s *StateDB) Database() Database {
 	return s.db
 }
 
-func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.selfDestructed
-	}
-	return false
-}
-
 /*
  * SETTERS
  */
@@ -431,25 +423,6 @@ func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common
 	for k, v := range storage {
 		stateObject.SetState(k, v)
 	}
-}
-
-// SelfDestruct marks the given account as selfdestructed.
-// This clears the account balance.
-//
-// The account's state object is still available until the state is committed,
-// getStateObject will return a non-nil account after SelfDestruct.
-func (s *StateDB) SelfDestruct(addr common.Address) {
-	stateObject := s.getStateObject(addr)
-	if stateObject == nil {
-		return
-	}
-	s.journal.append(selfDestructChange{
-		account:     &addr,
-		prev:        stateObject.selfDestructed,
-		prevbalance: new(big.Int).Set(stateObject.Balance()),
-	})
-	stateObject.markSelfdestructed()
-	stateObject.data.Balance = new(big.Int)
 }
 
 //
@@ -791,7 +764,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-		if obj.selfDestructed || (deleteEmptyObjects && obj.empty()) {
+		if deleteEmptyObjects && obj.empty() {
 			obj.deleted = true
 
 			// We need to maintain account deletions explicitly (will remain

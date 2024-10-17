@@ -76,7 +76,7 @@
 				var outsize = log.stack.peek(1).valueOf();
 				frame.return = log.memory.slice(out, out + outsize);
 				break;
-			case "STOP": case "SELFDESTRUCT":
+			case "STOP":
 				frame.return = log.memory.slice(0, 0);
 				break;
 			case "JUMPDEST":
