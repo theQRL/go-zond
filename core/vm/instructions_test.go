@@ -606,49 +606,49 @@ func TestCreate2Addresses(t *testing.T) {
 
 	for i, tt := range []testcase{
 		{
-			origin:   "0x0000000000000000000000000000000000000000",
+			origin:   "Z0000000000000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0x00",
-			expected: "0x4d1a2e2bb4f88f0250f26ffff098b0b30b26bf38",
+			expected: "Z4d1a2e2bb4f88f0250f26ffff098b0b30b26bf38",
 		},
 		{
-			origin:   "0xdeadbeef00000000000000000000000000000000",
+			origin:   "Zdeadbeef00000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0x00",
-			expected: "0xB928f69Bb1D91Cd65274e3c79d8986362984fDA3",
+			expected: "ZB928f69Bb1D91Cd65274e3c79d8986362984fDA3",
 		},
 		{
-			origin:   "0xdeadbeef00000000000000000000000000000000",
+			origin:   "Zdeadbeef00000000000000000000000000000000",
 			salt:     "0xfeed000000000000000000000000000000000000",
 			code:     "0x00",
-			expected: "0xD04116cDd17beBE565EB2422F2497E06cC1C9833",
+			expected: "ZD04116cDd17beBE565EB2422F2497E06cC1C9833",
 		},
 		{
-			origin:   "0x0000000000000000000000000000000000000000",
+			origin:   "Z0000000000000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0xdeadbeef",
-			expected: "0x70f2b2914A2a4b783FaEFb75f459A580616Fcb5e",
+			expected: "Z70f2b2914A2a4b783FaEFb75f459A580616Fcb5e",
 		},
 		{
-			origin:   "0x00000000000000000000000000000000deadbeef",
+			origin:   "Z00000000000000000000000000000000deadbeef",
 			salt:     "0xcafebabe",
 			code:     "0xdeadbeef",
-			expected: "0x60f3f640a8508fC6a86d45DF051962668E1e8AC7",
+			expected: "Z60f3f640a8508fC6a86d45DF051962668E1e8AC7",
 		},
 		{
-			origin:   "0x00000000000000000000000000000000deadbeef",
+			origin:   "Z00000000000000000000000000000000deadbeef",
 			salt:     "0xcafebabe",
 			code:     "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-			expected: "0x1d8bfDC5D46DC4f61D6b6115972536eBE6A8854C",
+			expected: "Z1d8bfDC5D46DC4f61D6b6115972536eBE6A8854C",
 		},
 		{
-			origin:   "0x0000000000000000000000000000000000000000",
+			origin:   "Z0000000000000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0x",
-			expected: "0xE33C0C7F7df4809055C3ebA6c09CFe4BaF1BD9e0",
+			expected: "ZE33C0C7F7df4809055C3ebA6c09CFe4BaF1BD9e0",
 		},
 	} {
-		origin := common.BytesToAddress(common.FromHex(tt.origin))
+		origin, _ := common.NewAddressFromString(tt.origin)
 		salt := common.BytesToHash(common.FromHex(tt.salt))
 		code := common.FromHex(tt.code)
 		codeHash := crypto.Keccak256(code)
@@ -662,7 +662,7 @@ func TestCreate2Addresses(t *testing.T) {
 			gas, _ := gasCreate2(params.GasTable{}, nil, nil, stack, nil, 0)
 			fmt.Printf("Example %d\n* address `0x%x`\n* salt `0x%x`\n* init_code `0x%x`\n* gas (assuming no mem expansion): `%v`\n* result: `%s`\n\n", i,origin, salt, code, gas, address.String())
 		*/
-		expected := common.BytesToAddress(common.FromHex(tt.expected))
+		expected, _ := common.NewAddressFromString(tt.expected)
 		if !bytes.Equal(expected.Bytes(), address.Bytes()) {
 			t.Errorf("test %d: expected %s, got %s", i, expected.String(), address.String())
 		}

@@ -374,15 +374,19 @@ func parseDumpConfig(ctx *cli.Context, stack *node.Node) (*state.DumpConfig, zon
 	if header == nil {
 		return nil, nil, common.Hash{}, errors.New("no head block found")
 	}
-	startArg := common.FromHex(ctx.String(utils.StartKeyFlag.Name))
+	startArg := ctx.String(utils.StartKeyFlag.Name)
 	var start common.Hash
 	switch len(startArg) {
 	case 0: // common.Hash
-	case 32:
-		start = common.BytesToHash(startArg)
-	case 20:
-		start = crypto.Keccak256Hash(startArg)
-		log.Info("Converting start-address to hash", "address", common.BytesToAddress(startArg), "hash", start.Hex())
+	case 64, 66:
+		start = common.BytesToHash(common.FromHex(startArg))
+	case 41:
+		addr, err := common.NewAddressFromString(startArg)
+		if err != nil {
+			return nil, nil, common.Hash{}, err
+		}
+		start = crypto.Keccak256Hash(addr.Bytes())
+		log.Info("Converting start-address to hash", "address", addr, "hash", start.Hex())
 	default:
 		return nil, nil, common.Hash{}, fmt.Errorf("invalid start argument: %x. 20 or 32 hex-encoded bytes required", startArg)
 	}

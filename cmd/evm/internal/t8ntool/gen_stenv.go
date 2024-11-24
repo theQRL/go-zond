@@ -17,7 +17,7 @@ var _ = (*stEnvMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (s stEnv) MarshalJSON() ([]byte, error) {
 	type stEnv struct {
-		Coinbase              common.UnprefixedAddress            `json:"currentCoinbase"   gencodec:"required"`
+		Coinbase              common.Address                      `json:"currentCoinbase"   gencodec:"required"`
 		Random                *math.HexOrDecimal256               `json:"currentRandom"`
 		ParentBaseFee         *math.HexOrDecimal256               `json:"parentBaseFee,omitempty"`
 		ParentGasUsed         math.HexOrDecimal64                 `json:"parentGasUsed,omitempty"`
@@ -31,7 +31,7 @@ func (s stEnv) MarshalJSON() ([]byte, error) {
 		BaseFee               *math.HexOrDecimal256               `json:"currentBaseFee,omitempty"`
 	}
 	var enc stEnv
-	enc.Coinbase = common.UnprefixedAddress(s.Coinbase)
+	enc.Coinbase = s.Coinbase
 	enc.Random = (*math.HexOrDecimal256)(s.Random)
 	enc.ParentBaseFee = (*math.HexOrDecimal256)(s.ParentBaseFee)
 	enc.ParentGasUsed = math.HexOrDecimal64(s.ParentGasUsed)
@@ -49,7 +49,7 @@ func (s stEnv) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (s *stEnv) UnmarshalJSON(input []byte) error {
 	type stEnv struct {
-		Coinbase              *common.UnprefixedAddress           `json:"currentCoinbase"   gencodec:"required"`
+		Coinbase              *common.Address                     `json:"currentCoinbase"   gencodec:"required"`
 		Random                *math.HexOrDecimal256               `json:"currentRandom"`
 		ParentBaseFee         *math.HexOrDecimal256               `json:"parentBaseFee,omitempty"`
 		ParentGasUsed         *math.HexOrDecimal64                `json:"parentGasUsed,omitempty"`

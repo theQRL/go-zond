@@ -60,7 +60,8 @@ var allPrecompiles = map[common.Address]PrecompiledContract{
 }
 
 func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
-	p := allPrecompiles[common.HexToAddress(addr)]
+	contractAddr, _ := common.NewAddressFromString(addr)
+	p := allPrecompiles[contractAddr]
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in)
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
@@ -81,7 +82,8 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 }
 
 func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
-	p := allPrecompiles[common.HexToAddress(addr)]
+	contractAddr, _ := common.NewAddressFromString(addr)
+	p := allPrecompiles[contractAddr]
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in) - 1
 
@@ -122,7 +124,8 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 	if test.NoBenchmark {
 		return
 	}
-	p := allPrecompiles[common.HexToAddress(addr)]
+	contractAddr, _ := common.NewAddressFromString(addr)
+	p := allPrecompiles[contractAddr]
 	in := common.Hex2Bytes(test.Input)
 	reqGas := p.RequiredGas(in)
 
@@ -193,15 +196,27 @@ func BenchmarkPrecompiledIdentity(bench *testing.B) {
 }
 
 // Tests the sample inputs from the ModExp EIP 198.
-func TestPrecompiledModExp(t *testing.T)      { testJson("modexp", "05", t) }
-func BenchmarkPrecompiledModExp(b *testing.B) { benchJson("modexp", "05", b) }
+func TestPrecompiledModExp(t *testing.T) {
+	testJson("modexp", "Z0000000000000000000000000000000000000005", t)
+}
+func BenchmarkPrecompiledModExp(b *testing.B) {
+	benchJson("modexp", "Z0000000000000000000000000000000000000005", b)
+}
 
-func TestPrecompiledModExpEip2565(t *testing.T)      { testJson("modexp_eip2565", "f5", t) }
-func BenchmarkPrecompiledModExpEip2565(b *testing.B) { benchJson("modexp_eip2565", "f5", b) }
+func TestPrecompiledModExpEip2565(t *testing.T) {
+	testJson("modexp_eip2565", "Z00000000000000000000000000000000000000f5", t)
+}
+func BenchmarkPrecompiledModExpEip2565(b *testing.B) {
+	benchJson("modexp_eip2565", "Z00000000000000000000000000000000000000f5", b)
+}
 
 // Tests the sample inputs from the elliptic curve addition EIP 213.
-func TestPrecompiledBn256Add(t *testing.T)      { testJson("bn256Add", "06", t) }
-func BenchmarkPrecompiledBn256Add(b *testing.B) { benchJson("bn256Add", "06", b) }
+func TestPrecompiledBn256Add(t *testing.T) {
+	testJson("bn256Add", "Z0000000000000000000000000000000000000006", t)
+}
+func BenchmarkPrecompiledBn256Add(b *testing.B) {
+	benchJson("bn256Add", "Z0000000000000000000000000000000000000006", b)
+}
 
 // Tests OOG
 func TestPrecompiledModExpOOG(t *testing.T) {
@@ -210,19 +225,29 @@ func TestPrecompiledModExpOOG(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, test := range modexpTests {
-		testPrecompiledOOG("05", test, t)
+		testPrecompiledOOG("Z0000000000000000000000000000000000000005", test, t)
 	}
 }
 
 // Tests the sample inputs from the elliptic curve scalar multiplication EIP 213.
-func TestPrecompiledBn256ScalarMul(t *testing.T)      { testJson("bn256ScalarMul", "07", t) }
-func BenchmarkPrecompiledBn256ScalarMul(b *testing.B) { benchJson("bn256ScalarMul", "07", b) }
+func TestPrecompiledBn256ScalarMul(t *testing.T) {
+	testJson("bn256ScalarMul", "Z0000000000000000000000000000000000000007", t)
+}
+func BenchmarkPrecompiledBn256ScalarMul(b *testing.B) {
+	benchJson("bn256ScalarMul", "Z0000000000000000000000000000000000000007", b)
+}
 
 // Tests the sample inputs from the elliptic curve pairing check EIP 197.
-func TestPrecompiledBn256Pairing(t *testing.T)      { testJson("bn256Pairing", "08", t) }
-func BenchmarkPrecompiledBn256Pairing(b *testing.B) { benchJson("bn256Pairing", "08", b) }
+func TestPrecompiledBn256Pairing(t *testing.T) {
+	testJson("bn256Pairing", "Z0000000000000000000000000000000000000008", t)
+}
+func BenchmarkPrecompiledBn256Pairing(b *testing.B) {
+	benchJson("bn256Pairing", "Z0000000000000000000000000000000000000008", b)
+}
 
-func TestPrecompiledDepositroot(t *testing.T) { testJson("depositroot", "01", t) }
+func TestPrecompiledDepositroot(t *testing.T) {
+	testJson("depositroot", "Z0000000000000000000000000000000000000001", t)
+}
 
 func testJson(name, addr string, t *testing.T) {
 	tests, err := loadJson(name)

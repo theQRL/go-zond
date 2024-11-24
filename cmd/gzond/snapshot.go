@@ -609,10 +609,14 @@ func checkAccount(ctx *cli.Context) error {
 	var (
 		hash common.Hash
 		addr common.Address
+		err  error
 	)
 	switch arg := ctx.Args().First(); len(arg) {
-	case 40, 42:
-		addr = common.HexToAddress(arg)
+	case 41:
+		addr, err = common.NewAddressFromString(arg)
+		if err != nil {
+			return err
+		}
 		hash = crypto.Keccak256Hash(addr.Bytes())
 	case 64, 66:
 		hash = common.HexToHash(arg)

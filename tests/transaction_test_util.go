@@ -34,8 +34,8 @@ type TransactionTest struct {
 }
 
 type ttFork struct {
-	Sender common.UnprefixedAddress `json:"sender"`
-	Hash   common.UnprefixedHash    `json:"hash"`
+	Sender common.Address        `json:"sender"`
+	Hash   common.UnprefixedHash `json:"hash"`
 }
 
 func (tt *TransactionTest) Run(config *params.ChainConfig) error {
@@ -69,7 +69,7 @@ func (tt *TransactionTest) Run(config *params.ChainConfig) error {
 	} {
 		sender, txhash, err := validateTx(tt.RLP, testcase.signer)
 
-		if testcase.fork.Sender == (common.UnprefixedAddress{}) {
+		if testcase.fork.Sender == (common.Address{}) {
 			if err == nil {
 				return fmt.Errorf("expected error, got none (address %v)[%v]", sender.String(), testcase.name)
 			}

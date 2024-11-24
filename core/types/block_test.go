@@ -43,16 +43,17 @@ func TestBlockEncoding(t *testing.T) {
 			t.Errorf("%s mismatch: got %v, want %v", f, got, want)
 		}
 	}
+	coinbase, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
 	check("GasLimit", block.GasLimit(), uint64(4712388))
 	check("GasUsed", block.GasUsed(), uint64(21000))
-	check("Coinbase", block.Coinbase(), common.HexToAddress("0000000000000000000000000000000000000000"))
+	check("Coinbase", block.Coinbase(), coinbase)
 	check("Random", block.Random(), common.HexToHash("0000000000000000000000000000000000000000000000000000000000000000"))
 	check("Root", block.Root(), common.HexToHash("e0d841b3f9f2ca592e4075480aeb7d434a94dc45270d855afe432764d83eaec9"))
 	check("Hash", block.Hash(), common.HexToHash("2784d0c5f7cd6b35c5be7b5978ac6e4a4df812220989ac6f4715f7c8fc8b5ea4"))
 	check("Time", block.Time(), uint64(9150))
 	check("Size", block.Size(), uint64(len(blockEnc)))
 
-	to := common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
+	to, _ := common.NewAddressFromString("Z9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
 	tx1 := NewTx(&DynamicFeeTx{
 		Nonce:     9,
 		To:        &to,
@@ -86,10 +87,10 @@ func TestEIP1559BlockEncoding(t *testing.T) {
 			t.Errorf("%s mismatch: got %v, want %v", f, got, want)
 		}
 	}
-
+	coinbase, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
 	check("GasLimit", block.GasLimit(), uint64(4712388))
 	check("GasUsed", block.GasUsed(), uint64(46300))
-	check("Coinbase", block.Coinbase(), common.HexToAddress("0000000000000000000000000000000000000000"))
+	check("Coinbase", block.Coinbase(), coinbase)
 	check("Random", block.Random(), common.HexToHash("0000000000000000000000000000000000000000000000000000000000000000"))
 	check("Root", block.Root(), common.HexToHash("cd426e735813e331baee90aea50d7c2dd866a8ad40fe301285fba8ad357d2c02"))
 	check("Hash", block.Hash(), common.HexToHash("abeff5234260b2b3aba954d0b03cd16022eed839d752456804c272c79afcc7d5"))
@@ -97,7 +98,7 @@ func TestEIP1559BlockEncoding(t *testing.T) {
 	check("Size", block.Size(), uint64(len(blockEnc)))
 	check("BaseFee", block.BaseFee(), new(big.Int).SetUint64(269797233))
 
-	to := common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
+	to, _ := common.NewAddressFromString("Z9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
 	accesses := AccessList{AccessTuple{
 		Address: to,
 		StorageKeys: []common.Hash{
@@ -152,16 +153,17 @@ func TestEIP2718BlockEncoding(t *testing.T) {
 			t.Errorf("%s mismatch: got %v, want %v", f, got, want)
 		}
 	}
+	coinbase, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
 	check("GasLimit", block.GasLimit(), uint64(4712388))
 	check("GasUsed", block.GasUsed(), uint64(42000))
-	check("Coinbase", block.Coinbase(), common.HexToAddress("0x0000000000000000000000000000000000000000"))
+	check("Coinbase", block.Coinbase(), coinbase)
 	check("Random", block.Random(), common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"))
 	check("Root", block.Root(), common.HexToHash("0xdb3eba85684dac0ab9ef763e4836b2178910bdbd3bddb53b8bffd2f90a8bd485"))
 	check("Time", block.Time(), uint64(9150))
 	check("Size", block.Size(), uint64(len(blockEnc)))
 
 	// Create dynamic tx fee
-	to := common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
+	to, _ := common.NewAddressFromString("Z9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
 	tx1 := NewTx(&DynamicFeeTx{
 		Nonce:     18,
 		To:        &to,

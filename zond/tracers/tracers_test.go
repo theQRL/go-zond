@@ -35,7 +35,7 @@ func BenchmarkTransactionTrace(b *testing.B) {
 	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	from := key.GetAddress()
 	gas := uint64(1000000) // 1M gas
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
+	to, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
 	signer := types.LatestSignerForChainID(big.NewInt(1337))
 	tx, err := types.SignNewTx(key, signer,
 		&types.DynamicFeeTx{
@@ -68,7 +68,8 @@ func BenchmarkTransactionTrace(b *testing.B) {
 		byte(vm.PUSH1), 0, // jumpdestination
 		byte(vm.JUMP),
 	}
-	alloc[common.HexToAddress("0x00000000000000000000000000000000deadbeef")] = core.GenesisAccount{
+	address, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
+	alloc[address] = core.GenesisAccount{
 		Nonce:   1,
 		Code:    loop,
 		Balance: big.NewInt(1),

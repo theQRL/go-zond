@@ -97,12 +97,6 @@ type KeyStoreTestV3 struct {
 	Priv     string
 }
 
-type KeyStoreTestV1 struct {
-	Json     encryptedKeyJSONV1
-	Password string
-	Priv     string
-}
-
 func TestV3_PBKDF2_1(t *testing.T) {
 	t.Parallel()
 	tests := loadKeyStoreTestV3("testdata/v3_test_vector.json", t)

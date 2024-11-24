@@ -39,7 +39,7 @@ func TestMessageSignVerify(t *testing.T) {
 Password: {{.InputLine "foobar"}}
 Repeat password: {{.InputLine "foobar"}}
 `)
-	generate.ExpectRegexp(`Address: (0x[0-9a-fA-F]{40})\n`)
+	generate.ExpectRegexp(`Address: (Z[0-9a-fA-F]{40})\n`)
 	generate.ExpectExit()
 
 	// Sign a message.

@@ -57,6 +57,7 @@ func TestNewUnpacker(t *testing.T) {
 		calldata string
 		exp      []interface{}
 	}
+	address, _ := common.NewAddressFromString("Z00000133700000deadbeef000000000000000000")
 	testcases := []unpackTest{
 		{ // https://solidity.readthedocs.io/en/develop/abi-spec.html#use-of-dynamic-types
 			`[{"type":"function","name":"f", "inputs":[{"type":"uint256"},{"type":"uint32[]"},{"type":"bytes10"},{"type":"bytes"}]}]`,
@@ -85,7 +86,7 @@ func TestNewUnpacker(t *testing.T) {
 			`[{"type":"function","name":"compareAndApprove","inputs":[{"type":"address"},{"type":"uint256"},{"type":"uint256"}]}]`,
 			"751e107900000000000000000000000000000133700000deadbeef00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
 			[]interface{}{
-				common.HexToAddress("0x00000133700000deadbeef000000000000000000"),
+				address,
 				new(big.Int).SetBytes([]byte{0x00}),
 				big.NewInt(0x1),
 			},

@@ -121,6 +121,7 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	var (
+		err           error
 		tracer        vm.EVMLogger
 		debugLogger   *logger.StructLogger
 		statedb       *state.StateDB
@@ -163,12 +164,18 @@ func runCmd(ctx *cli.Context) error {
 		genesisConfig = new(core.Genesis)
 	}
 	if ctx.String(SenderFlag.Name) != "" {
-		sender = common.HexToAddress(ctx.String(SenderFlag.Name))
+		sender, err = common.NewAddressFromString(ctx.String(SenderFlag.Name))
+		if err != nil {
+			return err
+		}
 	}
 	statedb.CreateAccount(sender)
 
 	if ctx.String(ReceiverFlag.Name) != "" {
-		receiver = common.HexToAddress(ctx.String(ReceiverFlag.Name))
+		receiver, err = common.NewAddressFromString(ctx.String(ReceiverFlag.Name))
+		if err != nil {
+			return err
+		}
 	}
 
 	var code []byte

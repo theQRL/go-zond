@@ -34,7 +34,7 @@ import (
 // The values in those tests are from the Transaction Tests
 // at github.com/ethereum/tests.
 var (
-	testAddr = common.HexToAddress("b94f5374fce5edbc8e2a8697c15331677e6ebf0b")
+	testAddr, _ = common.NewAddressFromString("Zb94f5374fce5edbc8e2a8697c15331677e6ebf0b")
 
 	emptyEip2718Tx = NewTx(&DynamicFeeTx{
 		ChainID:   big.NewInt(1),
@@ -83,7 +83,7 @@ func TestEIP2930Signer(t *testing.T) {
 		tx0     = NewTx(&DynamicFeeTx{Nonce: 1})
 		tx1     = NewTx(&DynamicFeeTx{ChainID: big.NewInt(1), Nonce: 1})
 		tx2, _  = SignNewTx(key, signer2, &DynamicFeeTx{ChainID: big.NewInt(2), Nonce: 1})
-		to      = common.HexToAddress("cccccccccccccccccccccccccccccccccccccccc")
+		to, _   = common.NewAddressFromString("Zcccccccccccccccccccccccccccccccccccccccc")
 		tx3, _  = SignNewTx(key, signer1, &DynamicFeeTx{
 			Data:      common.Hex2Bytes("00"),
 			Value:     big.NewInt(0),
@@ -103,7 +103,7 @@ func TestEIP2930Signer(t *testing.T) {
 				},
 			},
 		})
-		to2    = common.HexToAddress("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
+		to2, _ = common.NewAddressFromString("Zc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 		tx4, _ = SignNewTx(key, signer1, &DynamicFeeTx{
 			Data:       common.Hex2Bytes("095ea7b30000000000000000000000001111111254eeb25477b68fb85ed929f73a960582ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 			Value:      big.NewInt(0),
@@ -115,7 +115,7 @@ func TestEIP2930Signer(t *testing.T) {
 			To:         &to2,
 			AccessList: []AccessTuple{},
 		})
-		to3    = common.HexToAddress("535b918f3724001fd6fb52fcc6cbc220592990a3")
+		to3, _ = common.NewAddressFromString("Z535b918f3724001fd6fb52fcc6cbc220592990a3")
 		tx5, _ = SignNewTx(key, signer1, &DynamicFeeTx{
 			Data:       []byte{},
 			Value:      big.NewInt(73360267083380739),
@@ -294,10 +294,10 @@ func TestTransactionCoding(t *testing.T) {
 		t.Fatalf("could not generate key: %v", err)
 	}
 	var (
-		signer    = NewShanghaiSigner(common.Big1)
-		addr      = common.HexToAddress("0x0000000000000000000000000000000000000001")
-		recipient = common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87")
-		accesses  = AccessList{{Address: addr, StorageKeys: []common.Hash{{0}}}}
+		signer       = NewShanghaiSigner(common.Big1)
+		addr, _      = common.NewAddressFromString("Z0000000000000000000000000000000000000001")
+		recipient, _ = common.NewAddressFromString("Z095e7baea6a6c7c4c2dfeb977efac326af552d87")
+		accesses     = AccessList{{Address: addr, StorageKeys: []common.Hash{{0}}}}
 	)
 	for i := uint64(0); i < 500; i++ {
 		var txdata TxData
@@ -421,7 +421,7 @@ func assertEqual(orig *Transaction, cpy *Transaction) error {
 func TestTransactionSizes(t *testing.T) {
 	signer := NewShanghaiSigner(big.NewInt(123))
 	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	to := common.HexToAddress("0x01")
+	to, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000001")
 	for i, txdata := range []TxData{
 		&DynamicFeeTx{
 			ChainID:   big.NewInt(123),
@@ -432,7 +432,7 @@ func TestTransactionSizes(t *testing.T) {
 			Value:     big.NewInt(1),
 			AccessList: AccessList{
 				AccessTuple{
-					Address:     common.HexToAddress("0x01"),
+					Address:     to,
 					StorageKeys: []common.Hash{common.HexToHash("0x01")},
 				}},
 		},

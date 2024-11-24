@@ -33,7 +33,7 @@ import (
 
 func getBlock(transactions int, dataSize int) *types.Block {
 	var (
-		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
+		aa, _  = common.NewAddressFromString("Z000000000000000000000000000000000000aaaa")
 		engine = beacon.NewFaker()
 
 		// A sender who makes transactions, has some funds

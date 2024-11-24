@@ -247,7 +247,7 @@ func TestPendingTxFilter(t *testing.T) {
 		backend, sys = newTestFilterSystem(t, db, Config{})
 		api          = NewFilterAPI(sys)
 
-		to           = common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268")
+		to, _        = common.NewAddressFromString("Zb794f5ea0ba39494ce83a213fffba74279579268")
 		transactions = []*types.Transaction{
 			types.NewTx(&types.DynamicFeeTx{Nonce: 0, To: &to, Value: new(big.Int), Gas: 0, GasFeeCap: new(big.Int), Data: nil}),
 			types.NewTx(&types.DynamicFeeTx{Nonce: 1, To: &to, Value: new(big.Int), Gas: 0, GasFeeCap: new(big.Int), Data: nil}),
@@ -304,7 +304,7 @@ func TestPendingTxFilterFullTx(t *testing.T) {
 		backend, sys = newTestFilterSystem(t, db, Config{})
 		api          = NewFilterAPI(sys)
 
-		to           = common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268")
+		to, _        = common.NewAddressFromString("Zb794f5ea0ba39494ce83a213fffba74279579268")
 		transactions = []*types.Transaction{
 			types.NewTx(&types.DynamicFeeTx{Nonce: 0, To: &to, Value: new(big.Int), Gas: 0, GasFeeCap: new(big.Int), Data: nil}),
 			types.NewTx(&types.DynamicFeeTx{Nonce: 1, To: &to, Value: new(big.Int), Gas: 0, GasFeeCap: new(big.Int), Data: nil}),
@@ -475,10 +475,10 @@ func TestLogFilter(t *testing.T) {
 		backend, sys = newTestFilterSystem(t, db, Config{})
 		api          = NewFilterAPI(sys)
 
-		firstAddr      = common.HexToAddress("0x1111111111111111111111111111111111111111")
-		secondAddr     = common.HexToAddress("0x2222222222222222222222222222222222222222")
-		thirdAddress   = common.HexToAddress("0x3333333333333333333333333333333333333333")
-		notUsedAddress = common.HexToAddress("0x9999999999999999999999999999999999999999")
+		firstAddr, _   = common.NewAddressFromString("Z1111111111111111111111111111111111111111")
+		secondAddr, _  = common.NewAddressFromString("Z2222222222222222222222222222222222222222")
+		thirdAddr, _   = common.NewAddressFromString("Z3333333333333333333333333333333333333333")
+		notUsedAddr, _ = common.NewAddressFromString("Z9999999999999999999999999999999999999999")
 		firstTopic     = common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111111")
 		secondTopic    = common.HexToHash("0x2222222222222222222222222222222222222222222222222222222222222222")
 		notUsedTopic   = common.HexToHash("0x9999999999999999999999999999999999999999999999999999999999999999")
@@ -488,8 +488,8 @@ func TestLogFilter(t *testing.T) {
 			{Address: firstAddr},
 			{Address: firstAddr, Topics: []common.Hash{firstTopic}, BlockNumber: 1},
 			{Address: secondAddr, Topics: []common.Hash{firstTopic}, BlockNumber: 1},
-			{Address: thirdAddress, Topics: []common.Hash{secondTopic}, BlockNumber: 2},
-			{Address: thirdAddress, Topics: []common.Hash{secondTopic}, BlockNumber: 3},
+			{Address: thirdAddr, Topics: []common.Hash{secondTopic}, BlockNumber: 2},
+			{Address: thirdAddr, Topics: []common.Hash{secondTopic}, BlockNumber: 3},
 		}
 
 		testCases = []struct {
@@ -500,15 +500,15 @@ func TestLogFilter(t *testing.T) {
 			// match all
 			0: {FilterCriteria{}, allLogs, ""},
 			// match none due to no matching addresses
-			1: {FilterCriteria{Addresses: []common.Address{{}, notUsedAddress}, Topics: [][]common.Hash{nil}}, []*types.Log{}, ""},
+			1: {FilterCriteria{Addresses: []common.Address{{}, notUsedAddr}, Topics: [][]common.Hash{nil}}, []*types.Log{}, ""},
 			// match logs based on addresses, ignore topics
 			2: {FilterCriteria{Addresses: []common.Address{firstAddr}}, allLogs[:2], ""},
 			// match none due to no matching topics (match with address)
 			3: {FilterCriteria{Addresses: []common.Address{secondAddr}, Topics: [][]common.Hash{{notUsedTopic}}}, []*types.Log{}, ""},
 			// match logs based on addresses and topics
-			4: {FilterCriteria{Addresses: []common.Address{thirdAddress}, Topics: [][]common.Hash{{firstTopic, secondTopic}}}, allLogs[3:5], ""},
+			4: {FilterCriteria{Addresses: []common.Address{thirdAddr}, Topics: [][]common.Hash{{firstTopic, secondTopic}}}, allLogs[3:5], ""},
 			// match logs based on multiple addresses and "or" topics
-			5: {FilterCriteria{Addresses: []common.Address{secondAddr, thirdAddress}, Topics: [][]common.Hash{{firstTopic, secondTopic}}}, allLogs[2:5], ""},
+			5: {FilterCriteria{Addresses: []common.Address{secondAddr, thirdAddr}, Topics: [][]common.Hash{{firstTopic, secondTopic}}}, allLogs[2:5], ""},
 			// all "mined" logs with block num >= 2
 			6: {FilterCriteria{FromBlock: big.NewInt(2), ToBlock: big.NewInt(rpc.LatestBlockNumber.Int64())}, allLogs[3:], ""},
 			// all "mined" logs
@@ -592,7 +592,7 @@ func TestPendingTxFilterDeadlock(t *testing.T) {
 			default:
 			}
 
-			to := common.HexToAddress("0xb794f5ea0ba39494ce83a213fffba74279579268")
+			to, _ := common.NewAddressFromString("Zb794f5ea0ba39494ce83a213fffba74279579268")
 			tx := types.NewTx(&types.DynamicFeeTx{Nonce: i, To: &to, Value: new(big.Int), Gas: 0, GasFeeCap: new(big.Int), Data: nil})
 			backend.txFeed.Send(core.NewTxsEvent{Txs: []*types.Transaction{tx}})
 			i++

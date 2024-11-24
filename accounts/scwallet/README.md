@@ -70,7 +70,7 @@
   > personal.listWallets
   [{
     accounts: [{
-        address: "0x678b7cd55c61917defb23546a41803c5bfefbc7a",
+        address: "Z678b7cd55c61917defb23546a41803c5bfefbc7a",
         url: "keycard://044d/m/44'/60'/0'/0/0"
     }],
     status: "Online",

@@ -11,12 +11,12 @@ $ go run . t8n --state.fork=Shanghai --input.alloc=testdata/12/alloc.json --inpu
 With the fix applied, the result is: 
 ```
 go run . t8n --state.fork=Shanghai --input.alloc=testdata/12/alloc.json --input.txs=testdata/12/txs.json --input.env=testdata/12/env.json --output.alloc=stdout --output.result=stdout
-INFO [08-29|20:12:04.348] rejected tx                              index=0 hash=1d8f98..d32abf from=0x204cC644e26BDF879db422658eDEE62e302c3Da8 error="insufficient funds for gas * price + value: address 0x204cC644e26BDF879db422658eDEE62e302c3Da8 have 84000000 want 84000032"
+INFO [08-29|20:12:04.348] rejected tx                              index=0 hash=1d8f98..d32abf from=Z204cC644e26BDF879db422658eDEE62e302c3Da8 error="insufficient funds for gas * price + value: address Z204cC644e26BDF879db422658eDEE62e302c3Da8 have 84000000 want 84000032"
 INFO [08-29|20:12:04.348] Trie dumping started                     root=67e50f..797459
 INFO [08-29|20:12:04.348] Trie dumping complete                    accounts=1 elapsed="17.958µs"
 {
   "alloc": {
-    "0x204cc644e26bdf879db422658edee62e302c3da8": {
+    "Z204cc644e26bdf879db422658edee62e302c3da8": {
       "balance": "0x501bd00"
     }
   },
@@ -30,7 +30,7 @@ INFO [08-29|20:12:04.348] Trie dumping complete                    accounts=1 el
     "rejected": [
       {
         "index": 0,
-        "error": "insufficient funds for gas * price + value: address 0x204cC644e26BDF879db422658eDEE62e302c3Da8 have 84000000 want 84000032"
+        "error": "insufficient funds for gas * price + value: address Z204cC644e26BDF879db422658eDEE62e302c3Da8 have 84000000 want 84000032"
       }
     ],
     "gasUsed": "0x0",

@@ -300,9 +300,6 @@ func (c *Console) Welcome() {
 	// Print some generic Gzond metadata
 	if res, err := c.jsre.Run(`
 		var message = "instance: " + web3.version.node + "\n";
-		try {
-			message += "coinbase: " + zond.coinbase + "\n";
-		} catch (err) {}
 		message += "at block: " + zond.blockNumber + " (" + new Date(1000 * zond.getBlock(zond.blockNumber).timestamp) + ")\n";
 		try {
 			message += " datadir: " + admin.datadir + "\n";

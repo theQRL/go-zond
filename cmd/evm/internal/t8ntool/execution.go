@@ -73,7 +73,7 @@ type stEnv struct {
 }
 
 type stEnvMarshaling struct {
-	Coinbase        common.UnprefixedAddress
+	Coinbase        common.Address
 	Random          *math.HexOrDecimal256
 	ParentBaseFee   *math.HexOrDecimal256
 	ParentGasUsed   math.HexOrDecimal64

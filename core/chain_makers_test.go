@@ -35,7 +35,7 @@ func TestGenerateWithdrawalChain(t *testing.T) {
 	var (
 		keyHex  = "9c647b8b7c4e7c3490668fb6c11473619db80c93704c70893d3813af4090c39c"
 		key, _  = pqcrypto.HexToDilithium(keyHex)
-		address = key.GetAddress() // 658bdf435d810c91414ec09147daa6db62406379
+		address = key.GetAddress()
 		aa      = common.Address{0xaa}
 		bb      = common.Address{0xbb}
 		funds   = big.NewInt(0).Mul(big.NewInt(1337), big.NewInt(params.Ether))

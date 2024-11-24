@@ -73,7 +73,7 @@ func generateChain(n int) (*core.Genesis, []*types.Block) {
 	generate := func(i int, g *core.BlockGen) {
 		g.OffsetTime(5)
 		g.SetExtra([]byte("test"))
-		to := common.HexToAddress("0x9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
+		to, _ := common.NewAddressFromString("Z9a9070028361F7AAbeB3f2F2Dc07F82C4a98A02a")
 		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{
 			Nonce:     testNonce,
 			To:        &to,

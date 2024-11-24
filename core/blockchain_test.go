@@ -2220,6 +2220,7 @@ func testSkipStaleTxIndicesInSnapSync(t *testing.T, scheme string) {
 // Benchmarks large blocks with value transfers to non-existing accounts
 func benchmarkLargeNumberOfValueToNonexisting(b *testing.B, numTxs, numBlocks int, recipientFn func(uint64) common.Address) {
 	var (
+		address, _      = common.NewAddressFromString("Z000000000000000000000000000000000000c0de")
 		signer          = types.ShanghaiSigner{}
 		testBankKey, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		testBankAddress = testBankKey.GetAddress()
@@ -2228,7 +2229,7 @@ func benchmarkLargeNumberOfValueToNonexisting(b *testing.B, numTxs, numBlocks in
 			Config: params.TestChainConfig,
 			Alloc: GenesisAlloc{
 				testBankAddress: {Balance: bankFunds},
-				common.HexToAddress("0xc0de"): {
+				address: {
 					Code:    []byte{0x60, 0x01, 0x50},
 					Balance: big.NewInt(0),
 				}, // push 1, pop
@@ -2322,13 +2323,13 @@ func BenchmarkBlockChain_1x1000Executions(b *testing.B) {
 
 // TestInitThenFailCreateContract tests a pretty notorious case that happened
 // on mainnet over blocks 7338108, 7338110 and 7338115.
-//   - Block 7338108: address e771789f5cccac282f23bb7add5690e1f6ca467c is initiated
+//   - Block 7338108: address Ze771789f5cccac282f23bb7add5690e1f6ca467c is initiated
 //     with 0.001 ether (thus created but no code)
 //   - Block 7338110: a CREATE2 is attempted. The CREATE2 would deploy code on
-//     the same address e771789f5cccac282f23bb7add5690e1f6ca467c. However, the
+//     the same address Ze771789f5cccac282f23bb7add5690e1f6ca467c. However, the
 //     deployment fails due to OOG during initcode execution
 //   - Block 7338115: another tx checks the balance of
-//     e771789f5cccac282f23bb7add5690e1f6ca467c, and the snapshotter returned it as
+//     Ze771789f5cccac282f23bb7add5690e1f6ca467c, and the snapshotter returned it as
 //     zero.
 //
 // The problem being that the snapshotter maintains a destructset, and adds items
@@ -2349,7 +2350,7 @@ func testInitThenFailCreateContract(t *testing.T, scheme string) {
 		key, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		address = key.GetAddress()
 		funds   = big.NewInt(1000000000000000)
-		bb      = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
+		bb, _   = common.NewAddressFromString("Z000000000000000000000000000000000000bbbb")
 	)
 
 	// The bb-code needs to CREATE2 the aa contract. It consists of
@@ -2464,7 +2465,7 @@ func TestEIP2718Transition(t *testing.T) {
 
 func testEIP2718Transition(t *testing.T, scheme string) {
 	var (
-		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
+		aa, _  = common.NewAddressFromString("Z000000000000000000000000000000000000aaaa")
 		engine = beacon.NewFaker()
 
 		// A sender who makes transactions, has some funds
@@ -2546,7 +2547,7 @@ func TestEIP1559Transition(t *testing.T) {
 
 func testEIP1559Transition(t *testing.T, scheme string) {
 	var (
-		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
+		aa, _  = common.NewAddressFromString("Z000000000000000000000000000000000000aaaa")
 		engine = beacon.NewFaker()
 
 		// A sender who makes transactions, has some funds
@@ -2906,7 +2907,7 @@ func TestTxIndexer(t *testing.T) {
 		nonce  = uint64(0)
 	)
 	_, blocks, receipts := GenerateChainWithGenesis(gspec, engine, 128, func(i int, gen *BlockGen) {
-		to := common.HexToAddress("0xdeadbeef")
+		to, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
 		tx := types.NewTx(&types.DynamicFeeTx{
 			Nonce:     nonce,
 			To:        &to,
@@ -3107,8 +3108,8 @@ func TestTxIndexer(t *testing.T) {
 
 func TestEIP3651(t *testing.T) {
 	var (
-		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
-		bb     = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
+		aa, _  = common.NewAddressFromString("Z000000000000000000000000000000000000aaaa")
+		bb, _  = common.NewAddressFromString("Z000000000000000000000000000000000000bbbb")
 		engine = beacon.NewFaker()
 
 		// A sender who makes transactions, has some funds

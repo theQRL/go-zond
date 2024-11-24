@@ -177,7 +177,7 @@ func accountList(ctx *cli.Context) error {
 	var index int
 	for _, wallet := range am.Wallets() {
 		for _, account := range wallet.Accounts() {
-			fmt.Printf("Account #%d: {%x} %s\n", index, account.Address, &account.URL)
+			fmt.Printf("Account #%d: {%#x} %s\n", index, account.Address, &account.URL)
 			index++
 		}
 	}
@@ -215,7 +215,7 @@ func unlockAccount(ks *keystore.KeyStore, address string, i int, passwords []str
 }
 
 func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrError, auth string) accounts.Account {
-	fmt.Printf("Multiple key files exist for address %x:\n", err.Addr)
+	fmt.Printf("Multiple key files exist for address %#x:\n", err.Addr)
 	for _, a := range err.Matches {
 		fmt.Println("  ", a.URL)
 	}
@@ -319,6 +319,6 @@ func accountImport(ctx *cli.Context) error {
 	if err != nil {
 		utils.Fatalf("Could not create the account: %v", err)
 	}
-	fmt.Printf("Address: {%x}\n", acct.Address)
+	fmt.Printf("Address: {%#x}\n", acct.Address)
 	return nil
 }

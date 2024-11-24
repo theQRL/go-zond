@@ -32,7 +32,7 @@ import (
 	"github.com/theQRL/go-zond/params"
 )
 
-// var faucetAddr = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
+// var faucetAddr, _ = common.NewAddressFromString("Z71562b71999873DB5b286dF957af199Ec94617F7")
 var faucetKey, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
 func (s *Suite) sendSuccessfulTxs(t *utesting.T) error {

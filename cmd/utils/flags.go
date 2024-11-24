@@ -20,7 +20,6 @@ package utils
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -404,7 +403,7 @@ var (
 	}
 	MinerPendingFeeRecipientFlag = &cli.StringFlag{
 		Name:     "miner.pending.feeRecipient",
-		Usage:    "0x prefixed public address for the pending block producer (not used for actual block production)",
+		Usage:    "Z prefixed public address for the pending block producer (not used for actual block production)",
 		Category: flags.MinerCategory,
 	}
 
@@ -1131,8 +1130,8 @@ func MakeDatabaseHandles(max int) int {
 // a key index in the key store to an internal account representation.
 func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error) {
 	// If the specified account is a valid address, return it
-	if common.IsHexAddress(account) {
-		return accounts.Account{Address: common.HexToAddress(account)}, nil
+	if addr, err := common.NewAddressFromString(account); err == nil {
+		return accounts.Account{Address: addr}, nil
 	}
 	// Otherwise try to interpret the account as a keystore index
 	index, err := strconv.Atoi(account)
@@ -1157,16 +1156,13 @@ func setEtherbase(ctx *cli.Context, cfg *zondconfig.Config) {
 	if !ctx.IsSet(MinerPendingFeeRecipientFlag.Name) {
 		return
 	}
-	addr := ctx.String(MinerPendingFeeRecipientFlag.Name)
-	if strings.HasPrefix(addr, "0x") || strings.HasPrefix(addr, "0X") {
-		addr = addr[2:]
-	}
-	b, err := hex.DecodeString(addr)
-	if err != nil || len(b) != common.AddressLength {
-		Fatalf("-%s: invalid pending block producer address %q", MinerPendingFeeRecipientFlag.Name, addr)
+	feeRecipientStr := ctx.String(MinerPendingFeeRecipientFlag.Name)
+	feeRecipient, err := common.NewAddressFromString(feeRecipientStr)
+	if err != nil {
+		Fatalf("-%s: invalid pending block producer address %q", MinerPendingFeeRecipientFlag.Name, feeRecipientStr)
 		return
 	}
-	cfg.Miner.PendingFeeRecipient = common.BytesToAddress(b)
+	cfg.Miner.PendingFeeRecipient = feeRecipient
 }
 
 // MakePasswordList reads password lines from the file specified by the global --password flag.
@@ -1324,11 +1320,12 @@ func setTxPool(ctx *cli.Context, cfg *legacypool.Config) {
 	if ctx.IsSet(TxPoolLocalsFlag.Name) {
 		locals := strings.Split(ctx.String(TxPoolLocalsFlag.Name), ",")
 		for _, account := range locals {
-			if trimmed := strings.TrimSpace(account); !common.IsHexAddress(trimmed) {
+			trimmed := strings.TrimSpace(account)
+			addr, err := common.NewAddressFromString(trimmed)
+			if err != nil {
 				Fatalf("Invalid account in --txpool.locals: %s", trimmed)
-			} else {
-				cfg.Locals = append(cfg.Locals, common.HexToAddress(account))
 			}
+			cfg.Locals = append(cfg.Locals, addr)
 		}
 	}
 	if ctx.IsSet(TxPoolNoLocalsFlag.Name) {

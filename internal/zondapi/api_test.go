@@ -126,7 +126,7 @@ func allTransactionTypes(addr common.Address, config *params.ChainConfig) []txDa
 			Want: `{
 				"blockHash": null,
 				"blockNumber": null,
-				"from": "0x20a1a68e6818a1142f85671db01ef7226debf822",
+				"from": "Z20a1a68e6818a1142f85671db01ef7226debf822",
 				"gas": "0x7",
 				"gasPrice": "0x9",
 				"maxFeePerGas": "0x9",
@@ -134,13 +134,13 @@ func allTransactionTypes(addr common.Address, config *params.ChainConfig) []txDa
 				"hash": "0x88232264d509b4bfd84f5f1f9efc73ef8f1c4b478e5c7a945ff6296b6bd154e4",
 				"input": "0x0001020304",
 				"nonce": "0x5",
-				"to": "0xdead000000000000000000000000000000000000",
+				"to": "Zdead000000000000000000000000000000000000",
 				"transactionIndex": null,
 				"value": "0x8",
 				"type": "0x2",
 				"accessList": [
 					{
-						"address": "0x0200000000000000000000000000000000000000",
+						"address": "Z0200000000000000000000000000000000000000",
 						"storageKeys": [
 							"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
 						]
@@ -168,7 +168,7 @@ func allTransactionTypes(addr common.Address, config *params.ChainConfig) []txDa
 			Want: `{
 					"blockHash": null,
 					"blockNumber": null,
-					"from": "0x20a1a68e6818a1142f85671db01ef7226debf822",
+					"from": "Z20a1a68e6818a1142f85671db01ef7226debf822",
 					"gas": "0x7",
 					"gasPrice": "0x9",
 					"maxFeePerGas": "0x9",
@@ -718,7 +718,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 					"gasUsed": "0x0",
 					"hash": "0x36b2055dd577db48cb2625b7448e3afd26c7b7108b8fb83837cc6f0381807c4f",
 					"logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-					"miner": "0x0000000000000000000000000000000000000000",
+					"miner": "Z0000000000000000000000000000000000000000",
 					"number": "0x64",
 					"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 					"prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -739,7 +739,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 						"gasUsed": "0x0",
 						"hash": "0x36b2055dd577db48cb2625b7448e3afd26c7b7108b8fb83837cc6f0381807c4f",
 						"logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-						"miner": "0x0000000000000000000000000000000000000000",
+						"miner": "Z0000000000000000000000000000000000000000",
 						"number": "0x64",
 						"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 						"prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -766,7 +766,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 						"gasUsed": "0x0",
 						"hash": "0x36b2055dd577db48cb2625b7448e3afd26c7b7108b8fb83837cc6f0381807c4f",
 						"logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-						"miner": "0x0000000000000000000000000000000000000000",
+						"miner": "Z0000000000000000000000000000000000000000",
 						"number": "0x64",
 						"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 						"prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -778,7 +778,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 							{
 								"blockHash": "0x36b2055dd577db48cb2625b7448e3afd26c7b7108b8fb83837cc6f0381807c4f",
 								"blockNumber": "0x64",
-								"from": "0x0000000000000000000000000000000000000000",
+								"from": "Z0000000000000000000000000000000000000000",
 								"gas": "0x457",
 								"gasPrice": "0x2b67",
 								"maxFeePerGas": "0x2b67",
@@ -786,7 +786,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 								"hash": "0x608f1f522dc754d227a27923dafd25ebeb23ee72dc1c56c13ed54954393f0635",
 								"input": "0x111111",
 								"nonce": "0x1",
-								"to": "0x0000000000000000000000000000000000000011",
+								"to": "Z0000000000000000000000000000000000000011",
 								"transactionIndex": "0x0",
 								"value": "0x6f",
 								"type": "0x2",
@@ -800,7 +800,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 								"accessList": [],
 								"blockHash": "0x36b2055dd577db48cb2625b7448e3afd26c7b7108b8fb83837cc6f0381807c4f",
 								"blockNumber": "0x64",
-								"from": "0x0000000000000000000000000000000000000000",
+								"from": "Z0000000000000000000000000000000000000000",
 								"gas": "0x457",
 								"gasPrice": "0x2b67",
 								"hash": "0x2a181750debd4311025178efe71cac30116c055bdec2d1feb0750d69bf93e684",
@@ -808,7 +808,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 								"maxFeePerGas": "0x2b67",
 								"maxPriorityFeePerGas": "0x0",
 								"nonce": "0x2",
-								"to": "0x0000000000000000000000000000000000000011",
+								"to": "Z0000000000000000000000000000000000000011",
 								"transactionIndex": "0x1",
 								"value": "0x6f",
 								"type": "0x2",
@@ -819,7 +819,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 							{
 								"blockHash": "0x36b2055dd577db48cb2625b7448e3afd26c7b7108b8fb83837cc6f0381807c4f",
 								"blockNumber": "0x64",
-								"from": "0x0000000000000000000000000000000000000000",
+								"from": "Z0000000000000000000000000000000000000000",
 								"gas": "0x457",
 								"gasPrice": "0x2b67",
 								"maxFeePerGas": "0x2b67",
@@ -827,7 +827,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 								"hash": "0x0db1a64132de5af29fc17acb90abae123434a5d2fce523da34209b6eb6b64ba8",
 								"input": "0x111111",
 								"nonce": "0x3",
-								"to": "0x0000000000000000000000000000000000000011",
+								"to": "Z0000000000000000000000000000000000000011",
 								"transactionIndex": "0x2",
 								"value": "0x6f",
 								"type": "0x2",
@@ -840,7 +840,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 								"accessList": [],
 								"blockHash": "0x36b2055dd577db48cb2625b7448e3afd26c7b7108b8fb83837cc6f0381807c4f",
 								"blockNumber": "0x64",
-								"from": "0x0000000000000000000000000000000000000000",
+								"from": "Z0000000000000000000000000000000000000000",
 								"gas": "0x457",
 								"gasPrice": "0x2b67",
 								"hash": "0x9733fac71942cf3e96c4b519a884cb87437711fa94e35af7de48d99ef096f134",
@@ -848,7 +848,7 @@ func TestRPCMarshalBlock(t *testing.T) {
 								"maxFeePerGas": "0x2b67",
 								"maxPriorityFeePerGas": "0x0",
 								"nonce": "0x4",
-								"to": "0x0000000000000000000000000000000000000011",
+								"to": "Z0000000000000000000000000000000000000011",
 								"transactionIndex": "0x3",
 								"value": "0x6f",
 								"type": "0x2",
@@ -1130,12 +1130,12 @@ func TestRPCGetBlockOrHeader(t *testing.T) {
 func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Hash) {
 	config := *params.TestChainConfig
 	var (
-		acc1Key, _                = pqcrypto.HexToDilithium("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-		acc2Key, _                = pqcrypto.HexToDilithium("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
-		acc1Addr                  = acc1Key.GetAddress()
-		acc2Addr   common.Address = acc2Key.GetAddress()
-		contract                  = common.HexToAddress("0000000000000000000000000000000000031ec7")
-		genesis                   = &core.Genesis{
+		acc1Key, _                 = pqcrypto.HexToDilithium("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		acc2Key, _                 = pqcrypto.HexToDilithium("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee")
+		acc1Addr                   = acc1Key.GetAddress()
+		acc2Addr    common.Address = acc2Key.GetAddress()
+		contract, _                = common.NewAddressFromString("Z0000000000000000000000000000000000031ec7")
+		genesis                    = &core.Genesis{
 			Config: &config,
 			Alloc: core.GenesisAlloc{
 				acc1Addr: {Balance: big.NewInt(params.Ether)},
@@ -1172,12 +1172,12 @@ func setupReceiptBackend(t *testing.T, genBlocks int) (*testBackend, []common.Ha
 		case 2:
 			// with logs
 			// transfer(address to, uint256 value)
-			data := fmt.Sprintf("0xa9059cbb%s%s", common.HexToHash(common.BigToAddress(big.NewInt(int64(i + 1))).Hex()).String()[2:], common.BytesToHash([]byte{byte(i + 11)}).String()[2:])
+			data := fmt.Sprintf("0xa9059cbb%s%s", common.HexToHash(common.BigToHash(big.NewInt(int64(i + 1))).Hex()).String()[2:], common.BytesToHash([]byte{byte(i + 11)}).String()[2:])
 			tx, err = types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: uint64(i), To: &contract, Gas: 60000, GasFeeCap: b.BaseFee(), Data: common.FromHex(data)}), signer, acc1Key)
 		case 3:
 			// dynamic fee with logs
 			// transfer(address to, uint256 value)
-			data := fmt.Sprintf("0xa9059cbb%s%s", common.HexToHash(common.BigToAddress(big.NewInt(int64(i + 1))).Hex()).String()[2:], common.BytesToHash([]byte{byte(i + 11)}).String()[2:])
+			data := fmt.Sprintf("0xa9059cbb%s%s", common.HexToHash(common.BigToHash(big.NewInt(int64(i + 1))).Hex()).String()[2:], common.BytesToHash([]byte{byte(i + 11)}).String()[2:])
 			fee := big.NewInt(500)
 			fee.Add(fee, b.BaseFee())
 			tx, err = types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: uint64(i), To: &contract, Gas: 60000, Value: big.NewInt(1), GasTipCap: big.NewInt(500), GasFeeCap: fee, Data: common.FromHex(data)}), signer, acc1Key)

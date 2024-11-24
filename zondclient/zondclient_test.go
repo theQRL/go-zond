@@ -55,8 +55,9 @@ var (
 
 func TestToFilterArg(t *testing.T) {
 	blockHashErr := errors.New("cannot specify both BlockHash and FromBlock/ToBlock")
+	address, _ := common.NewAddressFromString("ZD36722ADeC3EdCB29c8e7b5a47f352D701393462")
 	addresses := []common.Address{
-		common.HexToAddress("0xD36722ADeC3EdCB29c8e7b5a47f352D701393462"),
+		address,
 	}
 	blockHash := common.HexToHash(
 		"0xeb94bb7d78b73657a9d7a99792413f50c0a45c51fc62bdcb08a53f18e9a2b4eb",

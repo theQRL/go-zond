@@ -37,7 +37,7 @@ import (
 
 const (
 	testInstance = "console-tester"
-	testAddress  = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
+	testAddress  = "Z8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 )
 
 // hookedPrompter implements UserPrompter to simulate use input via channels.
@@ -93,10 +93,11 @@ func newTester(t *testing.T, confOverride func(*zondconfig.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
+	feeRecipient, _ := common.NewAddressFromString(testAddress)
 	zondConf := &zondconfig.Config{
 		Genesis: core.DeveloperGenesisBlock(11_500_000, common.Address{}),
 		Miner: miner.Config{
-			PendingFeeRecipient: common.HexToAddress(testAddress),
+			PendingFeeRecipient: feeRecipient,
 		},
 	}
 	if confOverride != nil {

@@ -4,12 +4,12 @@ This test contains testcases for EIP-2930, which uses transactions with access l
 
 ### Prestate
 
-The alloc portion contains one contract (`0x000000000000000000000000000000000000aaaa`), containing the 
+The alloc portion contains one contract (`Z000000000000000000000000000000000000aaaa`), containing the 
 following code: `0x5854505854`: `PC ;SLOAD; POP; PC; SLOAD`.
 
 Essentially, this contract does `SLOAD(0)` and `SLOAD(3)`.
 
-The alloc also contains some funds on `0x204cc644e26bdf879db422658edee62e302c3da8`. 
+The alloc also contains some funds on `Z204cc644e26bdf879db422658edee62e302c3da8`. 
 
 ## Transactions
 

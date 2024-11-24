@@ -120,8 +120,8 @@ func TestPassingBlockNumber(t *testing.T) {
 			codeAtBytes: []byte{1, 2, 3},
 		},
 	}
-
-	bc := bind.NewBoundContract(common.HexToAddress("0x0"), abi.ABI{
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	bc := bind.NewBoundContract(contractAddr, abi.ABI{
 		Methods: map[string]abi.Method{
 			"something": {
 				Name:    "something",
@@ -175,11 +175,13 @@ func TestUnpackIndexedStringTyLogIntoMap(t *testing.T) {
 
 	abiString := `[{"anonymous":false,"inputs":[{"indexed":true,"name":"name","type":"string"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"memo","type":"bytes"}],"name":"received","type":"event"}]`
 	parsedAbi, _ := abi.JSON(strings.NewReader(abiString))
-	bc := bind.NewBoundContract(common.HexToAddress("0x0"), parsedAbi, nil, nil, nil)
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	bc := bind.NewBoundContract(contractAddr, parsedAbi, nil, nil, nil)
+	sender, _ := common.NewAddressFromString("Z376c47978271565f56DEB45495afa69E59c16Ab2")
 
 	expectedReceivedMap := map[string]interface{}{
 		"name":   hash,
-		"sender": common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
+		"sender": sender,
 		"amount": big.NewInt(1),
 		"memo":   []byte{88},
 	}
@@ -191,7 +193,8 @@ func TestUnpackAnonymousLogIntoMap(t *testing.T) {
 
 	abiString := `[{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"}],"name":"received","type":"event"}]`
 	parsedAbi, _ := abi.JSON(strings.NewReader(abiString))
-	bc := bind.NewBoundContract(common.HexToAddress("0x0"), parsedAbi, nil, nil, nil)
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	bc := bind.NewBoundContract(contractAddr, parsedAbi, nil, nil, nil)
 
 	var received map[string]interface{}
 	err := bc.UnpackLogIntoMap(received, "received", mockLog)
@@ -217,11 +220,13 @@ func TestUnpackIndexedSliceTyLogIntoMap(t *testing.T) {
 
 	abiString := `[{"anonymous":false,"inputs":[{"indexed":true,"name":"names","type":"string[]"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"memo","type":"bytes"}],"name":"received","type":"event"}]`
 	parsedAbi, _ := abi.JSON(strings.NewReader(abiString))
-	bc := bind.NewBoundContract(common.HexToAddress("0x0"), parsedAbi, nil, nil, nil)
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	bc := bind.NewBoundContract(contractAddr, parsedAbi, nil, nil, nil)
 
+	sender, _ := common.NewAddressFromString("Z376c47978271565f56DEB45495afa69E59c16Ab2")
 	expectedReceivedMap := map[string]interface{}{
 		"names":  hash,
-		"sender": common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
+		"sender": sender,
 		"amount": big.NewInt(1),
 		"memo":   []byte{88},
 	}
@@ -229,7 +234,9 @@ func TestUnpackIndexedSliceTyLogIntoMap(t *testing.T) {
 }
 
 func TestUnpackIndexedArrayTyLogIntoMap(t *testing.T) {
-	arrBytes, err := rlp.EncodeToBytes([2]common.Address{common.HexToAddress("0x0"), common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")})
+	address1, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	address2, _ := common.NewAddressFromString("Z376c47978271565f56DEB45495afa69E59c16Ab2")
+	arrBytes, err := rlp.EncodeToBytes([2]common.Address{address1, address2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,11 +249,13 @@ func TestUnpackIndexedArrayTyLogIntoMap(t *testing.T) {
 
 	abiString := `[{"anonymous":false,"inputs":[{"indexed":true,"name":"addresses","type":"address[2]"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"memo","type":"bytes"}],"name":"received","type":"event"}]`
 	parsedAbi, _ := abi.JSON(strings.NewReader(abiString))
-	bc := bind.NewBoundContract(common.HexToAddress("0x0"), parsedAbi, nil, nil, nil)
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	bc := bind.NewBoundContract(contractAddr, parsedAbi, nil, nil, nil)
 
+	sender, _ := common.NewAddressFromString("Z376c47978271565f56DEB45495afa69E59c16Ab2")
 	expectedReceivedMap := map[string]interface{}{
 		"addresses": hash,
-		"sender":    common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
+		"sender":    sender,
 		"amount":    big.NewInt(1),
 		"memo":      []byte{88},
 	}
@@ -254,7 +263,7 @@ func TestUnpackIndexedArrayTyLogIntoMap(t *testing.T) {
 }
 
 func TestUnpackIndexedFuncTyLogIntoMap(t *testing.T) {
-	mockAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
+	mockAddress, _ := common.NewAddressFromString("Z376c47978271565f56DEB45495afa69E59c16Ab2")
 	addrBytes := mockAddress.Bytes()
 	hash := crypto.Keccak256Hash([]byte("mockFunction(address,uint)"))
 	functionSelector := hash[:4]
@@ -268,11 +277,13 @@ func TestUnpackIndexedFuncTyLogIntoMap(t *testing.T) {
 	mockLog := newMockLog(topics, common.HexToHash("0x5c698f13940a2153440c6d19660878bc90219d9298fdcf37365aa8d88d40fc42"))
 	abiString := `[{"anonymous":false,"inputs":[{"indexed":true,"name":"function","type":"function"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"memo","type":"bytes"}],"name":"received","type":"event"}]`
 	parsedAbi, _ := abi.JSON(strings.NewReader(abiString))
-	bc := bind.NewBoundContract(common.HexToAddress("0x0"), parsedAbi, nil, nil, nil)
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	bc := bind.NewBoundContract(contractAddr, parsedAbi, nil, nil, nil)
 
+	sender, _ := common.NewAddressFromString("Z376c47978271565f56DEB45495afa69E59c16Ab2")
 	expectedReceivedMap := map[string]interface{}{
 		"function": functionTy,
-		"sender":   common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
+		"sender":   sender,
 		"amount":   big.NewInt(1),
 		"memo":     []byte{88},
 	}
@@ -290,11 +301,13 @@ func TestUnpackIndexedBytesTyLogIntoMap(t *testing.T) {
 
 	abiString := `[{"anonymous":false,"inputs":[{"indexed":true,"name":"content","type":"bytes"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"amount","type":"uint256"},{"indexed":false,"name":"memo","type":"bytes"}],"name":"received","type":"event"}]`
 	parsedAbi, _ := abi.JSON(strings.NewReader(abiString))
-	bc := bind.NewBoundContract(common.HexToAddress("0x0"), parsedAbi, nil, nil, nil)
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
+	bc := bind.NewBoundContract(contractAddr, parsedAbi, nil, nil, nil)
 
+	sender, _ := common.NewAddressFromString("Z376c47978271565f56DEB45495afa69E59c16Ab2")
 	expectedReceivedMap := map[string]interface{}{
 		"content": hash,
-		"sender":  common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
+		"sender":  sender,
 		"amount":  big.NewInt(1),
 		"memo":    []byte{88},
 	}
@@ -344,8 +357,9 @@ func unpackAndCheck(t *testing.T, bc *bind.BoundContract, expected map[string]in
 }
 
 func newMockLog(topics []common.Hash, txHash common.Hash) types.Log {
+	address, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
 	return types.Log{
-		Address:     common.HexToAddress("0x0"),
+		Address:     address,
 		Topics:      topics,
 		Data:        hexutil.MustDecode(hexData),
 		BlockNumber: uint64(26),
@@ -358,6 +372,7 @@ func newMockLog(topics []common.Hash, txHash common.Hash) types.Log {
 }
 
 func TestCall(t *testing.T) {
+	contractAddr, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000000")
 	var method, methodWithArg = "something", "somethingArrrrg"
 	tests := []struct {
 		name, method string
@@ -458,7 +473,7 @@ func TestCall(t *testing.T) {
 		wantErr: true,
 	}}
 	for _, test := range tests {
-		bc := bind.NewBoundContract(common.HexToAddress("0x0"), abi.ABI{
+		bc := bind.NewBoundContract(contractAddr, abi.ABI{
 			Methods: map[string]abi.Method{
 				method: {
 					Name:    method,

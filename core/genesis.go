@@ -100,7 +100,7 @@ func ReadGenesis(db zonddb.Database) (*Genesis, error) {
 type GenesisAlloc map[common.Address]GenesisAccount
 
 func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
-	m := make(map[common.UnprefixedAddress]GenesisAccount)
+	m := make(map[common.Address]GenesisAccount)
 	if err := json.Unmarshal(data, &m); err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ type genesisSpecMarshaling struct {
 	GasLimit  math.HexOrDecimal64
 	GasUsed   math.HexOrDecimal64
 	Number    math.HexOrDecimal64
-	Alloc     map[common.UnprefixedAddress]GenesisAccount
+	Alloc     map[common.Address]GenesisAccount
 	BaseFee   *math.HexOrDecimal256
 }
 

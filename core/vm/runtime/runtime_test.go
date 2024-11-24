@@ -101,7 +101,7 @@ func TestExecute(t *testing.T) {
 
 func TestCall(t *testing.T) {
 	state, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	address := common.HexToAddress("0x0a")
+	address, _ := common.NewAddressFromString("Z000000000000000000000000000000000000000a")
 	state.SetCode(address, []byte{
 		byte(vm.PUSH1), 10,
 		byte(vm.PUSH1), 0,
@@ -201,8 +201,9 @@ func BenchmarkEVM_CREATE2_1200(bench *testing.B) {
 }
 
 func fakeHeader(n uint64, parentHash common.Hash) *types.Header {
+	coinbase, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
 	header := types.Header{
-		Coinbase:   common.HexToAddress("0x00000000000000000000000000000000deadbeef"),
+		Coinbase:   coinbase,
 		Number:     big.NewInt(int64(n)),
 		ParentHash: parentHash,
 		Time:       1000,
@@ -330,12 +331,12 @@ func benchmarkNonModifyingCode(gas uint64, code []byte, name string, tracerCode 
 		sender      = vm.AccountRef(cfg.Origin)
 	)
 	cfg.State.CreateAccount(destination)
-	eoa := common.HexToAddress("E0")
+	eoa, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000E0")
 	{
 		cfg.State.CreateAccount(eoa)
 		cfg.State.SetNonce(eoa, 100)
 	}
-	reverting := common.HexToAddress("EE")
+	reverting, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000EE")
 	{
 		cfg.State.CreateAccount(reverting)
 		cfg.State.SetCode(reverting, []byte{
@@ -755,15 +756,19 @@ func TestRuntimeJSTracer(t *testing.T) {
 		byte(vm.PUSH1), 0,
 		byte(vm.RETURN),
 	}
-	main := common.HexToAddress("0xaa")
+	main, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000aa")
+	address0, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000bb")
+	address1, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000cc")
+	address2, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000dd")
+	address3, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000ee")
 	for i, jsTracer := range jsTracers {
 		for j, tc := range tests {
 			statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 			statedb.SetCode(main, tc.code)
-			statedb.SetCode(common.HexToAddress("0xbb"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xcc"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xdd"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xee"), calleeCode)
+			statedb.SetCode(address0, calleeCode)
+			statedb.SetCode(address1, calleeCode)
+			statedb.SetCode(address2, calleeCode)
+			statedb.SetCode(address3, calleeCode)
 
 			tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 			if err != nil {
