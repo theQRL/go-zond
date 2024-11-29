@@ -71,7 +71,7 @@ var (
 		"COPYING",
 		executablePath("abigen"),
 		executablePath("bootnode"),
-		executablePath("evm"),
+		executablePath("zvm"),
 		executablePath("gzond"),
 		executablePath("rlpdump"),
 		executablePath("clef"),
@@ -88,8 +88,8 @@ var (
 			Description: "Zond bootnode.",
 		},
 		{
-			BinaryName:  "evm",
-			Description: "Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
+			BinaryName:  "zvm",
+			Description: "Developer utility version of the ZVM (Zond Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode.",
 		},
 		{
 			BinaryName:  "gzond",

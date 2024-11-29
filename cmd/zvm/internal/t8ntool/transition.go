@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	ErrorEVM              = 2
+	ErrorZVM              = 2
 	ErrorConfig           = 3
 	ErrorMissingBlockhash = 4
 
@@ -91,16 +91,16 @@ func Transition(ctx *cli.Context) error {
 
 	var (
 		err    error
-		tracer vm.EVMLogger
+		tracer vm.ZVMLogger
 	)
-	var getTracer func(txIndex int, txHash common.Hash) (vm.EVMLogger, error)
+	var getTracer func(txIndex int, txHash common.Hash) (vm.ZVMLogger, error)
 
 	baseDir, err := createBasedir(ctx)
 	if err != nil {
 		return NewError(ErrorIO, fmt.Errorf("failed creating output basedir: %v", err))
 	}
 	if ctx.Bool(TraceFlag.Name) {
-		// Configure the EVM logger
+		// Configure the ZVM logger
 		logConfig := &logger.Config{
 			DisableStack:     ctx.Bool(TraceDisableStackFlag.Name),
 			EnableMemory:     ctx.Bool(TraceEnableMemoryFlag.Name),
@@ -114,7 +114,7 @@ func Transition(ctx *cli.Context) error {
 				prevFile.Close()
 			}
 		}()
-		getTracer = func(txIndex int, txHash common.Hash) (vm.EVMLogger, error) {
+		getTracer = func(txIndex int, txHash common.Hash) (vm.ZVMLogger, error) {
 			if prevFile != nil {
 				prevFile.Close()
 			}
@@ -126,7 +126,7 @@ func Transition(ctx *cli.Context) error {
 			return logger.NewJSONLogger(logConfig, traceFile), nil
 		}
 	} else {
-		getTracer = func(txIndex int, txHash common.Hash) (tracer vm.EVMLogger, err error) {
+		getTracer = func(txIndex int, txHash common.Hash) (tracer vm.ZVMLogger, err error) {
 			return nil, nil
 		}
 	}

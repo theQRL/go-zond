@@ -32,7 +32,7 @@ var (
 	errSideChainReceipts = errors.New("side blocks can't be accepted as ancient chain data")
 )
 
-// List of evm-call-message pre-checking errors. All state transition messages will
+// List of zvm-call-message pre-checking errors. All state transition messages will
 // be pre-checked before execution. If any invalidation detected, the corresponding
 // error should be returned which is defined here.
 //

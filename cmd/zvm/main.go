@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
-// evm executes EVM code snippets.
+// zvm executes ZVM code snippets.
 package main
 
 import (
@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/theQRL/go-zond/cmd/evm/internal/t8ntool"
+	"github.com/theQRL/go-zond/cmd/zvm/internal/t8ntool"
 	"github.com/theQRL/go-zond/internal/flags"
 	"github.com/urfave/cli/v2"
 )
@@ -46,25 +46,25 @@ var (
 	}
 	CodeFlag = &cli.StringFlag{
 		Name:  "code",
-		Usage: "EVM code",
+		Usage: "ZVM code",
 	}
 	CodeFileFlag = &cli.StringFlag{
 		Name:  "codefile",
-		Usage: "File containing EVM code. If '-' is specified, code is read from stdin ",
+		Usage: "File containing ZVM code. If '-' is specified, code is read from stdin ",
 	}
 	GasFlag = &cli.Uint64Flag{
 		Name:  "gas",
-		Usage: "gas limit for the evm",
+		Usage: "gas limit for the zvm",
 		Value: 10000000000,
 	}
 	PriceFlag = &flags.BigFlag{
 		Name:  "price",
-		Usage: "price set for the evm",
+		Usage: "price set for the zvm",
 		Value: new(big.Int),
 	}
 	ValueFlag = &flags.BigFlag{
 		Name:  "value",
-		Usage: "value set for the evm",
+		Usage: "value set for the zvm",
 		Value: new(big.Int),
 	}
 	DumpFlag = &cli.BoolFlag{
@@ -73,11 +73,11 @@ var (
 	}
 	InputFlag = &cli.StringFlag{
 		Name:  "input",
-		Usage: "input for the EVM",
+		Usage: "input for the ZVM",
 	}
 	InputFileFlag = &cli.StringFlag{
 		Name:  "inputfile",
-		Usage: "file containing input for the EVM",
+		Usage: "file containing input for the ZVM",
 	}
 	VerbosityFlag = &cli.IntFlag{
 		Name:  "verbosity",
@@ -178,7 +178,7 @@ var blockBuilderCommand = &cli.Command{
 	},
 }
 
-var app = flags.NewApp("the evm command line interface")
+var app = flags.NewApp("the zvm command line interface")
 
 func init() {
 	app.Flags = []cli.Flag{

@@ -602,7 +602,7 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 // CreateAccount explicitly creates a state object. If a state object with the address
 // already exists the balance is carried over to the new account.
 //
-// CreateAccount is called during the EVM CREATE operation. The situation might arise that
+// CreateAccount is called during the ZVM CREATE operation. The situation might arise that
 // a contract does the following:
 //
 //  1. sends funds to sha(account ++ (nonce + 1))
@@ -863,7 +863,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 }
 
 // SetTxContext sets the current transaction hash and index which are
-// used when the EVM emits new state logs. It should be invoked before
+// used when the ZVM emits new state logs. It should be invoked before
 // transaction execution.
 func (s *StateDB) SetTxContext(thash common.Hash, ti int) {
 	s.thash = thash
@@ -1249,7 +1249,7 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 	al.AddAddress(sender)
 	if dst != nil {
 		al.AddAddress(*dst)
-		// If it's a create-tx, the destination will be added inside evm.create
+		// If it's a create-tx, the destination will be added inside zvm.create
 	}
 	for _, addr := range precompiles {
 		al.AddAddress(addr)

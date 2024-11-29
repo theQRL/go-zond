@@ -267,7 +267,7 @@ func TestEth2NewBlock(t *testing.T) {
 		api    = NewConsensusAPI(zondservice)
 		parent = blocks[len(blocks)-1]
 
-		// This EVM code generates a log when the contract is created.
+		// This ZVM code generates a log when the contract is created.
 		logCode = common.Hex2Bytes("60606040525b7f24ec1d3ff24c2f6ff210738839dbc339cd45a5294d85c79361016243157aae7b60405180905060405180910390a15b600a8060416000396000f360606040526008565b00")
 	)
 	// The event channels.
@@ -450,7 +450,7 @@ func TestFullAPI(t *testing.T) {
 	defer n.Close()
 	var (
 		parent = zondservice.BlockChain().CurrentBlock()
-		// This EVM code generates a log when the contract is created.
+		// This ZVM code generates a log when the contract is created.
 		logCode = common.Hex2Bytes("60606040525b7f24ec1d3ff24c2f6ff210738839dbc339cd45a5294d85c79361016243157aae7b60405180905060405180910390a15b600a8060416000396000f360606040526008565b00")
 	)
 
@@ -535,7 +535,7 @@ func TestNewPayloadOnInvalidChain(t *testing.T) {
 		api    = NewConsensusAPI(zondservice)
 		parent = zondservice.BlockChain().CurrentBlock()
 		signer = types.LatestSigner(zondservice.BlockChain().Config())
-		// This EVM code generates a log when the contract is created.
+		// This ZVM code generates a log when the contract is created.
 		logCode = common.Hex2Bytes("60606040525b7f24ec1d3ff24c2f6ff210738839dbc339cd45a5294d85c79361016243157aae7b60405180905060405180910390a15b600a8060416000396000f360606040526008565b00")
 	)
 	for i := 0; i < 10; i++ {
@@ -1109,7 +1109,7 @@ func setupBodies(t *testing.T) (*node.Node, *zond.Zond, []*types.Block) {
 
 	var (
 		parent = zondservice.BlockChain().CurrentBlock()
-		// This EVM code generates a log when the contract is created.
+		// This ZVM code generates a log when the contract is created.
 		logCode = common.Hex2Bytes("60606040525b7f24ec1d3ff24c2f6ff210738839dbc339cd45a5294d85c79361016243157aae7b60405180905060405180910390a15b600a8060416000396000f360606040526008565b00")
 	)
 

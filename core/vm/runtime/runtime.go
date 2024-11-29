@@ -30,7 +30,7 @@ import (
 )
 
 // Config is a basic type specifying certain configuration flags for running
-// the EVM.
+// the ZVM.
 type Config struct {
 	ChainConfig *params.ChainConfig
 	Origin      common.Address
@@ -41,7 +41,7 @@ type Config struct {
 	GasPrice    *big.Int
 	Value       *big.Int
 	Debug       bool
-	EVMConfig   vm.Config
+	ZVMConfig   vm.Config
 	BaseFee     *big.Int
 	Random      *common.Hash
 
@@ -83,7 +83,7 @@ func setDefaults(cfg *Config) {
 }
 
 // Execute executes the code using the input as call data during the execution.
-// It returns the EVM's return value, the new state and an error if it failed.
+// It returns the ZVM's return value, the new state and an error if it failed.
 //
 // Execute sets up an in-memory, temporary, environment for the execution of
 // the given code. It makes sure that it's restored to its original state afterwards.
@@ -119,7 +119,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	return ret, cfg.State, err
 }
 
-// Create executes the code using the EVM create method
+// Create executes the code using the ZVM create method
 func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	if cfg == nil {
 		cfg = new(Config)
@@ -148,7 +148,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 }
 
 // Call executes the code given by the contract's address. It will return the
-// EVM's return value or an error if it failed.
+// ZVM's return value or an error if it failed.
 //
 // Call, unlike Execute, requires a config and also requires the State field to
 // be set.

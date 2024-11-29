@@ -1,4 +1,5 @@
-pragma solidity >=0.4.21 <0.6.0;
+// TODO(now.youtrack.cloud/issue/TGZ-30)
+pragma hyperion >=0.4.21 <0.6.0;
 
 contract Test1 {
   function isSameAddress(address a, address b) public returns(bool){  //Simply add the two arguments and return

@@ -105,7 +105,7 @@ func abigen(c *cli.Context) error {
 	default:
 		utils.Fatalf("Unsupported destination language \"%s\" (--lang)", c.String(langFlag.Name))
 	}
-	// If the entire solidity code was specified, build and bind based on that
+	// If the entire hyperion code was specified, build and bind based on that
 	var (
 		abis    []string
 		bins    []string

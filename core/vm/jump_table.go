@@ -23,8 +23,8 @@ import (
 )
 
 type (
-	executionFunc func(pc *uint64, interpreter *EVMInterpreter, callContext *ScopeContext) ([]byte, error)
-	gasFunc       func(*EVM, *Contract, *Stack, *Memory, uint64) (uint64, error) // last parameter is the requested memory size as a uint64
+	executionFunc func(pc *uint64, interpreter *ZVMInterpreter, callContext *ScopeContext) ([]byte, error)
+	gasFunc       func(*ZVM, *Contract, *Stack, *Memory, uint64) (uint64, error) // last parameter is the requested memory size as a uint64
 	// memorySizeFunc returns the required size, and whether the operation overflowed a uint64
 	memorySizeFunc func(*Stack) (size uint64, overflow bool)
 )
@@ -46,7 +46,7 @@ type operation struct {
 
 var shanghaiInstructionSet = newShanghaiInstructionSet()
 
-// JumpTable contains the EVM opcodes supported at a given fork.
+// JumpTable contains the ZVM opcodes supported at a given fork.
 type JumpTable [256]*operation
 
 func validate(jt JumpTable) JumpTable {

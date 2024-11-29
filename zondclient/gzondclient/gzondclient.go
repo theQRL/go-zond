@@ -154,7 +154,7 @@ func (ec *Client) CallContract(ctx context.Context, msg zond.CallMsg, blockNumbe
 // overrides specifies a map of contract states that should be overwritten before executing
 // the message call.
 //
-// blockOverrides specifies block fields exposed to the EVM that can be overridden for the call.
+// blockOverrides specifies block fields exposed to the ZVM that can be overridden for the call.
 //
 // Please use zondclient.CallContract instead if you don't need the override functionality.
 func (ec *Client) CallContractWithBlockOverrides(ctx context.Context, msg zond.CallMsg, blockNumber *big.Int, overrides *map[common.Address]OverrideAccount, blockOverrides BlockOverrides) ([]byte, error) {

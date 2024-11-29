@@ -171,21 +171,21 @@ func TestEIP2930Signer(t *testing.T) {
 			wantSignErr:    ErrInvalidChainId,
 		},
 		{
-			// evmone example
+			// zvmone example
 			tx:             tx3,
 			signer:         signer1,
 			wantSignerHash: common.HexToHash("00c89f03a2c0fe998bcccb984e0a6ec7c1eeabc6f46657915a402a3247219d28"),
 			wantHash:       common.HexToHash("167da6f024b270d25a7ca05c1bf373c9636517b16a4b5f7a9fb975a668dc00e9"),
 		},
 		{
-			// evmone example
+			// zvmone example
 			tx:             tx4,
 			signer:         signer1,
 			wantSignerHash: common.HexToHash("840f004a0ca908700b48a591f09afb36132e0767109c0485ab94f1daf115d4a8"),
 			wantHash:       common.HexToHash("53cea615852ed646b052395a3349eca21a141a0d1abfaa2fe4af284059162785"),
 		},
 		{
-			// evmone example
+			// zvmone example
 			tx:             tx5,
 			signer:         signer1,
 			wantSignerHash: common.HexToHash("2004db20334ebe7941961d9abd937b952bb688f9a5d58b998b24a8179c8dac6f"),

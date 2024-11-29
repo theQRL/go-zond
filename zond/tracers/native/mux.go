@@ -58,8 +58,8 @@ func newMuxTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, er
 	return &muxTracer{names: names, tracers: objects}, nil
 }
 
-// CaptureStart implements the EVMLogger interface to initialize the tracing operation.
-func (t *muxTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+// CaptureStart implements the ZVMLogger interface to initialize the tracing operation.
+func (t *muxTracer) CaptureStart(env *vm.ZVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	for _, t := range t.tracers {
 		t.CaptureStart(env, from, to, create, input, gas, value)
 	}
@@ -72,28 +72,28 @@ func (t *muxTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	}
 }
 
-// CaptureState implements the EVMLogger interface to trace a single step of VM execution.
+// CaptureState implements the ZVMLogger interface to trace a single step of VM execution.
 func (t *muxTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	for _, t := range t.tracers {
 		t.CaptureState(pc, op, gas, cost, scope, rData, depth, err)
 	}
 }
 
-// CaptureFault implements the EVMLogger interface to trace an execution fault.
+// CaptureFault implements the ZVMLogger interface to trace an execution fault.
 func (t *muxTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 	for _, t := range t.tracers {
 		t.CaptureFault(pc, op, gas, cost, scope, depth, err)
 	}
 }
 
-// CaptureEnter is called when EVM enters a new scope (via call or create).
+// CaptureEnter is called when ZVM enters a new scope (via call or create).
 func (t *muxTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	for _, t := range t.tracers {
 		t.CaptureEnter(typ, from, to, input, gas, value)
 	}
 }
 
-// CaptureExit is called when EVM exits a scope, even if the scope didn't
+// CaptureExit is called when ZVM exits a scope, even if the scope didn't
 // execute any code.
 func (t *muxTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 	for _, t := range t.tracers {

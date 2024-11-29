@@ -58,7 +58,7 @@ func TestStoreCapture(t *testing.T) {
 	var (
 		logger     = NewStructLogger(nil)
 		statedb, _ = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-		env        = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, &dummyStatedb{StateDB: *statedb}, params.TestChainConfig, vm.Config{Tracer: logger})
+		env        = vm.NewZVM(vm.BlockContext{}, vm.TxContext{}, &dummyStatedb{StateDB: *statedb}, params.TestChainConfig, vm.Config{Tracer: logger})
 		contract   = vm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 100000)
 	)
 	statedb.AddAddressToAccessList(contract.Address())

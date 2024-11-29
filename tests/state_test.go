@@ -139,7 +139,7 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	// Test failed, re-run with tracing enabled.
 	t.Error(err)
 	if gasLimit > traceErrorLimit {
-		t.Log("gas limit too high for EVM trace")
+		t.Log("gas limit too high for ZVM trace")
 		return
 	}
 	buf := new(bytes.Buffer)
@@ -151,15 +151,15 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	}
 	w.Flush()
 	if buf.Len() == 0 {
-		t.Log("no EVM operation logs generated")
+		t.Log("no ZVM operation logs generated")
 	} else {
-		t.Log("EVM operation log:\n" + buf.String())
+		t.Log("ZVM operation log:\n" + buf.String())
 	}
-	// t.Logf("EVM output: 0x%x", tracer.Output())
-	// t.Logf("EVM error: %v", tracer.Error())
+	// t.Logf("ZVM output: 0x%x", tracer.Output())
+	// t.Logf("ZVM error: %v", tracer.Error())
 }
 
-func BenchmarkEVM(b *testing.B) {
+func BenchmarkZVM(b *testing.B) {
 	// Walk the directory.
 	dir := benchmarksDir
 	dirinfo, err := os.Stat(dir)
@@ -247,12 +247,12 @@ func runBenchmark(b *testing.B, t *StateTest) {
 				}
 			}
 
-			// Prepare the EVM.
-			txContext := core.NewEVMTxContext(msg)
-			context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
+			// Prepare the ZVM.
+			txContext := core.NewZVMTxContext(msg)
+			context := core.NewZVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 			context.GetHash = vmTestBlockHash
 			context.BaseFee = baseFee
-			evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
+			zvm := vm.NewZVM(context, txContext, statedb, config, vmconfig)
 
 			// Create "contract" for sender to cache code analysis.
 			sender := vm.NewContract(vm.AccountRef(msg.From), vm.AccountRef(msg.From),
@@ -271,7 +271,7 @@ func runBenchmark(b *testing.B, t *StateTest) {
 				start := time.Now()
 
 				// Execute the message.
-				_, leftOverGas, err := evm.Call(sender, *msg.To, msg.Data, msg.GasLimit, msg.Value)
+				_, leftOverGas, err := zvm.Call(sender, *msg.To, msg.Data, msg.GasLimit, msg.Value)
 				if err != nil {
 					b.Error(err)
 					return

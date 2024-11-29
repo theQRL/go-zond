@@ -1099,7 +1099,7 @@ func testLogReorgs(t *testing.T, scheme string) {
 	}
 }
 
-// This EVM code generates a log when the contract is created.
+// This ZVM code generates a log when the contract is created.
 var logCode = common.Hex2Bytes("60606040525b7f24ec1d3ff24c2f6ff210738839dbc339cd45a5294d85c79361016243157aae7b60405180905060405180910390a15b600a8060416000396000f360606040526008565b00")
 
 // This test checks that log events and RemovedLogsEvent are sent

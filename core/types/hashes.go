@@ -26,7 +26,7 @@ var (
 	// EmptyRootHash is the known root hash of an empty trie.
 	EmptyRootHash = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 
-	// EmptyCodeHash is the known hash of the empty EVM bytecode.
+	// EmptyCodeHash is the known hash of the empty ZVM bytecode.
 	EmptyCodeHash = crypto.Keccak256Hash(nil) // c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
 
 	// EmptyTxsHash is the known hash of the empty transaction set.

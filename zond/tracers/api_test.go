@@ -171,12 +171,12 @@ func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block
 	signer := types.MakeSigner(b.chainConfig)
 	for idx, tx := range block.Transactions() {
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
-		txContext := core.NewEVMTxContext(msg)
-		context := core.NewEVMBlockContext(block.Header(), b.chain, nil)
+		txContext := core.NewZVMTxContext(msg)
+		context := core.NewZVMBlockContext(block.Header(), b.chain, nil)
 		if idx == txIndex {
 			return msg, context, statedb, release, nil
 		}
-		vmenv := vm.NewEVM(context, txContext, statedb, b.chainConfig, vm.Config{})
+		vmenv := vm.NewZVM(context, txContext, statedb, b.chainConfig, vm.Config{})
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
@@ -557,8 +557,8 @@ func TestTracingWithOverrides(t *testing.T) {
 		// Successful simple contract call
 		//
 		// // SPDX-License-Identifier: GPL-3.0
-		//
-		//  pragma solidity >=0.7.0 <0.8.0;
+		// // TODO(now.youtrack.cloud/issue/TGZ-30)
+		//  pragma hyperion >=0.7.0 <0.8.0;
 		//
 		//  /**
 		//   * @title Storage
@@ -622,7 +622,8 @@ func TestTracingWithOverrides(t *testing.T) {
 			want: `{"gas":72668,"failed":false,"returnValue":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}`,
 		},
 		/*
-			pragma solidity =0.8.12;
+			// TODO(now.youtrack.cloud/issue/TGZ-30)
+			pragma hyperion =0.8.12;
 
 			contract Test {
 			    uint private x;

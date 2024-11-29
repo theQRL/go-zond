@@ -58,7 +58,7 @@ var Defaults = Config{
 	Miner:              miner.DefaultConfig,
 	TxPool:             legacypool.DefaultConfig,
 	RPCGasCap:          50000000,
-	RPCEVMTimeout:      5 * time.Second,
+	RPCZVMTimeout:      5 * time.Second,
 	GPO:                FullNodeGPO,
 	RPCTxFeeCap:        1, // 1 ether
 }
@@ -127,11 +127,11 @@ type Config struct {
 	// Miscellaneous options
 	DocRoot string `toml:"-"`
 
-	// RPCGasCap is the global gas cap for eth-call variants.
+	// RPCGasCap is the global gas cap for zond-call variants.
 	RPCGasCap uint64
 
-	// RPCEVMTimeout is the global timeout for eth-call.
-	RPCEVMTimeout time.Duration
+	// RPCZVMTimeout is the global timeout for zond-call.
+	RPCZVMTimeout time.Duration
 
 	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
 	// send-transaction variants. The unit is ether.

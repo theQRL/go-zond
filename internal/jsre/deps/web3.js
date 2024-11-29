@@ -515,10 +515,10 @@ module.exports=[
 
 },{}],4:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
 /**
- * SolidityTypeAddress is a prototype that represents address type
+ * HyperionTypeAddress is a prototype that represents address type
  * It matches:
  * address
  * address[]
@@ -527,26 +527,26 @@ var SolidityType = require('./type');
  * address[3][]
  * address[][6][], ...
  */
-var SolidityTypeAddress = function () {
+var HyperionTypeAddress = function () {
     this._inputFormatter = f.formatInputInt;
     this._outputFormatter = f.formatOutputAddress;
 };
 
-SolidityTypeAddress.prototype = new SolidityType({});
-SolidityTypeAddress.prototype.constructor = SolidityTypeAddress;
+HyperionTypeAddress.prototype = new HyperionType({});
+HyperionTypeAddress.prototype.constructor = HyperionTypeAddress;
 
-SolidityTypeAddress.prototype.isType = function (name) {
+HyperionTypeAddress.prototype.isType = function (name) {
     return !!name.match(/address(\[([0-9]*)\])?/);
 };
 
-module.exports = SolidityTypeAddress;
+module.exports = HyperionTypeAddress;
 
 },{"./formatters":9,"./type":14}],5:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
 /**
- * SolidityTypeBool is a prototype that represents bool type
+ * HyperionTypeBool is a prototype that represents bool type
  * It matches:
  * bool
  * bool[]
@@ -555,26 +555,26 @@ var SolidityType = require('./type');
  * bool[3][]
  * bool[][6][], ...
  */
-var SolidityTypeBool = function () {
+var HyperionTypeBool = function () {
     this._inputFormatter = f.formatInputBool;
     this._outputFormatter = f.formatOutputBool;
 };
 
-SolidityTypeBool.prototype = new SolidityType({});
-SolidityTypeBool.prototype.constructor = SolidityTypeBool;
+HyperionTypeBool.prototype = new HyperionType({});
+HyperionTypeBool.prototype.constructor = HyperionTypeBool;
 
-SolidityTypeBool.prototype.isType = function (name) {
+HyperionTypeBool.prototype.isType = function (name) {
     return !!name.match(/^bool(\[([0-9]*)\])*$/);
 };
 
-module.exports = SolidityTypeBool;
+module.exports = HyperionTypeBool;
 
 },{"./formatters":9,"./type":14}],6:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
 /**
- * SolidityTypeBytes is a prototype that represents the bytes type.
+ * HyperionTypeBytes is a prototype that represents the bytes type.
  * It matches:
  * bytes
  * bytes[]
@@ -586,19 +586,19 @@ var SolidityType = require('./type');
  * bytes8[4]
  * bytes[3][]
  */
-var SolidityTypeBytes = function () {
+var HyperionTypeBytes = function () {
     this._inputFormatter = f.formatInputBytes;
     this._outputFormatter = f.formatOutputBytes;
 };
 
-SolidityTypeBytes.prototype = new SolidityType({});
-SolidityTypeBytes.prototype.constructor = SolidityTypeBytes;
+HyperionTypeBytes.prototype = new HyperionType({});
+HyperionTypeBytes.prototype.constructor = HyperionTypeBytes;
 
-SolidityTypeBytes.prototype.isType = function (name) {
+HyperionTypeBytes.prototype.isType = function (name) {
     return !!name.match(/^bytes([0-9]{1,})(\[([0-9]*)\])*$/);
 };
 
-module.exports = SolidityTypeBytes;
+module.exports = HyperionTypeBytes;
 
 },{"./formatters":9,"./type":14}],7:[function(require,module,exports){
 /*
@@ -625,46 +625,46 @@ module.exports = SolidityTypeBytes;
 
 var f = require('./formatters');
 
-var SolidityTypeAddress = require('./address');
-var SolidityTypeBool = require('./bool');
-var SolidityTypeInt = require('./int');
-var SolidityTypeUInt = require('./uint');
-var SolidityTypeDynamicBytes = require('./dynamicbytes');
-var SolidityTypeString = require('./string');
-var SolidityTypeReal = require('./real');
-var SolidityTypeUReal = require('./ureal');
-var SolidityTypeBytes = require('./bytes');
+var HyperionTypeAddress = require('./address');
+var HyperionTypeBool = require('./bool');
+var HyperionTypeInt = require('./int');
+var HyperionTypeUInt = require('./uint');
+var HyperionTypeDynamicBytes = require('./dynamicbytes');
+var HyperionTypeString = require('./string');
+var HyperionTypeReal = require('./real');
+var HyperionTypeUReal = require('./ureal');
+var HyperionTypeBytes = require('./bytes');
 
-var isDynamic = function (solidityType, type) {
-   return solidityType.isDynamicType(type) ||
-          solidityType.isDynamicArray(type);
+var isDynamic = function (hyperionType, type) {
+   return hyperionType.isDynamicType(type) ||
+          hyperionType.isDynamicArray(type);
 };
 
 /**
- * SolidityCoder prototype should be used to encode/decode solidity params of any type
+ * HyperionCoder prototype should be used to encode/decode hyperion params of any type
  */
-var SolidityCoder = function (types) {
+var HyperionCoder = function (types) {
     this._types = types;
 };
 
 /**
- * This method should be used to transform type to SolidityType
+ * This method should be used to transform type to HyperionType
  *
  * @method _requireType
  * @param {String} type
- * @returns {SolidityType}
+ * @returns {HyperionType}
  * @throws {Error} throws if no matching type is found
  */
-SolidityCoder.prototype._requireType = function (type) {
-    var solidityType = this._types.filter(function (t) {
+HyperionCoder.prototype._requireType = function (type) {
+    var hyperionType = this._types.filter(function (t) {
         return t.isType(type);
     })[0];
 
-    if (!solidityType) {
-        throw Error('invalid solidity type!: ' + type);
+    if (!hyperionType) {
+        throw Error('invalid hyperion type!: ' + type);
     }
 
-    return solidityType;
+    return hyperionType;
 };
 
 /**
@@ -675,7 +675,7 @@ SolidityCoder.prototype._requireType = function (type) {
  * @param {Object} plain param
  * @return {String} encoded plain param
  */
-SolidityCoder.prototype.encodeParam = function (type, param) {
+HyperionCoder.prototype.encodeParam = function (type, param) {
     return this.encodeParams([type], [param]);
 };
 
@@ -687,47 +687,47 @@ SolidityCoder.prototype.encodeParam = function (type, param) {
  * @param {Array} params
  * @return {String} encoded list of params
  */
-SolidityCoder.prototype.encodeParams = function (types, params) {
-    var solidityTypes = this.getSolidityTypes(types);
+HyperionCoder.prototype.encodeParams = function (types, params) {
+    var hyperionTypes = this.getHyperionTypes(types);
 
-    var encodeds = solidityTypes.map(function (solidityType, index) {
-        return solidityType.encode(params[index], types[index]);
+    var encodeds = hyperionTypes.map(function (hyperionType, index) {
+        return hyperionType.encode(params[index], types[index]);
     });
 
-    var dynamicOffset = solidityTypes.reduce(function (acc, solidityType, index) {
-        var staticPartLength = solidityType.staticPartLength(types[index]);
+    var dynamicOffset = hyperionTypes.reduce(function (acc, hyperionType, index) {
+        var staticPartLength = hyperionType.staticPartLength(types[index]);
         var roundedStaticPartLength = Math.floor((staticPartLength + 31) / 32) * 32;
 
-        return acc + (isDynamic(solidityTypes[index], types[index]) ?
+        return acc + (isDynamic(hyperionTypes[index], types[index]) ?
             32 :
             roundedStaticPartLength);
     }, 0);
 
-    var result = this.encodeMultiWithOffset(types, solidityTypes, encodeds, dynamicOffset);
+    var result = this.encodeMultiWithOffset(types, hyperionTypes, encodeds, dynamicOffset);
 
     return result;
 };
 
-SolidityCoder.prototype.encodeMultiWithOffset = function (types, solidityTypes, encodeds, dynamicOffset) {
+HyperionCoder.prototype.encodeMultiWithOffset = function (types, hyperionTypes, encodeds, dynamicOffset) {
     var result = "";
     var self = this;
 
     types.forEach(function (type, i) {
-        if (isDynamic(solidityTypes[i], types[i])) {
+        if (isDynamic(hyperionTypes[i], types[i])) {
             result += f.formatInputInt(dynamicOffset).encode();
-            var e = self.encodeWithOffset(types[i], solidityTypes[i], encodeds[i], dynamicOffset);
+            var e = self.encodeWithOffset(types[i], hyperionTypes[i], encodeds[i], dynamicOffset);
             dynamicOffset += e.length / 2;
         } else {
             // don't add length to dynamicOffset. it's already counted
-            result += self.encodeWithOffset(types[i], solidityTypes[i], encodeds[i], dynamicOffset);
+            result += self.encodeWithOffset(types[i], hyperionTypes[i], encodeds[i], dynamicOffset);
         }
 
         // TODO: figure out nested arrays
     });
 
     types.forEach(function (type, i) {
-        if (isDynamic(solidityTypes[i], types[i])) {
-            var e = self.encodeWithOffset(types[i], solidityTypes[i], encodeds[i], dynamicOffset);
+        if (isDynamic(hyperionTypes[i], types[i])) {
+            var e = self.encodeWithOffset(types[i], hyperionTypes[i], encodeds[i], dynamicOffset);
             dynamicOffset += e.length / 2;
             result += e;
         }
@@ -736,18 +736,18 @@ SolidityCoder.prototype.encodeMultiWithOffset = function (types, solidityTypes, 
 };
 
 // TODO: refactor whole encoding!
-SolidityCoder.prototype.encodeWithOffset = function (type, solidityType, encoded, offset) {
+HyperionCoder.prototype.encodeWithOffset = function (type, hyperionType, encoded, offset) {
     var self = this;
-    if (solidityType.isDynamicArray(type)) {
+    if (hyperionType.isDynamicArray(type)) {
         return (function () {
             // offset was already set
-            var nestedName = solidityType.nestedName(type);
-            var nestedStaticPartLength = solidityType.staticPartLength(nestedName);
+            var nestedName = hyperionType.nestedName(type);
+            var nestedStaticPartLength = hyperionType.staticPartLength(nestedName);
             var result = encoded[0];
 
             (function () {
                 var previousLength = 2; // in int
-                if (solidityType.isDynamicArray(nestedName)) {
+                if (hyperionType.isDynamicArray(nestedName)) {
                     for (var i = 1; i < encoded.length; i++) {
                         previousLength += +(encoded[i - 1])[0] || 0;
                         result += f.formatInputInt(offset + i * nestedStaticPartLength + previousLength * 32).encode();
@@ -759,21 +759,21 @@ SolidityCoder.prototype.encodeWithOffset = function (type, solidityType, encoded
             (function () {
                 for (var i = 0; i < encoded.length - 1; i++) {
                     var additionalOffset = result / 2;
-                    result += self.encodeWithOffset(nestedName, solidityType, encoded[i + 1], offset +  additionalOffset);
+                    result += self.encodeWithOffset(nestedName, hyperionType, encoded[i + 1], offset +  additionalOffset);
                 }
             })();
 
             return result;
         })();
 
-    } else if (solidityType.isStaticArray(type)) {
+    } else if (hyperionType.isStaticArray(type)) {
         return (function () {
-            var nestedName = solidityType.nestedName(type);
-            var nestedStaticPartLength = solidityType.staticPartLength(nestedName);
+            var nestedName = hyperionType.nestedName(type);
+            var nestedStaticPartLength = hyperionType.staticPartLength(nestedName);
             var result = "";
 
 
-            if (solidityType.isDynamicArray(nestedName)) {
+            if (hyperionType.isDynamicArray(nestedName)) {
                 (function () {
                     var previousLength = 0; // in int
                     for (var i = 0; i < encoded.length; i++) {
@@ -787,7 +787,7 @@ SolidityCoder.prototype.encodeWithOffset = function (type, solidityType, encoded
             (function () {
                 for (var i = 0; i < encoded.length; i++) {
                     var additionalOffset = result / 2;
-                    result += self.encodeWithOffset(nestedName, solidityType, encoded[i], offset + additionalOffset);
+                    result += self.encodeWithOffset(nestedName, hyperionType, encoded[i], offset + additionalOffset);
                 }
             })();
 
@@ -806,7 +806,7 @@ SolidityCoder.prototype.encodeWithOffset = function (type, solidityType, encoded
  * @param {String} bytes
  * @return {Object} plain param
  */
-SolidityCoder.prototype.decodeParam = function (type, bytes) {
+HyperionCoder.prototype.decodeParam = function (type, bytes) {
     return this.decodeParams([type], bytes)[0];
 };
 
@@ -818,18 +818,18 @@ SolidityCoder.prototype.decodeParam = function (type, bytes) {
  * @param {String} bytes
  * @return {Array} array of plain params
  */
-SolidityCoder.prototype.decodeParams = function (types, bytes) {
-    var solidityTypes = this.getSolidityTypes(types);
-    var offsets = this.getOffsets(types, solidityTypes);
+HyperionCoder.prototype.decodeParams = function (types, bytes) {
+    var hyperionTypes = this.getHyperionTypes(types);
+    var offsets = this.getOffsets(types, hyperionTypes);
 
-    return solidityTypes.map(function (solidityType, index) {
-        return solidityType.decode(bytes, offsets[index],  types[index], index);
+    return hyperionTypes.map(function (hyperionType, index) {
+        return hyperionType.decode(bytes, offsets[index],  types[index], index);
     });
 };
 
-SolidityCoder.prototype.getOffsets = function (types, solidityTypes) {
-    var lengths =  solidityTypes.map(function (solidityType, index) {
-        return solidityType.staticPartLength(types[index]);
+HyperionCoder.prototype.getOffsets = function (types, hyperionTypes) {
+    var lengths =  hyperionTypes.map(function (hyperionType, index) {
+        return hyperionType.staticPartLength(types[index]);
     });
 
     for (var i = 1; i < lengths.length; i++) {
@@ -839,53 +839,53 @@ SolidityCoder.prototype.getOffsets = function (types, solidityTypes) {
 
     return lengths.map(function (length, index) {
         // remove the current length, so the length is sum of previous elements
-        var staticPartLength = solidityTypes[index].staticPartLength(types[index]);
+        var staticPartLength = hyperionTypes[index].staticPartLength(types[index]);
         return length - staticPartLength;
     });
 };
 
-SolidityCoder.prototype.getSolidityTypes = function (types) {
+HyperionCoder.prototype.getHyperionTypes = function (types) {
     var self = this;
     return types.map(function (type) {
         return self._requireType(type);
     });
 };
 
-var coder = new SolidityCoder([
-    new SolidityTypeAddress(),
-    new SolidityTypeBool(),
-    new SolidityTypeInt(),
-    new SolidityTypeUInt(),
-    new SolidityTypeDynamicBytes(),
-    new SolidityTypeBytes(),
-    new SolidityTypeString(),
-    new SolidityTypeReal(),
-    new SolidityTypeUReal()
+var coder = new HyperionCoder([
+    new HyperionTypeAddress(),
+    new HyperionTypeBool(),
+    new HyperionTypeInt(),
+    new HyperionTypeUInt(),
+    new HyperionTypeDynamicBytes(),
+    new HyperionTypeBytes(),
+    new HyperionTypeString(),
+    new HyperionTypeReal(),
+    new HyperionTypeUReal()
 ]);
 
 module.exports = coder;
 
 },{"./address":4,"./bool":5,"./bytes":6,"./dynamicbytes":8,"./formatters":9,"./int":10,"./real":12,"./string":13,"./uint":15,"./ureal":16}],8:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
-var SolidityTypeDynamicBytes = function () {
+var HyperionTypeDynamicBytes = function () {
     this._inputFormatter = f.formatInputDynamicBytes;
     this._outputFormatter = f.formatOutputDynamicBytes;
 };
 
-SolidityTypeDynamicBytes.prototype = new SolidityType({});
-SolidityTypeDynamicBytes.prototype.constructor = SolidityTypeDynamicBytes;
+HyperionTypeDynamicBytes.prototype = new HyperionType({});
+HyperionTypeDynamicBytes.prototype.constructor = HyperionTypeDynamicBytes;
 
-SolidityTypeDynamicBytes.prototype.isType = function (name) {
+HyperionTypeDynamicBytes.prototype.isType = function (name) {
     return !!name.match(/^bytes(\[([0-9]*)\])*$/);
 };
 
-SolidityTypeDynamicBytes.prototype.isDynamicType = function () {
+HyperionTypeDynamicBytes.prototype.isDynamicType = function () {
     return true;
 };
 
-module.exports = SolidityTypeDynamicBytes;
+module.exports = HyperionTypeDynamicBytes;
 
 },{"./formatters":9,"./type":14}],9:[function(require,module,exports){
 /*
@@ -913,7 +913,7 @@ module.exports = SolidityTypeDynamicBytes;
 var BigNumber = require('bignumber.js');
 var utils = require('../utils/utils');
 var c = require('../utils/config');
-var SolidityParam = require('./param');
+var HyperionParam = require('./param');
 
 
 /**
@@ -923,12 +923,12 @@ var SolidityParam = require('./param');
  *
  * @method formatInputInt
  * @param {String|Number|BigNumber} value that needs to be formatted
- * @returns {SolidityParam}
+ * @returns {HyperionParam}
  */
 var formatInputInt = function (value) {
     BigNumber.config(c.ETH_BIGNUMBER_ROUNDING_MODE);
     var result = utils.padLeft(utils.toTwosComplement(value).toString(16), 64);
-    return new SolidityParam(result);
+    return new HyperionParam(result);
 };
 
 /**
@@ -936,13 +936,13 @@ var formatInputInt = function (value) {
  *
  * @method formatInputBytes
  * @param {String}
- * @returns {SolidityParam}
+ * @returns {HyperionParam}
  */
 var formatInputBytes = function (value) {
     var result = utils.toHex(value).substr(2);
     var l = Math.floor((result.length + 63) / 64);
     result = utils.padRight(result, l * 64);
-    return new SolidityParam(result);
+    return new HyperionParam(result);
 };
 
 /**
@@ -950,14 +950,14 @@ var formatInputBytes = function (value) {
  *
  * @method formatDynamicInputBytes
  * @param {String}
- * @returns {SolidityParam}
+ * @returns {HyperionParam}
  */
 var formatInputDynamicBytes = function (value) {
     var result = utils.toHex(value).substr(2);
     var length = result.length / 2;
     var l = Math.floor((result.length + 63) / 64);
     result = utils.padRight(result, l * 64);
-    return new SolidityParam(formatInputInt(length).value + result);
+    return new HyperionParam(formatInputInt(length).value + result);
 };
 
 /**
@@ -965,14 +965,14 @@ var formatInputDynamicBytes = function (value) {
  *
  * @method formatInputString
  * @param {String}
- * @returns {SolidityParam}
+ * @returns {HyperionParam}
  */
 var formatInputString = function (value) {
     var result = utils.fromUtf8(value).substr(2);
     var length = result.length / 2;
     var l = Math.floor((result.length + 63) / 64);
     result = utils.padRight(result, l * 64);
-    return new SolidityParam(formatInputInt(length).value + result);
+    return new HyperionParam(formatInputInt(length).value + result);
 };
 
 /**
@@ -980,11 +980,11 @@ var formatInputString = function (value) {
  *
  * @method formatInputBool
  * @param {Boolean}
- * @returns {SolidityParam}
+ * @returns {HyperionParam}
  */
 var formatInputBool = function (value) {
     var result = '000000000000000000000000000000000000000000000000000000000000000' + (value ?  '1' : '0');
-    return new SolidityParam(result);
+    return new HyperionParam(result);
 };
 
 /**
@@ -993,7 +993,7 @@ var formatInputBool = function (value) {
  *
  * @method formatInputReal
  * @param {String|Number|BigNumber}
- * @returns {SolidityParam}
+ * @returns {HyperionParam}
  */
 var formatInputReal = function (value) {
     return formatInputInt(new BigNumber(value).times(new BigNumber(2).pow(128)));
@@ -1014,7 +1014,7 @@ var signedIsNegative = function (value) {
  * Formats right-aligned output bytes to int
  *
  * @method formatOutputInt
- * @param {SolidityParam} param
+ * @param {HyperionParam} param
  * @returns {BigNumber} right-aligned output bytes formatted to big number
  */
 var formatOutputInt = function (param) {
@@ -1032,7 +1032,7 @@ var formatOutputInt = function (param) {
  * Formats right-aligned output bytes to uint
  *
  * @method formatOutputUInt
- * @param {SolidityParam}
+ * @param {HyperionParam}
  * @returns {BigNumeber} right-aligned output bytes formatted to uint
  */
 var formatOutputUInt = function (param) {
@@ -1044,7 +1044,7 @@ var formatOutputUInt = function (param) {
  * Formats right-aligned output bytes to real
  *
  * @method formatOutputReal
- * @param {SolidityParam}
+ * @param {HyperionParam}
  * @returns {BigNumber} input bytes formatted to real
  */
 var formatOutputReal = function (param) {
@@ -1055,7 +1055,7 @@ var formatOutputReal = function (param) {
  * Formats right-aligned output bytes to ureal
  *
  * @method formatOutputUReal
- * @param {SolidityParam}
+ * @param {HyperionParam}
  * @returns {BigNumber} input bytes formatted to ureal
  */
 var formatOutputUReal = function (param) {
@@ -1066,7 +1066,7 @@ var formatOutputUReal = function (param) {
  * Should be used to format output bool
  *
  * @method formatOutputBool
- * @param {SolidityParam}
+ * @param {HyperionParam}
  * @returns {Boolean} right-aligned input bytes formatted to bool
  */
 var formatOutputBool = function (param) {
@@ -1077,7 +1077,7 @@ var formatOutputBool = function (param) {
  * Should be used to format output bytes
  *
  * @method formatOutputBytes
- * @param {SolidityParam} left-aligned hex representation of string
+ * @param {HyperionParam} left-aligned hex representation of string
  * @param {String} name type name
  * @returns {String} hex string
  */
@@ -1091,7 +1091,7 @@ var formatOutputBytes = function (param, name) {
  * Should be used to format output bytes
  *
  * @method formatOutputDynamicBytes
- * @param {SolidityParam} left-aligned hex representation of string
+ * @param {HyperionParam} left-aligned hex representation of string
  * @returns {String} hex string
  */
 var formatOutputDynamicBytes = function (param) {
@@ -1103,7 +1103,7 @@ var formatOutputDynamicBytes = function (param) {
  * Should be used to format output string
  *
  * @method formatOutputString
- * @param {SolidityParam} left-aligned hex representation of string
+ * @param {HyperionParam} left-aligned hex representation of string
  * @returns {String} ascii string
  */
 var formatOutputString = function (param) {
@@ -1115,7 +1115,7 @@ var formatOutputString = function (param) {
  * Should be used to format output address
  *
  * @method formatOutputAddress
- * @param {SolidityParam} right-aligned input bytes
+ * @param {HyperionParam} right-aligned input bytes
  * @returns {String} address
  */
 var formatOutputAddress = function (param) {
@@ -1143,10 +1143,10 @@ module.exports = {
 
 },{"../utils/config":18,"../utils/utils":20,"./param":11,"bignumber.js":"bignumber.js"}],10:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
 /**
- * SolidityTypeInt is a prototype that represents int type
+ * HyperionTypeInt is a prototype that represents int type
  * It matches:
  * int
  * int[]
@@ -1161,19 +1161,19 @@ var SolidityType = require('./type');
  * int[3][]
  * int64[][6][], ...
  */
-var SolidityTypeInt = function () {
+var HyperionTypeInt = function () {
     this._inputFormatter = f.formatInputInt;
     this._outputFormatter = f.formatOutputInt;
 };
 
-SolidityTypeInt.prototype = new SolidityType({});
-SolidityTypeInt.prototype.constructor = SolidityTypeInt;
+HyperionTypeInt.prototype = new HyperionType({});
+HyperionTypeInt.prototype.constructor = HyperionTypeInt;
 
-SolidityTypeInt.prototype.isType = function (name) {
+HyperionTypeInt.prototype.isType = function (name) {
     return !!name.match(/^int([0-9]*)?(\[([0-9]*)\])*$/);
 };
 
-module.exports = SolidityTypeInt;
+module.exports = HyperionTypeInt;
 
 },{"./formatters":9,"./type":14}],11:[function(require,module,exports){
 /*
@@ -1201,10 +1201,10 @@ module.exports = SolidityTypeInt;
 var utils = require('../utils/utils');
 
 /**
- * SolidityParam object prototype.
- * Should be used when encoding, decoding solidity bytes
+ * HyperionParam object prototype.
+ * Should be used when encoding, decoding hyperion bytes
  */
-var SolidityParam = function (value, offset) {
+var HyperionParam = function (value, offset) {
     this.value = value || '';
     this.offset = offset; // offset in bytes
 };
@@ -1215,31 +1215,31 @@ var SolidityParam = function (value, offset) {
  * @method dynamicPartLength
  * @returns {Number} length of dynamic part (in bytes)
  */
-SolidityParam.prototype.dynamicPartLength = function () {
+HyperionParam.prototype.dynamicPartLength = function () {
     return this.dynamicPart().length / 2;
 };
 
 /**
- * This method should be used to create copy of solidity param with different offset
+ * This method should be used to create copy of hyperion param with different offset
  *
  * @method withOffset
  * @param {Number} offset length in bytes
- * @returns {SolidityParam} new solidity param with applied offset
+ * @returns {HyperionParam} new hyperion param with applied offset
  */
-SolidityParam.prototype.withOffset = function (offset) {
-    return new SolidityParam(this.value, offset);
+HyperionParam.prototype.withOffset = function (offset) {
+    return new HyperionParam(this.value, offset);
 };
 
 /**
- * This method should be used to combine solidity params together
+ * This method should be used to combine hyperion params together
  * eg. when appending an array
  *
  * @method combine
- * @param {SolidityParam} param with which we should combine
- * @param {SolidityParam} result of combination
+ * @param {HyperionParam} param with which we should combine
+ * @param {HyperionParam} result of combination
  */
-SolidityParam.prototype.combine = function (param) {
-    return new SolidityParam(this.value + param.value); 
+HyperionParam.prototype.combine = function (param) {
+    return new HyperionParam(this.value + param.value); 
 };
 
 /**
@@ -1249,7 +1249,7 @@ SolidityParam.prototype.combine = function (param) {
  * @method isDynamic
  * @returns {Boolean}
  */
-SolidityParam.prototype.isDynamic = function () {
+HyperionParam.prototype.isDynamic = function () {
     return this.offset !== undefined;
 };
 
@@ -1259,7 +1259,7 @@ SolidityParam.prototype.isDynamic = function () {
  * @method offsetAsBytes
  * @returns {String} bytes representation of offset
  */
-SolidityParam.prototype.offsetAsBytes = function () {
+HyperionParam.prototype.offsetAsBytes = function () {
     return !this.isDynamic() ? '' : utils.padLeft(utils.toTwosComplement(this.offset).toString(16), 64);
 };
 
@@ -1269,7 +1269,7 @@ SolidityParam.prototype.offsetAsBytes = function () {
  * @method staticPart
  * @returns {String} offset if it is a dynamic param, otherwise value
  */
-SolidityParam.prototype.staticPart = function () {
+HyperionParam.prototype.staticPart = function () {
     if (!this.isDynamic()) {
         return this.value; 
     } 
@@ -1282,7 +1282,7 @@ SolidityParam.prototype.staticPart = function () {
  * @method dynamicPart
  * @returns {String} returns a value if it is a dynamic param, otherwise empty string
  */
-SolidityParam.prototype.dynamicPart = function () {
+HyperionParam.prototype.dynamicPart = function () {
     return this.isDynamic() ? this.value : '';
 };
 
@@ -1292,7 +1292,7 @@ SolidityParam.prototype.dynamicPart = function () {
  * @method encode
  * @returns {String}
  */
-SolidityParam.prototype.encode = function () {
+HyperionParam.prototype.encode = function () {
     return this.staticPart() + this.dynamicPart();
 };
 
@@ -1300,10 +1300,10 @@ SolidityParam.prototype.encode = function () {
  * This method should be called to encode array of params
  *
  * @method encodeList
- * @param {Array[SolidityParam]} params
+ * @param {Array[HyperionParam]} params
  * @returns {String}
  */
-SolidityParam.encodeList = function (params) {
+HyperionParam.encodeList = function (params) {
     
     // updating offsets
     var totalOffset = params.length * 32;
@@ -1326,15 +1326,15 @@ SolidityParam.encodeList = function (params) {
 
 
 
-module.exports = SolidityParam;
+module.exports = HyperionParam;
 
 
 },{"../utils/utils":20}],12:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
 /**
- * SolidityTypeReal is a prototype that represents real type
+ * HyperionTypeReal is a prototype that represents real type
  * It matches:
  * real
  * real[]
@@ -1349,62 +1349,62 @@ var SolidityType = require('./type');
  * real[3][]
  * real64[][6][], ...
  */
-var SolidityTypeReal = function () {
+var HyperionTypeReal = function () {
     this._inputFormatter = f.formatInputReal;
     this._outputFormatter = f.formatOutputReal;
 };
 
-SolidityTypeReal.prototype = new SolidityType({});
-SolidityTypeReal.prototype.constructor = SolidityTypeReal;
+HyperionTypeReal.prototype = new HyperionType({});
+HyperionTypeReal.prototype.constructor = HyperionTypeReal;
 
-SolidityTypeReal.prototype.isType = function (name) {
+HyperionTypeReal.prototype.isType = function (name) {
     return !!name.match(/real([0-9]*)?(\[([0-9]*)\])?/);
 };
 
-module.exports = SolidityTypeReal;
+module.exports = HyperionTypeReal;
 
 },{"./formatters":9,"./type":14}],13:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
-var SolidityTypeString = function () {
+var HyperionTypeString = function () {
     this._inputFormatter = f.formatInputString;
     this._outputFormatter = f.formatOutputString;
 };
 
-SolidityTypeString.prototype = new SolidityType({});
-SolidityTypeString.prototype.constructor = SolidityTypeString;
+HyperionTypeString.prototype = new HyperionType({});
+HyperionTypeString.prototype.constructor = HyperionTypeString;
 
-SolidityTypeString.prototype.isType = function (name) {
+HyperionTypeString.prototype.isType = function (name) {
     return !!name.match(/^string(\[([0-9]*)\])*$/);
 };
 
-SolidityTypeString.prototype.isDynamicType = function () {
+HyperionTypeString.prototype.isDynamicType = function () {
     return true;
 };
 
-module.exports = SolidityTypeString;
+module.exports = HyperionTypeString;
 
 },{"./formatters":9,"./type":14}],14:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityParam = require('./param');
+var HyperionParam = require('./param');
 
 /**
- * SolidityType prototype is used to encode/decode solidity params of certain type
+ * HyperionType prototype is used to encode/decode hyperion params of certain type
  */
-var SolidityType = function (config) {
+var HyperionType = function (config) {
     this._inputFormatter = config.inputFormatter;
     this._outputFormatter = config.outputFormatter;
 };
 
 /**
- * Should be used to determine if this SolidityType do match given name
+ * Should be used to determine if this HyperionType do match given name
  *
  * @method isType
  * @param {String} name
- * @return {Bool} true if type match this SolidityType, otherwise false
+ * @return {Bool} true if type match this HyperionType, otherwise false
  */
-SolidityType.prototype.isType = function (name) {
+HyperionType.prototype.isType = function (name) {
     throw "this method should be overrwritten for type " + name;
 };
 
@@ -1415,7 +1415,7 @@ SolidityType.prototype.isType = function (name) {
  * @param {String} name
  * @return {Number} length of static part in bytes
  */
-SolidityType.prototype.staticPartLength = function (name) {
+HyperionType.prototype.staticPartLength = function (name) {
     // If name isn't an array then treat it like a single element array.
     return (this.nestedTypes(name) || ['[1]'])
         .map(function (type) {
@@ -1438,7 +1438,7 @@ SolidityType.prototype.staticPartLength = function (name) {
  * @param {String} name
  * @return {Bool} true if the type is dynamic array
  */
-SolidityType.prototype.isDynamicArray = function (name) {
+HyperionType.prototype.isDynamicArray = function (name) {
     var nestedTypes = this.nestedTypes(name);
     return !!nestedTypes && !nestedTypes[nestedTypes.length - 1].match(/[0-9]{1,}/g);
 };
@@ -1453,7 +1453,7 @@ SolidityType.prototype.isDynamicArray = function (name) {
  * @param {String} name
  * @return {Bool} true if the type is static array
  */
-SolidityType.prototype.isStaticArray = function (name) {
+HyperionType.prototype.isStaticArray = function (name) {
     var nestedTypes = this.nestedTypes(name);
     return !!nestedTypes && !!nestedTypes[nestedTypes.length - 1].match(/[0-9]{1,}/g);
 };
@@ -1472,7 +1472,7 @@ SolidityType.prototype.isStaticArray = function (name) {
  * @param {String} name
  * @return {Number} static array length
  */
-SolidityType.prototype.staticArrayLength = function (name) {
+HyperionType.prototype.staticArrayLength = function (name) {
     var nestedTypes = this.nestedTypes(name);
     if (nestedTypes) {
        return parseInt(nestedTypes[nestedTypes.length - 1].match(/[0-9]{1,}/g) || 1);
@@ -1493,7 +1493,7 @@ SolidityType.prototype.staticArrayLength = function (name) {
  * @param {String} name
  * @return {String} nested name
  */
-SolidityType.prototype.nestedName = function (name) {
+HyperionType.prototype.nestedName = function (name) {
     // remove last [] in name
     var nestedTypes = this.nestedTypes(name);
     if (!nestedTypes) {
@@ -1511,7 +1511,7 @@ SolidityType.prototype.nestedName = function (name) {
  * @param {String} name
  * @return {Bool} true if is dynamic, otherwise false
  */
-SolidityType.prototype.isDynamicType = function () {
+HyperionType.prototype.isDynamicType = function () {
     return false;
 };
 
@@ -1526,7 +1526,7 @@ SolidityType.prototype.isDynamicType = function () {
  * @param {String} name
  * @return {Array} array of nested types
  */
-SolidityType.prototype.nestedTypes = function (name) {
+HyperionType.prototype.nestedTypes = function (name) {
     // return list of strings eg. "[]", "[3]", "[]", "[2]"
     return name.match(/(\[[0-9]*\])/g);
 };
@@ -1539,7 +1539,7 @@ SolidityType.prototype.nestedTypes = function (name) {
  * @param {String} name
  * @return {String} encoded value
  */
-SolidityType.prototype.encode = function (value, name) {
+HyperionType.prototype.encode = function (value, name) {
     var self = this;
     if (this.isDynamicArray(name)) {
 
@@ -1585,7 +1585,7 @@ SolidityType.prototype.encode = function (value, name) {
  * @param {String} name type name
  * @returns {Object} decoded value
  */
-SolidityType.prototype.decode = function (bytes, offset, name) {
+HyperionType.prototype.decode = function (bytes, offset, name) {
     var self = this;
 
     if (this.isDynamicArray(name)) {
@@ -1630,24 +1630,24 @@ SolidityType.prototype.decode = function (bytes, offset, name) {
             var dynamicOffset = parseInt('0x' + bytes.substr(offset * 2, 64));      // in bytes
             var length = parseInt('0x' + bytes.substr(dynamicOffset * 2, 64));      // in bytes
             var roundedLength = Math.floor((length + 31) / 32);                     // in int
-            var param = new SolidityParam(bytes.substr(dynamicOffset * 2, ( 1 + roundedLength) * 64), 0);
+            var param = new HyperionParam(bytes.substr(dynamicOffset * 2, ( 1 + roundedLength) * 64), 0);
             return self._outputFormatter(param, name);
         })();
     }
 
     var length = this.staticPartLength(name);
-    var param = new SolidityParam(bytes.substr(offset * 2, length * 2));
+    var param = new HyperionParam(bytes.substr(offset * 2, length * 2));
     return this._outputFormatter(param, name);
 };
 
-module.exports = SolidityType;
+module.exports = HyperionType;
 
 },{"./formatters":9,"./param":11}],15:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
 /**
- * SolidityTypeUInt is a prototype that represents uint type
+ * HyperionTypeUInt is a prototype that represents uint type
  * It matches:
  * uint
  * uint[]
@@ -1662,26 +1662,26 @@ var SolidityType = require('./type');
  * uint[3][]
  * uint64[][6][], ...
  */
-var SolidityTypeUInt = function () {
+var HyperionTypeUInt = function () {
     this._inputFormatter = f.formatInputInt;
     this._outputFormatter = f.formatOutputUInt;
 };
 
-SolidityTypeUInt.prototype = new SolidityType({});
-SolidityTypeUInt.prototype.constructor = SolidityTypeUInt;
+HyperionTypeUInt.prototype = new HyperionType({});
+HyperionTypeUInt.prototype.constructor = HyperionTypeUInt;
 
-SolidityTypeUInt.prototype.isType = function (name) {
+HyperionTypeUInt.prototype.isType = function (name) {
     return !!name.match(/^uint([0-9]*)?(\[([0-9]*)\])*$/);
 };
 
-module.exports = SolidityTypeUInt;
+module.exports = HyperionTypeUInt;
 
 },{"./formatters":9,"./type":14}],16:[function(require,module,exports){
 var f = require('./formatters');
-var SolidityType = require('./type');
+var HyperionType = require('./type');
 
 /**
- * SolidityTypeUReal is a prototype that represents ureal type
+ * HyperionTypeUReal is a prototype that represents ureal type
  * It matches:
  * ureal
  * ureal[]
@@ -1696,19 +1696,19 @@ var SolidityType = require('./type');
  * ureal[3][]
  * ureal64[][6][], ...
  */
-var SolidityTypeUReal = function () {
+var HyperionTypeUReal = function () {
     this._inputFormatter = f.formatInputReal;
     this._outputFormatter = f.formatOutputUReal;
 };
 
-SolidityTypeUReal.prototype = new SolidityType({});
-SolidityTypeUReal.prototype.constructor = SolidityTypeUReal;
+HyperionTypeUReal.prototype = new HyperionType({});
+HyperionTypeUReal.prototype.constructor = HyperionTypeUReal;
 
-SolidityTypeUReal.prototype.isType = function (name) {
+HyperionTypeUReal.prototype.isType = function (name) {
     return !!name.match(/^ureal([0-9]*)?(\[([0-9]*)\])*$/);
 };
 
-module.exports = SolidityTypeUReal;
+module.exports = HyperionTypeUReal;
 
 },{"./formatters":9,"./type":14}],17:[function(require,module,exports){
 'use strict';
@@ -2644,19 +2644,19 @@ module.exports = Web3;
  */
 
 var sha3 = require('../utils/sha3');
-var SolidityEvent = require('./event');
+var HyperionEvent = require('./event');
 var formatters = require('./formatters');
 var utils = require('../utils/utils');
 var Filter = require('./filter');
 var watches = require('./methods/watches');
 
-var AllSolidityEvents = function (requestManager, json, address) {
+var AllHyperionEvents = function (requestManager, json, address) {
     this._requestManager = requestManager;
     this._json = json;
     this._address = address;
 };
 
-AllSolidityEvents.prototype.encode = function (options) {
+AllHyperionEvents.prototype.encode = function (options) {
     options = options || {};
     var result = {};
 
@@ -2671,7 +2671,7 @@ AllSolidityEvents.prototype.encode = function (options) {
     return result;
 };
 
-AllSolidityEvents.prototype.decode = function (data) {
+AllHyperionEvents.prototype.decode = function (data) {
     data.data = data.data || '';
     data.topics = data.topics || [];
 
@@ -2685,11 +2685,11 @@ AllSolidityEvents.prototype.decode = function (data) {
         return data;
     }
 
-    var event = new SolidityEvent(this._requestManager, match, this._address);
+    var event = new HyperionEvent(this._requestManager, match, this._address);
     return event.decode(data);
 };
 
-AllSolidityEvents.prototype.execute = function (options, callback) {
+AllHyperionEvents.prototype.execute = function (options, callback) {
 
     if (utils.isFunction(arguments[arguments.length - 1])) {
         callback = arguments[arguments.length - 1];
@@ -2702,12 +2702,12 @@ AllSolidityEvents.prototype.execute = function (options, callback) {
     return new Filter(o, 'zond', this._requestManager, watches.zond(), formatter, callback);
 };
 
-AllSolidityEvents.prototype.attachToContract = function (contract) {
+AllHyperionEvents.prototype.attachToContract = function (contract) {
     var execute = this.execute.bind(this);
     contract.allEvents = execute;
 };
 
-module.exports = AllSolidityEvents;
+module.exports = AllHyperionEvents;
 
 
 },{"../utils/sha3":19,"../utils/utils":20,"./event":27,"./filter":29,"./formatters":30,"./methods/watches":43}],24:[function(require,module,exports){
@@ -2802,9 +2802,9 @@ module.exports = Batch;
  */
 
 var utils = require('../utils/utils');
-var coder = require('../solidity/coder');
-var SolidityEvent = require('./event');
-var SolidityFunction = require('./function');
+var coder = require('../hyperion/coder');
+var HyperionEvent = require('./event');
+var HyperionFunction = require('./function');
 var AllEvents = require('./allevents');
 
 /**
@@ -2837,7 +2837,7 @@ var addFunctionsToContract = function (contract) {
     contract.abi.filter(function (json) {
         return json.type === 'function';
     }).map(function (json) {
-        return new SolidityFunction(contract._zond, json, contract.address);
+        return new HyperionFunction(contract._zond, json, contract.address);
     }).forEach(function (f) {
         f.attachToContract(contract);
     });
@@ -2859,7 +2859,7 @@ var addEventsToContract = function (contract) {
     All.attachToContract(contract);
 
     events.map(function (json) {
-        return new SolidityEvent(contract._zond._requestManager, json, contract.address);
+        return new HyperionEvent(contract._zond._requestManager, json, contract.address);
     }).forEach(function (e) {
         e.attachToContract(contract);
     });
@@ -3090,7 +3090,7 @@ var Contract = function (zond, abi, address) {
 
 module.exports = ContractFactory;
 
-},{"../solidity/coder":7,"../utils/utils":20,"./allevents":23,"./event":27,"./function":31}],26:[function(require,module,exports){
+},{"../hyperion/coder":7,"../utils/utils":20,"./allevents":23,"./event":27,"./function":31}],26:[function(require,module,exports){
 /*
     This file is part of web3.js.
 
@@ -3114,8 +3114,8 @@ module.exports = ContractFactory;
  */
 
 module.exports = {
-    InvalidNumberOfSolidityArgs: function () {
-        return new Error('Invalid number of arguments to Solidity function');
+    InvalidNumberOfHyperionArgs: function () {
+        return new Error('Invalid number of arguments to Hyperion function');
     },
     InvalidNumberOfRPCParams: function () {
         return new Error('Invalid number of input parameters to RPC method');
@@ -3159,7 +3159,7 @@ module.exports = {
  */
 
 var utils = require('../utils/utils');
-var coder = require('../solidity/coder');
+var coder = require('../hyperion/coder'); // TODO(rgeraldes24)
 var formatters = require('./formatters');
 var sha3 = require('../utils/sha3');
 var Filter = require('./filter');
@@ -3168,7 +3168,7 @@ var watches = require('./methods/watches');
 /**
  * This prototype should be used to create event filters
  */
-var SolidityEvent = function (requestManager, json, address) {
+var HyperionEvent = function (requestManager, json, address) {
     this._requestManager = requestManager;
     this._params = json.inputs;
     this._name = utils.transformToFullName(json);
@@ -3183,7 +3183,7 @@ var SolidityEvent = function (requestManager, json, address) {
  * @param {Bool} decide if returned typed should be indexed
  * @return {Array} array of types
  */
-SolidityEvent.prototype.types = function (indexed) {
+HyperionEvent.prototype.types = function (indexed) {
     return this._params.filter(function (i) {
         return i.indexed === indexed;
     }).map(function (i) {
@@ -3197,7 +3197,7 @@ SolidityEvent.prototype.types = function (indexed) {
  * @method displayName
  * @return {String} event display name
  */
-SolidityEvent.prototype.displayName = function () {
+HyperionEvent.prototype.displayName = function () {
     return utils.extractDisplayName(this._name);
 };
 
@@ -3207,7 +3207,7 @@ SolidityEvent.prototype.displayName = function () {
  * @method typeName
  * @return {String} event type name
  */
-SolidityEvent.prototype.typeName = function () {
+HyperionEvent.prototype.typeName = function () {
     return utils.extractTypeName(this._name);
 };
 
@@ -3217,7 +3217,7 @@ SolidityEvent.prototype.typeName = function () {
  * @method signature
  * @return {String} event signature
  */
-SolidityEvent.prototype.signature = function () {
+HyperionEvent.prototype.signature = function () {
     return sha3(this._name);
 };
 
@@ -3229,7 +3229,7 @@ SolidityEvent.prototype.signature = function () {
  * @param {Object} options
  * @return {Object} everything combined together and encoded
  */
-SolidityEvent.prototype.encode = function (indexed, options) {
+HyperionEvent.prototype.encode = function (indexed, options) {
     indexed = indexed || {};
     options = options || {};
     var result = {};
@@ -3275,7 +3275,7 @@ SolidityEvent.prototype.encode = function (indexed, options) {
  * @param {Object} data
  * @return {Object} result object with decoded indexed && not indexed params
  */
-SolidityEvent.prototype.decode = function (data) {
+HyperionEvent.prototype.decode = function (data) {
 
     data.data = data.data || '';
     data.topics = data.topics || [];
@@ -3310,7 +3310,7 @@ SolidityEvent.prototype.decode = function (data) {
  * @param {Object} options
  * @return {Object} filter object
  */
-SolidityEvent.prototype.execute = function (indexed, options, callback) {
+HyperionEvent.prototype.execute = function (indexed, options, callback) {
 
     if (utils.isFunction(arguments[arguments.length - 1])) {
         callback = arguments[arguments.length - 1];
@@ -3333,7 +3333,7 @@ SolidityEvent.prototype.execute = function (indexed, options, callback) {
  * @method attachToContract
  * @param {Contract}
  */
-SolidityEvent.prototype.attachToContract = function (contract) {
+HyperionEvent.prototype.attachToContract = function (contract) {
     var execute = this.execute.bind(this);
     var displayName = this.displayName();
     if (!contract[displayName]) {
@@ -3342,10 +3342,10 @@ SolidityEvent.prototype.attachToContract = function (contract) {
     contract[displayName][this.typeName()] = this.execute.bind(this, contract);
 };
 
-module.exports = SolidityEvent;
+module.exports = HyperionEvent;
 
 
-},{"../solidity/coder":7,"../utils/sha3":19,"../utils/utils":20,"./filter":29,"./formatters":30,"./methods/watches":43}],28:[function(require,module,exports){
+},{"../hyperion/coder":7,"../utils/sha3":19,"../utils/utils":20,"./filter":29,"./formatters":30,"./methods/watches":43}],28:[function(require,module,exports){
 var formatters = require('./formatters');
 var utils = require('./../utils/utils');
 var Method = require('./method');
@@ -3989,16 +3989,16 @@ module.exports = {
  * @date 2015
  */
 
-var coder = require('../solidity/coder');
+var coder = require('../hyperion/coder');
 var utils = require('../utils/utils');
 var errors = require('./errors');
 var formatters = require('./formatters');
 var sha3 = require('../utils/sha3');
 
 /**
- * This prototype should be used to call/sendTransaction to solidity functions
+ * This prototype should be used to call/sendTransaction to hyperion functions
  */
-var SolidityFunction = function (zond, json, address) {
+var HyperionFunction = function (zond, json, address) {
     this._zond = zond;
     this._inputTypes = json.inputs.map(function (i) {
         return i.type;
@@ -4012,13 +4012,13 @@ var SolidityFunction = function (zond, json, address) {
     this._address = address;
 };
 
-SolidityFunction.prototype.extractCallback = function (args) {
+HyperionFunction.prototype.extractCallback = function (args) {
     if (utils.isFunction(args[args.length - 1])) {
         return args.pop(); // modify the args array!
     }
 };
 
-SolidityFunction.prototype.extractDefaultBlock = function (args) {
+HyperionFunction.prototype.extractDefaultBlock = function (args) {
     if (args.length > this._inputTypes.length && !utils.isObject(args[args.length -1])) {
         return formatters.inputDefaultBlockNumberFormatter(args.pop()); // modify the args array!
     }
@@ -4031,7 +4031,7 @@ SolidityFunction.prototype.extractDefaultBlock = function (args) {
  * @param {Array} arguments
  * @throws {Error} if it is not
  */
-SolidityFunction.prototype.validateArgs = function (args) {
+HyperionFunction.prototype.validateArgs = function (args) {
     var inputArgs = args.filter(function (a) {
       // filter the options object but not arguments that are arrays
       return !( (utils.isObject(a) === true) &&
@@ -4040,7 +4040,7 @@ SolidityFunction.prototype.validateArgs = function (args) {
               );
     });
     if (inputArgs.length !== this._inputTypes.length) {
-        throw errors.InvalidNumberOfSolidityArgs();
+        throw errors.InvalidNumberOfHyperionArgs();
     }
 };
 
@@ -4048,10 +4048,10 @@ SolidityFunction.prototype.validateArgs = function (args) {
  * Should be used to create payload from arguments
  *
  * @method toPayload
- * @param {Array} solidity function params
+ * @param {Array} hyperion function params
  * @param {Object} optional payload options
  */
-SolidityFunction.prototype.toPayload = function (args) {
+HyperionFunction.prototype.toPayload = function (args) {
     var options = {};
     if (args.length > this._inputTypes.length && utils.isObject(args[args.length -1])) {
         options = args[args.length - 1];
@@ -4068,12 +4068,12 @@ SolidityFunction.prototype.toPayload = function (args) {
  * @method signature
  * @return {String} function signature
  */
-SolidityFunction.prototype.signature = function () {
+HyperionFunction.prototype.signature = function () {
     return sha3(this._name).slice(0, 8);
 };
 
 
-SolidityFunction.prototype.unpackOutput = function (output) {
+HyperionFunction.prototype.unpackOutput = function (output) {
     if (!output) {
         return;
     }
@@ -4093,7 +4093,7 @@ SolidityFunction.prototype.unpackOutput = function (output) {
  *   error and result.
  * @return {String} output bytes
  */
-SolidityFunction.prototype.call = function () {
+HyperionFunction.prototype.call = function () {
     var args = Array.prototype.slice.call(arguments).filter(function (a) {return a !== undefined; });
     var callback = this.extractCallback(args);
     var defaultBlock = this.extractDefaultBlock(args);
@@ -4122,11 +4122,11 @@ SolidityFunction.prototype.call = function () {
 };
 
 /**
- * Should be used to sendTransaction to solidity function
+ * Should be used to sendTransaction to hyperion function
  *
  * @method sendTransaction
  */
-SolidityFunction.prototype.sendTransaction = function () {
+HyperionFunction.prototype.sendTransaction = function () {
     var args = Array.prototype.slice.call(arguments).filter(function (a) {return a !== undefined; });
     var callback = this.extractCallback(args);
     var payload = this.toPayload(args);
@@ -4143,11 +4143,11 @@ SolidityFunction.prototype.sendTransaction = function () {
 };
 
 /**
- * Should be used to estimateGas of solidity function
+ * Should be used to estimateGas of hyperion function
  *
  * @method estimateGas
  */
-SolidityFunction.prototype.estimateGas = function () {
+HyperionFunction.prototype.estimateGas = function () {
     var args = Array.prototype.slice.call(arguments);
     var callback = this.extractCallback(args);
     var payload = this.toPayload(args);
@@ -4165,7 +4165,7 @@ SolidityFunction.prototype.estimateGas = function () {
  * @method getData
  * @return {String} the encoded data
  */
-SolidityFunction.prototype.getData = function () {
+HyperionFunction.prototype.getData = function () {
     var args = Array.prototype.slice.call(arguments);
     var payload = this.toPayload(args);
 
@@ -4178,7 +4178,7 @@ SolidityFunction.prototype.getData = function () {
  * @method displayName
  * @return {String} display name of the function
  */
-SolidityFunction.prototype.displayName = function () {
+HyperionFunction.prototype.displayName = function () {
     return utils.extractDisplayName(this._name);
 };
 
@@ -4188,17 +4188,17 @@ SolidityFunction.prototype.displayName = function () {
  * @method typeName
  * @return {String} type name of the function
  */
-SolidityFunction.prototype.typeName = function () {
+HyperionFunction.prototype.typeName = function () {
     return utils.extractTypeName(this._name);
 };
 
 /**
- * Should be called to get rpc requests from solidity function
+ * Should be called to get rpc requests from hyperion function
  *
  * @method request
  * @returns {Object}
  */
-SolidityFunction.prototype.request = function () {
+HyperionFunction.prototype.request = function () {
     var args = Array.prototype.slice.call(arguments);
     var callback = this.extractCallback(args);
     var payload = this.toPayload(args);
@@ -4217,7 +4217,7 @@ SolidityFunction.prototype.request = function () {
  *
  * @method execute
  */
-SolidityFunction.prototype.execute = function () {
+HyperionFunction.prototype.execute = function () {
     var transaction = !this._constant;
 
     // send transaction
@@ -4235,7 +4235,7 @@ SolidityFunction.prototype.execute = function () {
  * @method attachToContract
  * @param {Contract}
  */
-SolidityFunction.prototype.attachToContract = function (contract) {
+HyperionFunction.prototype.attachToContract = function (contract) {
     var execute = this.execute.bind(this);
     execute.request = this.request.bind(this);
     execute.call = this.call.bind(this);
@@ -4249,9 +4249,8 @@ SolidityFunction.prototype.attachToContract = function (contract) {
     contract[displayName][this.typeName()] = execute; // circular!!!!
 };
 
-module.exports = SolidityFunction;
-
-},{"../solidity/coder":7,"../utils/sha3":19,"../utils/utils":20,"./errors":26,"./formatters":30}],32:[function(require,module,exports){
+module.exports = HyperionFunction;
+},{"../hyperion/coder":7,"../utils/sha3":19,"../utils/utils":20,"./errors":26,"./formatters":30}],32:[function(require,module,exports){
 /*
     This file is part of web3.js.
 
@@ -5372,9 +5371,9 @@ var methods = function () {
         outputFormatter: utils.toDecimal
     });
 
-    var compileSolidity = new Method({
-        name: 'compile.solidity',
-        call: 'zond_compileSolidity',
+    var compileHyperion = new Method({
+        name: 'compile.hyperion',
+        call: 'zond_compileHyperion',
         params: 1
     });
 
@@ -5394,7 +5393,7 @@ var methods = function () {
         signTransaction,
         sendTransaction,
         sign,
-        compileSolidity
+        compileHyperion
     ];
 };
 

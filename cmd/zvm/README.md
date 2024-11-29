@@ -1,6 +1,6 @@
-# EVM tool
+# ZVM tool
 
-The EVM tool provides a few useful subcommands to facilitate testing at the EVM
+The ZVM tool provides a few useful subcommands to facilitate testing at the ZVM
 layer.
 
 * transition tool    (`t8n`) : a stateless state transition utility
@@ -10,7 +10,7 @@ layer.
 ## State transition tool (`t8n`)
 
 
-The `evm t8n` tool is a stateless state transition utility. It is a utility
+The `zvm t8n` tool is a stateless state transition utility. It is a utility
 which can
 
 1. Take a prestate, including
@@ -153,9 +153,9 @@ type ExecutionResult struct {
 All logging should happen against the `stderr`.
 There are a few (not many) errors that can occur, those are defined below.
 
-##### EVM-based errors (`2` to `9`)
+##### ZVM-based errors (`2` to `9`)
 
-- Other EVM error. Exit code `2`
+- Other ZVM error. Exit code `2`
 - Failed configuration: when a non-supported or invalid fork was specified. Exit code `3`.
 - Block history is not supplied, but needed for a `BLOCKHASH` operation. If `BLOCKHASH`
   is invoked targeting a block which history has not been provided for, the program will
@@ -169,7 +169,7 @@ There are a few (not many) errors that can occur, those are defined below.
 
 ```
 # This should exit with 3
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Shanghai 2>/dev/null
+./zvm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Shanghai 2>/dev/null
 exitcode:3 OK
 ```
 #### Forks
@@ -184,7 +184,7 @@ found in [`tests/init.go`](tests/init.go).
 
 Invoking it with the provided example files
 ```
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Shanghai
+./zvm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Shanghai
 ```
 Two resulting files:
 
@@ -239,7 +239,7 @@ Two resulting files:
 
 We can make them spit out the data to e.g. `stdout` like this:
 ```
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --output.result=stdout --output.alloc=stdout --state.fork=Shanghai
+./zvm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --output.result=stdout --output.alloc=stdout --state.fork=Shanghai
 ```
 Output:
 ```json
@@ -293,7 +293,7 @@ Output:
 It is also possible to experiment with future eips that are not yet defined in a hard fork.
 Example, putting EIP-1344 into Shanghai: 
 ```
-./evm t8n --state.fork=Shanghai+1344 --input.pre=./testdata/1/pre.json --input.txs=./testdata/1/txs.json --input.env=/testdata/1/env.json
+./zvm t8n --state.fork=Shanghai+1344 --input.pre=./testdata/1/pre.json --input.txs=./testdata/1/txs.json --input.env=/testdata/1/env.json
 ```
 
 #### Block history
@@ -302,7 +302,7 @@ The `BLOCKHASH` opcode requires blockhashes to be provided by the caller, inside
 If a required blockhash is not provided, the exit code should be `4`:
 Example where blockhashes are provided: 
 ```
-./evm t8n --input.alloc=./testdata/3/alloc.json --input.txs=./testdata/3/txs.json --input.env=./testdata/3/env.json  --trace --state.fork=Shanghai
+./zvm t8n --input.alloc=./testdata/3/alloc.json --input.txs=./testdata/3/txs.json --input.env=./testdata/3/env.json  --trace --state.fork=Shanghai
 
 ```
 
@@ -318,7 +318,7 @@ cat trace-0-0x72fadbef39cd251a437eea619cfeda752271a5faaaa2147df012e112159ffb81.j
 
 In this example, the caller has not provided the required blockhash:
 ```
-./evm t8n --input.alloc=./testdata/4/alloc.json --input.txs=./testdata/4/txs.json --input.env=./testdata/4/env.json --trace --state.fork=Shanghai
+./zvm t8n --input.alloc=./testdata/4/alloc.json --input.txs=./testdata/4/txs.json --input.env=./testdata/4/env.json --trace --state.fork=Shanghai
 ERROR(4): getHash(3) invoked, blockhash for that block not provided
 ```
 Error code: 4
@@ -327,7 +327,7 @@ Error code: 4
 
 Another thing that can be done, is to chain invocations:
 ```
-./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Shanghai --output.alloc=stdout | ./evm t8n --input.alloc=stdin --input.env=./testdata/1/env.json --input.txs=./testdata/1/txs.json --state.fork=Shanghai
+./zvm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --state.fork=Shanghai --output.alloc=stdout | ./zvm t8n --input.alloc=stdin --input.env=./testdata/1/env.json --input.txs=./testdata/1/txs.json --state.fork=Shanghai
 
 ```
 What happened here, is that we first applied two identical transactions, so the second one was rejected. 
@@ -335,17 +335,17 @@ Then, taking the poststate alloc as the input for the next state, we tried again
 the same two transactions: this time, both failed due to too low nonce.
 
 In order to meaningfully chain invocations, one would need to provide meaningful new `env`, otherwise the
-actual blocknumber (exposed to the EVM) would not increase.
+actual blocknumber (exposed to the ZVM) would not increase.
 
 #### Transactions in RLP form
 
 It is possible to provide already-signed transactions as input to, using an `input.txs` which ends with the `rlp` suffix.
 The input format for RLP-form transactions is _identical_ to the _output_ format for block bodies. Therefore, it's fully possible
-to use the evm to go from `json` input to `rlp` input.
+to use the zvm to go from `json` input to `rlp` input.
 
 The following command takes **json** the transactions in `./testdata/13/txs.json` and signs them. After execution, they are output to `signed_txs.rlp`.:
 ```
-./evm t8n --state.fork=Shanghai --input.alloc=./testdata/13/alloc.json --input.txs=./testdata/13/txs.json --input.env=./testdata/13/env.json --output.result=alloc_jsontx.json --output.body=signed_txs.rlp
+./zvm t8n --state.fork=Shanghai --input.alloc=./testdata/13/alloc.json --input.txs=./testdata/13/txs.json --input.env=./testdata/13/env.json --output.result=alloc_jsontx.json --output.body=signed_txs.rlp
 INFO [08-29|20:19:29.728] Trie dumping started                     root=7fe86c..0f502d
 INFO [08-29|20:19:29.728] Trie dumping complete                    accounts=3 elapsed="149.584µs"
 INFO [08-29|20:19:29.729] Wrote file                               file=alloc.json
@@ -369,7 +369,7 @@ rlpdump -hex $(cat signed_txs.rlp | jq -r )
 ```
 Now, we can now use those (or any other already signed transactions), as input, like so: 
 ```
-./evm t8n --state.fork=Shanghai --input.alloc=./testdata/13/alloc.json --input.txs=./signed_txs.rlp --input.env=./testdata/13/env.json --output.result=alloc_rlptx.json
+./zvm t8n --state.fork=Shanghai --input.alloc=./testdata/13/alloc.json --input.txs=./signed_txs.rlp --input.env=./testdata/13/env.json --output.result=alloc_rlptx.json
 INFO [08-29|20:20:43.691] Trie dumping started                     root=7fe86c..0f502d
 INFO [08-29|20:20:43.691] Trie dumping complete                    accounts=3 elapsed="142.292µs"
 INFO [08-29|20:20:43.691] Wrote file                               file=alloc.json
@@ -394,7 +394,7 @@ The transaction tool is used to perform static validity checks on transactions s
 ### Examples
 
 ```
-./evm t9n --state.fork Shanghai --input.txs testdata/15/signed_txs.rlp
+./zvm t9n --state.fork Shanghai --input.txs testdata/15/signed_txs.rlp
 [
   {
     "address": "Z2014ae9f42335b44f94ee97d6248c0f55f0ee16e",
@@ -410,7 +410,7 @@ The transaction tool is used to perform static validity checks on transactions s
 ```
 ## Block builder tool (b11r)
 
-The `evm b11r` tool is used to assemble and seal full block rlps.
+The `zvm b11r` tool is used to assemble and seal full block rlps.
 
 ### Specification
 
@@ -474,7 +474,7 @@ type BlockInfo struct {
 
 ## A Note on Encoding
 
-The encoding of values for `evm` utility attempts to be relatively flexible. It
+The encoding of values for `zvm` utility attempts to be relatively flexible. It
 generally supports hex-encoded or decimal-encoded numeric values, and
 hex-encoded byte values (like `common.Address`, `common.Hash`, etc). When in
 doubt, the [`execution-apis`](https://github.com/ethereum/execution-apis) way
@@ -482,9 +482,9 @@ of encoding should always be accepted.
 
 ## Testing
 
-There are many test cases in the [`cmd/evm/testdata`](./testdata) directory.
+There are many test cases in the [`cmd/zvm/testdata`](./testdata) directory.
 These fixtures are used to power the `t8n` tests in
-[`t8n_test.go`](./t8n_test.go). The best way to verify correctness of new `evm`
+[`t8n_test.go`](./t8n_test.go). The best way to verify correctness of new `zvm`
 implementations is to execute these and verify the output and error codes match
 the expected values.
 

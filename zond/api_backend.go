@@ -240,18 +240,18 @@ func (b *ZondAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number u
 	return rawdb.ReadLogs(b.zond.chainDb, hash, number), nil
 }
 
-func (b *ZondAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) *vm.EVM {
+func (b *ZondAPIBackend) GetZVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) *vm.ZVM {
 	if vmConfig == nil {
 		vmConfig = b.zond.blockchain.GetVMConfig()
 	}
-	txContext := core.NewEVMTxContext(msg)
+	txContext := core.NewZVMTxContext(msg)
 	var context vm.BlockContext
 	if blockCtx != nil {
 		context = *blockCtx
 	} else {
-		context = core.NewEVMBlockContext(header, b.zond.BlockChain(), nil)
+		context = core.NewZVMBlockContext(header, b.zond.BlockChain(), nil)
 	}
-	return vm.NewEVM(context, txContext, state, b.ChainConfig(), *vmConfig)
+	return vm.NewZVM(context, txContext, state, b.ChainConfig(), *vmConfig)
 }
 
 func (b *ZondAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
@@ -356,8 +356,8 @@ func (b *ZondAPIBackend) RPCGasCap() uint64 {
 	return b.zond.config.RPCGasCap
 }
 
-func (b *ZondAPIBackend) RPCEVMTimeout() time.Duration {
-	return b.zond.config.RPCEVMTimeout
+func (b *ZondAPIBackend) RPCZVMTimeout() time.Duration {
+	return b.zond.config.RPCZVMTimeout
 }
 
 func (b *ZondAPIBackend) RPCTxFeeCap() float64 {

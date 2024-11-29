@@ -24,12 +24,12 @@ import (
 	"github.com/theQRL/go-zond/core/vm"
 )
 
-// accessList is an accumulator for the set of accounts and storage slots an EVM
+// accessList is an accumulator for the set of accounts and storage slots an ZVM
 // contract execution touches.
 type accessList map[common.Address]accessListSlots
 
 // accessListSlots is an accumulator for the set of storage slots within a single
-// contract that an EVM contract execution touches.
+// contract that an ZVM contract execution touches.
 type accessListSlots map[common.Hash]struct{}
 
 // newAccessList creates a new accessList.
@@ -132,7 +132,7 @@ func NewAccessListTracer(acl types.AccessList, from, to common.Address, precompi
 	}
 }
 
-func (a *AccessListTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+func (a *AccessListTracer) CaptureStart(env *vm.ZVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 }
 
 // CaptureState captures all opcodes that touch storage or addresses and adds them to the accesslist.

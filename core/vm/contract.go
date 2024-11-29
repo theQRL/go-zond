@@ -30,7 +30,7 @@ type ContractRef interface {
 
 // AccountRef implements ContractRef.
 //
-// Account references are used during EVM initialisation and
+// Account references are used during ZVM initialisation and
 // its primary use is to fetch addresses. Removing this object
 // proves difficult because of the cached jump destinations which
 // are fetched from the parent contract (i.e. the caller), which
@@ -62,7 +62,7 @@ type Contract struct {
 	value *big.Int
 }
 
-// NewContract returns a new contract environment for the execution of EVM.
+// NewContract returns a new contract environment for the execution of ZVM.
 func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
 	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object}
 

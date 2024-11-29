@@ -128,7 +128,8 @@ func TestFilters(t *testing.T) {
 
 		/*
 			// SPDX-License-Identifier: GPL-3.0
-			pragma solidity >=0.7.0 <0.9.0;
+			// TODO(now.youtrack.cloud/issue/TGZ-30)
+			pragma hyperion >=0.7.0 <0.9.0;
 
 			contract Logger {
 			    function log0() external {

@@ -22,7 +22,7 @@ const (
 	ZondCategory       = "ZOND"
 	DevCategory        = "DEVELOPER CHAIN"
 	StateCategory      = "STATE HISTORY MANAGEMENT"
-	TxPoolCategory     = "TRANSACTION POOL (EVM)"
+	TxPoolCategory     = "TRANSACTION POOL (ZVM)"
 	PerfCategory       = "PERFORMANCE TUNING"
 	AccountCategory    = "ACCOUNT"
 	APICategory        = "API AND CONSOLE"

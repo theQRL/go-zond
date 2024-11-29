@@ -151,7 +151,7 @@ var (
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCapFlag,
-		utils.RPCGlobalEVMTimeoutFlag,
+		utils.RPCGlobalZVMTimeoutFlag,
 		utils.RPCGlobalTxFeeCapFlag,
 		utils.BatchRequestLimit,
 		utils.BatchResponseMaxSize,

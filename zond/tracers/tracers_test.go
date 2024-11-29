@@ -82,14 +82,14 @@ func BenchmarkTransactionTrace(b *testing.B) {
 	triedb, _, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), alloc, false, rawdb.HashScheme)
 	defer triedb.Close()
 
-	// Create the tracer, the EVM environment and run it
+	// Create the tracer, the ZVM environment and run it
 	tracer := logger.NewStructLogger(&logger.Config{
 		Debug: false,
 		//DisableStorage: true,
 		//EnableMemory: false,
 		//EnableReturnData: false,
 	})
-	evm := vm.NewEVM(context, txContext, statedb, params.AllBeaconProtocolChanges, vm.Config{Tracer: tracer})
+	zvm := vm.NewZVM(context, txContext, statedb, params.AllBeaconProtocolChanges, vm.Config{Tracer: tracer})
 	msg, err := core.TransactionToMessage(tx, signer, nil)
 	if err != nil {
 		b.Fatalf("failed to prepare transaction for tracing: %v", err)
@@ -99,7 +99,7 @@ func BenchmarkTransactionTrace(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		snap := statedb.Snapshot()
-		st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+		st := core.NewStateTransition(zvm, msg, new(core.GasPool).AddGas(tx.Gas()))
 		_, err = st.TransitionDb()
 		if err != nil {
 			b.Fatal(err)

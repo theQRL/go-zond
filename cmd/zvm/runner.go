@@ -28,8 +28,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/cmd/evm/internal/compiler"
 	"github.com/theQRL/go-zond/cmd/utils"
+	"github.com/theQRL/go-zond/cmd/zvm/internal/compiler"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
@@ -49,9 +49,9 @@ import (
 var runCommand = &cli.Command{
 	Action:      runCmd,
 	Name:        "run",
-	Usage:       "run arbitrary evm binary",
+	Usage:       "run arbitrary zvm binary",
 	ArgsUsage:   "<code>",
-	Description: `The run command runs arbitrary EVM code.`,
+	Description: `The run command runs arbitrary ZVM code.`,
 }
 
 // readGenesis will read the given JSON format genesis file and return
@@ -122,7 +122,7 @@ func runCmd(ctx *cli.Context) error {
 
 	var (
 		err           error
-		tracer        vm.EVMLogger
+		tracer        vm.ZVMLogger
 		debugLogger   *logger.StructLogger
 		statedb       *state.StateDB
 		chainConfig   *params.ChainConfig
@@ -235,7 +235,7 @@ func runCmd(ctx *cli.Context) error {
 		Time:        genesisConfig.Timestamp,
 		Coinbase:    genesisConfig.Coinbase,
 		BlockNumber: new(big.Int).SetUint64(genesisConfig.Number),
-		EVMConfig: vm.Config{
+		ZVMConfig: vm.Config{
 			Tracer: tracer,
 		},
 	}
@@ -323,7 +323,7 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	if bench || ctx.Bool(StatDumpFlag.Name) {
-		fmt.Fprintf(os.Stderr, `EVM gas used:    %d
+		fmt.Fprintf(os.Stderr, `ZVM gas used:    %d
 execution time:  %v
 allocations:     %d
 allocated bytes: %d

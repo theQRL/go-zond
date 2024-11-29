@@ -45,8 +45,8 @@ func blockTestCmd(ctx *cli.Context) error {
 	glogger := log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
 	glogger.Verbosity(log.Lvl(ctx.Int(VerbosityFlag.Name)))
 	log.Root().SetHandler(glogger)
-	var tracer vm.EVMLogger
-	// Configure the EVM logger
+	var tracer vm.ZVMLogger
+	// Configure the ZVM logger
 	if ctx.Bool(MachineFlag.Name) {
 		tracer = logger.NewJSONLogger(&logger.Config{
 			EnableMemory:     !ctx.Bool(DisableMemoryFlag.Name),

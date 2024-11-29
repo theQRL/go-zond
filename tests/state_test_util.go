@@ -261,9 +261,9 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		}
 	}
 
-	// Prepare the EVM.
-	txContext := core.NewEVMTxContext(msg)
-	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
+	// Prepare the ZVM.
+	txContext := core.NewZVMTxContext(msg)
+	context := core.NewZVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
 	context.Random = nil
@@ -271,13 +271,13 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		rnd := common.BigToHash(t.json.Env.Random)
 		context.Random = &rnd
 	}
-	evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
+	zvm := vm.NewZVM(context, txContext, statedb, config, vmconfig)
 
 	// Execute the message.
 	snapshot := statedb.Snapshot()
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
-	_, err = core.ApplyMessage(evm, msg, gaspool)
+	_, err = core.ApplyMessage(zvm, msg, gaspool)
 	if err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}

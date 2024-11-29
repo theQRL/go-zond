@@ -50,28 +50,28 @@ func ActivateableEips() []string {
 	return nums
 }
 
-func opSelfBalance(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	balance, _ := uint256.FromBig(interpreter.evm.StateDB.GetBalance(scope.Contract.Address()))
+func opSelfBalance(pc *uint64, interpreter *ZVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	balance, _ := uint256.FromBig(interpreter.zvm.StateDB.GetBalance(scope.Contract.Address()))
 	scope.Stack.push(balance)
 	return nil, nil
 }
 
 // opChainID implements CHAINID opcode
-func opChainID(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	chainId, _ := uint256.FromBig(interpreter.evm.chainConfig.ChainID)
+func opChainID(pc *uint64, interpreter *ZVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	chainId, _ := uint256.FromBig(interpreter.zvm.chainConfig.ChainID)
 	scope.Stack.push(chainId)
 	return nil, nil
 }
 
 // opBaseFee implements BASEFEE opcode
-func opBaseFee(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	baseFee, _ := uint256.FromBig(interpreter.evm.Context.BaseFee)
+func opBaseFee(pc *uint64, interpreter *ZVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	baseFee, _ := uint256.FromBig(interpreter.zvm.Context.BaseFee)
 	scope.Stack.push(baseFee)
 	return nil, nil
 }
 
 // opPush0 implements the PUSH0 opcode
-func opPush0(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
+func opPush0(pc *uint64, interpreter *ZVMInterpreter, scope *ScopeContext) ([]byte, error) {
 	scope.Stack.push(new(uint256.Int))
 	return nil, nil
 }

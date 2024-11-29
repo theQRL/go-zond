@@ -56,7 +56,7 @@ type accountMarshaling struct {
 
 type prestateTracer struct {
 	noopTracer
-	env       *vm.EVM
+	env       *vm.ZVM
 	pre       state
 	post      state
 	create    bool
@@ -89,8 +89,8 @@ func newPrestateTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Trace
 	}, nil
 }
 
-// CaptureStart implements the EVMLogger interface to initialize the tracing operation.
-func (t *prestateTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+// CaptureStart implements the ZVMLogger interface to initialize the tracing operation.
+func (t *prestateTracer) CaptureStart(env *vm.ZVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	t.env = env
 	t.create = create
 	t.to = to
@@ -135,7 +135,7 @@ func (t *prestateTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	}
 }
 
-// CaptureState implements the EVMLogger interface to trace a single step of VM execution.
+// CaptureState implements the ZVMLogger interface to trace a single step of VM execution.
 func (t *prestateTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	if err != nil {
 		return

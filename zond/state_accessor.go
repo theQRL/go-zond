@@ -240,13 +240,13 @@ func (zond *Zond) stateAtTransaction(ctx context.Context, block *types.Block, tx
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
-		txContext := core.NewEVMTxContext(msg)
-		context := core.NewEVMBlockContext(block.Header(), zond.blockchain, nil)
+		txContext := core.NewZVMTxContext(msg)
+		context := core.NewZVMBlockContext(block.Header(), zond.blockchain, nil)
 		if idx == txIndex {
 			return msg, context, statedb, release, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewEVM(context, txContext, statedb, zond.blockchain.Config(), vm.Config{})
+		vmenv := vm.NewZVM(context, txContext, statedb, zond.blockchain.Config(), vm.Config{})
 		statedb.SetTxContext(tx.Hash(), idx)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)

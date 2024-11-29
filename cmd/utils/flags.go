@@ -432,7 +432,7 @@ var (
 		Category: flags.AccountCategory,
 	}
 
-	// EVM settings
+	// ZVM settings
 	VMEnableDebugFlag = &cli.BoolFlag{
 		Name:     "vmdebug",
 		Usage:    "Record information useful for VM and contract debugging",
@@ -446,10 +446,10 @@ var (
 		Value:    zondconfig.Defaults.RPCGasCap,
 		Category: flags.APICategory,
 	}
-	RPCGlobalEVMTimeoutFlag = &cli.DurationFlag{
-		Name:     "rpc.evmtimeout",
+	RPCGlobalZVMTimeoutFlag = &cli.DurationFlag{
+		Name:     "rpc.zvmtimeout",
 		Usage:    "Sets a timeout used for zond_call (0=infinite)",
-		Value:    zondconfig.Defaults.RPCEVMTimeout,
+		Value:    zondconfig.Defaults.RPCZVMTimeout,
 		Category: flags.APICategory,
 	}
 	RPCGlobalTxFeeCapFlag = &cli.Float64Flag{
@@ -1557,8 +1557,8 @@ func SetZondConfig(ctx *cli.Context, stack *node.Node, cfg *zondconfig.Config) {
 	} else {
 		log.Info("Global gas cap disabled")
 	}
-	if ctx.IsSet(RPCGlobalEVMTimeoutFlag.Name) {
-		cfg.RPCEVMTimeout = ctx.Duration(RPCGlobalEVMTimeoutFlag.Name)
+	if ctx.IsSet(RPCGlobalZVMTimeoutFlag.Name) {
+		cfg.RPCZVMTimeout = ctx.Duration(RPCGlobalZVMTimeoutFlag.Name)
 	}
 	if ctx.IsSet(RPCGlobalTxFeeCapFlag.Name) {
 		cfg.RPCTxFeeCap = ctx.Float64(RPCGlobalTxFeeCapFlag.Name)

@@ -68,7 +68,7 @@ func ReadInteger(typ Type, b []byte) (interface{}, error) {
 	}
 
 	// big.SetBytes can't tell if a number is negative or positive in itself.
-	// On EVM, if the returned number > max int256, it is negative.
+	// On ZVM, if the returned number > max int256, it is negative.
 	// A number is > max int256 if the bit at position 255 is set.
 	if ret.Bit(255) == 1 {
 		ret.Add(MaxUint256, new(big.Int).Neg(ret))

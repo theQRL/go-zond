@@ -414,7 +414,7 @@ func newRevertError(result *core.ExecutionResult) *revertError {
 	}
 }
 
-// revertError is an API error that encompasses an EVM revert with JSON error
+// revertError is an API error that encompasses an ZVM revert with JSON error
 // code and a binary data blob.
 type revertError struct {
 	error
@@ -609,7 +609,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call zond.CallMsg, 
 	if call.GasTipCap == nil {
 		call.GasTipCap = new(big.Int)
 	}
-	// Backfill the legacy gasPrice for EVM execution, unless we're all zeroes
+	// Backfill the legacy gasPrice for ZVM execution, unless we're all zeroes
 	gasPrice := new(big.Int)
 	if call.GasFeeCap.BitLen() > 0 || call.GasTipCap.BitLen() > 0 {
 		head := b.blockchain.CurrentHeader()
@@ -644,9 +644,9 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call zond.CallMsg, 
 
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
-	txContext := core.NewEVMTxContext(msg)
-	evmContext := core.NewEVMBlockContext(header, b.blockchain, nil)
-	vmEnv := vm.NewEVM(evmContext, txContext, stateDB, b.config, vm.Config{NoBaseFee: true})
+	txContext := core.NewZVMTxContext(msg)
+	zvmContext := core.NewZVMBlockContext(header, b.blockchain, nil)
+	vmEnv := vm.NewZVM(zvmContext, txContext, stateDB, b.config, vm.Config{NoBaseFee: true})
 	gasPool := new(core.GasPool).AddGas(math.MaxUint64)
 
 	return core.ApplyMessage(vmEnv, msg, gasPool)

@@ -93,7 +93,7 @@ type rejectedTx struct {
 // Apply applies a set of transactions to a pre-state
 func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	txs types.Transactions, miningReward int64,
-	getTracerFn func(txIndex int, txHash common.Hash) (tracer vm.EVMLogger, err error)) (*state.StateDB, *ExecutionResult, error) {
+	getTracerFn func(txIndex int, txHash common.Hash) (tracer vm.ZVMLogger, err error)) (*state.StateDB, *ExecutionResult, error) {
 	// Capture errors for BLOCKHASH operation, if we haven't been supplied the
 	// required blockhashes
 	var hashError error
@@ -154,14 +154,14 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		statedb.SetTxContext(tx.Hash(), txIndex)
 
 		var (
-			txContext = core.NewEVMTxContext(msg)
+			txContext = core.NewZVMTxContext(msg)
 			snapshot  = statedb.Snapshot()
 			prevGas   = gaspool.Gas()
 		)
-		evm := vm.NewEVM(vmContext, txContext, statedb, chainConfig, vmConfig)
+		zvm := vm.NewZVM(vmContext, txContext, statedb, chainConfig, vmConfig)
 
 		// (ret []byte, usedGas uint64, failed bool, err error)
-		msgResult, err := core.ApplyMessage(evm, msg, gaspool)
+		msgResult, err := core.ApplyMessage(zvm, msg, gaspool)
 		if err != nil {
 			statedb.RevertToSnapshot(snapshot)
 			log.Info("rejected tx", "index", i, "hash", tx.Hash(), "from", msg.From, "error", err)
@@ -193,7 +193,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 
 			// If the transaction created a contract, store the creation address in the receipt.
 			if msg.To == nil {
-				receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
+				receipt.ContractAddress = crypto.CreateAddress(zvm.TxContext.Origin, tx.Nonce())
 			}
 
 			// Set the receipt logs and create the bloom filter.
@@ -231,7 +231,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	// Commit block
 	root, err := statedb.Commit(vmContext.BlockNumber.Uint64(), true)
 	if err != nil {
-		return nil, nil, NewError(ErrorEVM, fmt.Errorf("could not commit state: %v", err))
+		return nil, nil, NewError(ErrorZVM, fmt.Errorf("could not commit state: %v", err))
 	}
 	execRs := &ExecutionResult{
 		StateRoot:   root,
@@ -252,7 +252,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	// for accessing latest states.
 	statedb, err = state.New(root, statedb.Database(), nil)
 	if err != nil {
-		return nil, nil, NewError(ErrorEVM, fmt.Errorf("could not reopen state: %v", err))
+		return nil, nil, NewError(ErrorZVM, fmt.Errorf("could not reopen state: %v", err))
 	}
 	return statedb, execRs, nil
 }
