@@ -3324,7 +3324,7 @@ HyperionEvent.prototype.execute = function (indexed, options, callback) {
 
     var o = this.encode(indexed, options);
     var formatter = this.decode.bind(this);
-    return new Filter(o, 'eth', this._requestManager, watches.eth(), formatter, callback);
+    return new Filter(o, 'zond', this._requestManager, watches.zond(), formatter, callback);
 };
 
 /**
@@ -3458,7 +3458,7 @@ var getOptions = function (options, type) {
 
 
     switch(type) {
-        case 'eth':
+        case 'zond':
 
             // make sure topics, get converted to hex
             options.topics = options.topics || [];
@@ -5432,7 +5432,7 @@ Zond.prototype.contract = function (abi) {
 };
 
 Zond.prototype.filter = function (options, callback, filterCreationErrorCallback) {
-    return new Filter(options, 'eth', this._requestManager, watches.eth(), formatters.outputLogFormatter, callback, filterCreationErrorCallback);
+    return new Filter(options, 'zond', this._requestManager, watches.zond(), formatters.outputLogFormatter, callback, filterCreationErrorCallback);
 };
 
 Zond.prototype.namereg = function () {

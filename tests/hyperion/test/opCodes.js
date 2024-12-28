@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-const TodoList = artifacts.require('./OpCodes.sol')
+const TodoList = artifacts.require('./OpCodes.hyp')
 const assert = require('assert')
 let contractInstance
 const Web3 = require('web3');

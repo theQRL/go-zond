@@ -35,12 +35,12 @@ type hypcOutput struct {
 	Version string
 }
 
-// ParseCombinedJSON takes the direct output of a solc --combined-output run and
+// ParseCombinedJSON takes the direct output of a hypc --combined-output run and
 // parses it into a map of string contract name to Contract structs. The
 // provided source, language and compiler version, and compiler options are all
 // passed through into the Contract structs.
 //
-// The solc output is expected to contain ABI, source mapping, user docs, and dev docs.
+// The hypc output is expected to contain ABI, source mapping, user docs, and dev docs.
 //
 // Returns an error if the JSON is malformed or missing data, or if the JSON
 // embedded within the JSON is malformed.
