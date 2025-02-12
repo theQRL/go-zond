@@ -110,7 +110,7 @@ Docker:
 ```shell
 docker run -d --name zond-node -v /Users/alice/zond:/root \
            -p 8545:8545 -p 30303:30303 \
-           zond/client-go
+           theqrl/gzond
 ```
 
 This will start `gzond` in snap-sync mode with a DB memory allowance of 1GB, as the
