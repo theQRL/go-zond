@@ -141,7 +141,7 @@ func (miner *Miner) prepareWork(genParams *generateParams) (*environment, error)
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     new(big.Int).Add(parent.Number, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent.GasLimit, miner.config.GasCeil),
+		GasLimit:   params.MaxGasLimit,
 		Time:       timestamp,
 		Coinbase:   genParams.coinbase,
 	}
