@@ -37,7 +37,7 @@ type decodedCallData struct {
 // decodedArgument is an internal type to represent an argument parsed according
 // to an ABI method signature.
 type decodedArgument struct {
-	soltype abi.Argument
+	hyptype abi.Argument
 	value   interface{}
 }
 
@@ -50,7 +50,7 @@ func (arg decodedArgument) String() string {
 	default:
 		value = fmt.Sprintf("%v", val)
 	}
-	return fmt.Sprintf("%v: %v", arg.soltype.Type.String(), value)
+	return fmt.Sprintf("%v: %v", arg.hyptype.Type.String(), value)
 }
 
 // String implements stringer interface for decodedCallData
@@ -115,7 +115,7 @@ func parseCallData(calldata []byte, unescapedAbidata string) (*decodedCallData, 
 	decoded := decodedCallData{signature: method.Sig, name: method.RawName}
 	for i := 0; i < len(method.Inputs); i++ {
 		decoded.inputs = append(decoded.inputs, decodedArgument{
-			soltype: method.Inputs[i],
+			hyptype: method.Inputs[i],
 			value:   values[i],
 		})
 	}

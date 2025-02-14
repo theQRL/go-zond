@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/zond"
@@ -28,23 +28,26 @@ import (
 )
 
 // FullSyncTester is an auxiliary service that allows Geth to perform full sync
-// alone without consensus-layer attached. Users must specify a valid block as
-// the sync target. This tester can be applied to different networks, no matter
-// it's pre-merge or post-merge, but only for full-sync.
+// alone without consensus-layer attached. Users must specify a valid block hash
+// as the sync target.
+//
+// This tester can be only be applied for full-sync.
 type FullSyncTester struct {
-	api    *ConsensusAPI
-	block  *types.Block
-	closed chan struct{}
-	wg     sync.WaitGroup
+	stack   *node.Node
+	backend *zond.Zond
+	target  common.Hash
+	closed  chan struct{}
+	wg      sync.WaitGroup
 }
 
 // RegisterFullSyncTester registers the full-sync tester service into the node
 // stack for launching and stopping the service controlled by node.
-func RegisterFullSyncTester(stack *node.Node, backend *zond.Ethereum, block *types.Block) (*FullSyncTester, error) {
+func RegisterFullSyncTester(stack *node.Node, backend *zond.Zond, target common.Hash) (*FullSyncTester, error) {
 	cl := &FullSyncTester{
-		api:    newConsensusAPIWithoutHeartbeat(backend),
-		block:  block,
-		closed: make(chan struct{}),
+		stack:   stack,
+		backend: backend,
+		target:  target,
+		closed:  make(chan struct{}),
 	}
 	stack.RegisterLifecycle(cl)
 	return cl, nil
@@ -56,28 +59,24 @@ func (tester *FullSyncTester) Start() error {
 	go func() {
 		defer tester.wg.Done()
 
+		// Trigger beacon sync with the provided block hash as trusted
+		// chain head.
+		err := tester.backend.Downloader().BeaconDevSync(downloader.FullSync, tester.target, tester.closed)
+		if err != nil {
+			log.Info("Failed to trigger beacon sync", "err", err)
+		}
+
 		ticker := time.NewTicker(time.Second * 5)
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
-				// Don't bother downloader in case it's already syncing.
-				if tester.api.eth.Downloader().Synchronising() {
-					continue
-				}
-				// Short circuit in case the target block is already stored
-				// locally. TODO(somehow terminate the node stack if target
-				// is reached).
-				if tester.api.eth.BlockChain().HasBlock(tester.block.Hash(), tester.block.NumberU64()) {
-					log.Info("Full-sync target reached", "number", tester.block.NumberU64(), "hash", tester.block.Hash())
+				// Stop in case the target block is already stored locally.
+				if block := tester.backend.BlockChain().GetBlockByHash(tester.target); block != nil {
+					log.Info("Full-sync target reached", "number", block.NumberU64(), "hash", block.Hash())
+					go tester.stack.Close() // async since we need to close ourselves
 					return
-				}
-				// Trigger beacon sync with the provided block header as
-				// trusted chain head.
-				err := tester.api.eth.Downloader().BeaconSync(downloader.FullSync, tester.block.Header(), tester.block.Header())
-				if err != nil {
-					log.Info("Failed to beacon sync", "err", err)
 				}
 
 			case <-tester.closed:

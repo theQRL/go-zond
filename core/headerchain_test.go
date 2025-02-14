@@ -23,8 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/consensus"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/params"
@@ -39,10 +38,6 @@ func verifyUnbrokenCanonchain(hc *HeaderChain) error {
 			return fmt.Errorf("Canon hash chain broken, block %d got %x, expected %x",
 				h.Number, canonHash[:8], exp[:8])
 		}
-		// Verify that we have the TD
-		if td := rawdb.ReadTd(hc.chainDb, canonHash, h.Number.Uint64()); td == nil {
-			return fmt.Errorf("Canon TD missing at block %d", h.Number)
-		}
 		if h.Number.Uint64() == 0 {
 			break
 		}
@@ -51,10 +46,10 @@ func verifyUnbrokenCanonchain(hc *HeaderChain) error {
 	return nil
 }
 
-func testInsert(t *testing.T, hc *HeaderChain, chain []*types.Header, wantStatus WriteStatus, wantErr error, forker *ForkChoice) {
+func testInsert(t *testing.T, hc *HeaderChain, chain []*types.Header, wantStatus WriteStatus, wantErr error) {
 	t.Helper()
 
-	status, err := hc.InsertHeaderChain(chain, time.Now(), forker)
+	status, err := hc.InsertHeaderChain(chain, time.Now())
 	if status != wantStatus {
 		t.Errorf("wrong write status from InsertHeaderChain: got %v, want %v", status, wantStatus)
 	}
@@ -67,21 +62,22 @@ func testInsert(t *testing.T, hc *HeaderChain, chain []*types.Header, wantStatus
 	}
 }
 
+/*
 // This test checks status reporting of InsertHeaderChain.
 func TestHeaderInsertion(t *testing.T) {
 	var (
 		db    = rawdb.NewMemoryDatabase()
-		gspec = &Genesis{BaseFee: big.NewInt(params.InitialBaseFee), Config: params.AllEthashProtocolChanges}
+		gspec = &Genesis{BaseFee: big.NewInt(params.InitialBaseFee), Config: params.AllBeaconProtocolChanges}
 	)
 	gspec.Commit(db, trie.NewDatabase(db, nil))
-	hc, err := NewHeaderChain(db, gspec.Config, ethash.NewFaker(), func() bool { return false })
+	hc, err := NewHeaderChain(db, gspec.Config, beacon.NewFaker(), func() bool { return false })
 	if err != nil {
 		t.Fatal(err)
 	}
 	// chain A: G->A1->A2...A128
-	genDb, chainA := makeHeaderChainWithGenesis(gspec, 128, ethash.NewFaker(), 10)
+	genDb, chainA := makeHeaderChainWithGenesis(gspec, 128, beacon.NewFaker(), 10)
 	// chain B: G->A1->B1...B128
-	chainB := makeHeaderChain(gspec.Config, chainA[0], 128, ethash.NewFaker(), genDb, 10)
+	chainB := makeHeaderChain(gspec.Config, chainA[0], 128, beacon.NewFaker(), genDb, 10)
 
 	forker := NewForkChoice(hc, nil)
 	// Inserting 64 headers on an empty chain, expecting
@@ -113,4 +109,36 @@ func TestHeaderInsertion(t *testing.T) {
 
 	// And B becomes even longer
 	testInsert(t, hc, chainB[107:128], CanonStatTy, nil, forker)
+}
+*/
+
+// NOTE(rgeraldes24): the original test above is no longer valid
+// This test checks status reporting of InsertHeaderChain.
+func TestHeaderInsertion(t *testing.T) {
+	var (
+		db    = rawdb.NewMemoryDatabase()
+		gspec = &Genesis{BaseFee: big.NewInt(params.InitialBaseFee), Config: params.AllBeaconProtocolChanges}
+	)
+	gspec.Commit(db, trie.NewDatabase(db, nil))
+	hc, err := NewHeaderChain(db, gspec.Config, beacon.NewFaker(), func() bool { return false })
+	if err != nil {
+		t.Fatal(err)
+	}
+	// chain A: G->A1->A2...A128
+	_, chainA := makeHeaderChainWithGenesis(gspec, 128, beacon.NewFaker(), 10)
+
+	// Inserting 64 headers on an empty chain, expecting
+	// 1 callbacks, 1 canon-status, 0 sidestatus,
+	testInsert(t, hc, chainA[:64], CanonStatTy, nil)
+
+	// Inserting 64 identical headers, expecting
+	// 0 callbacks, 0 canon-status, 0 sidestatus,
+	testInsert(t, hc, chainA[:64], NonStatTy, nil)
+
+	// Inserting the same some old, some new headers
+	// 1 callbacks, 1 canon, 0 side
+	testInsert(t, hc, chainA[32:96], CanonStatTy, nil)
+
+	// Inserting more A-headers, taking back the canonicality
+	testInsert(t, hc, chainA[90:100], CanonStatTy, nil)
 }

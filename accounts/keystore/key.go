@@ -17,7 +17,6 @@
 package keystore
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -28,7 +27,7 @@ import (
 	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/theQRL/go-zond/accounts"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 )
 
 const (
@@ -67,13 +66,6 @@ type encryptedKeyJSONV3 struct {
 	Version int        `json:"version"`
 }
 
-type encryptedKeyJSONV1 struct {
-	Address string     `json:"address"`
-	Crypto  CryptoJSON `json:"crypto"`
-	Id      string     `json:"id"`
-	Version string     `json:"version"`
-}
-
 type CryptoJSON struct {
 	Cipher       string                 `json:"cipher"`
 	CipherText   string                 `json:"ciphertext"`
@@ -88,9 +80,10 @@ type cipherparamsJSON struct {
 }
 
 func (k *Key) MarshalJSON() (j []byte, err error) {
+	seed := k.Dilithium.GetSeed()
 	jStruct := plainKeyJSON{
-		hex.EncodeToString(k.Address[:]),
-		k.Dilithium.GetHexSeed(),
+		fmt.Sprintf("%#x", k.Address),
+		common.Bytes2Hex(seed[:]),
 		k.Id.String(),
 		version,
 	}
@@ -111,12 +104,12 @@ func (k *Key) UnmarshalJSON(j []byte) (err error) {
 		return err
 	}
 	k.Id = *u
-	addr, err := hex.DecodeString(keyJSON.Address)
+	addr, err := common.NewAddressFromString(keyJSON.Address)
 	if err != nil {
 		return err
 	}
 
-	k.Address = common.BytesToAddress(addr)
+	k.Address = addr
 	k.Dilithium, err = pqcrypto.HexToDilithium(keyJSON.HexSeed)
 	if err != nil {
 		return err
@@ -193,10 +186,10 @@ func writeKeyFile(file string, content []byte) error {
 }
 
 // keyFileName implements the naming convention for keyfiles:
-// UTC--<created_at UTC ISO8601>-<address hex>
+// UTC--<created_at UTC ISO8601>-<z-prefixed address hex>
 func keyFileName(keyAddr common.Address) string {
 	ts := time.Now().UTC()
-	return fmt.Sprintf("UTC--%s--%s", toISO8601(ts), hex.EncodeToString(keyAddr[:]))
+	return fmt.Sprintf("UTC--%s--%#x", toISO8601(ts), keyAddr)
 }
 
 func toISO8601(t time.Time) string {

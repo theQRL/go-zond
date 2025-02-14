@@ -29,8 +29,8 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/zond/tracers"
 	"github.com/theQRL/go-zond/tests"
+	"github.com/theQRL/go-zond/zond/tracers"
 )
 
 // prestateTrace is the result of a prestateTrace run.
@@ -52,14 +52,11 @@ type testcase struct {
 	Result       interface{}     `json:"result"`
 }
 
-func TestPrestateTracerLegacy(t *testing.T) {
-	testPrestateDiffTracer("prestateTracerLegacy", "prestate_tracer_legacy", t)
-}
-
 func TestPrestateTracer(t *testing.T) {
 	testPrestateDiffTracer("prestateTracer", "prestate_tracer", t)
 }
 
+// TODO(now.youtrack.cloud/issue/TGZ-13)
 func TestPrestateWithDiffModeTracer(t *testing.T) {
 	testPrestateDiffTracer("prestateTracer", "prestate_tracer_with_diff_mode", t)
 }
@@ -92,7 +89,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			}
 			// Configure a blockchain with the given prestate
 			var (
-				signer    = types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)), uint64(test.Context.Time))
+				signer    = types.MakeSigner(test.Genesis.Config)
 				origin, _ = signer.Sender(tx)
 				txContext = vm.TxContext{
 					Origin:   origin,
@@ -104,9 +101,8 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 					Coinbase:    test.Context.Miner,
 					BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
 					Time:        uint64(test.Context.Time),
-					Difficulty:  (*big.Int)(test.Context.Difficulty),
 					GasLimit:    uint64(test.Context.GasLimit),
-					BaseFee:     test.Genesis.BaseFee,
+					BaseFee:     (*big.Int)(test.Context.BaseFee),
 				}
 				triedb, _, statedb = tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false, rawdb.HashScheme)
 			)
@@ -116,12 +112,12 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
+			zvm := vm.NewZVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
 			msg, err := core.TransactionToMessage(tx, signer, nil)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
-			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+			st := core.NewStateTransition(zvm, msg, new(core.GasPool).AddGas(tx.Gas()))
 			if _, err = st.TransitionDb(); err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
 			}
@@ -129,15 +125,6 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			res, err := tracer.GetResult()
 			if err != nil {
 				t.Fatalf("failed to retrieve trace result: %v", err)
-			}
-			// The legacy javascript calltracer marshals json in js, which
-			// is not deterministic (as opposed to the golang json encoder).
-			if strings.HasSuffix(dirPath, "_legacy") {
-				// This is a tweak to make it deterministic. Can be removed when
-				// we remove the legacy tracer.
-				var x prestateTrace
-				json.Unmarshal(res, &x)
-				res, _ = json.Marshal(x)
 			}
 			want, err := json.Marshal(test.Result)
 			if err != nil {

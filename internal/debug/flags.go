@@ -26,7 +26,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/fjl/memsize/memsizeui"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
 	"github.com/theQRL/go-zond/internal/flags"
@@ -36,8 +35,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
-
-var Memsize memsizeui.Handler
 
 var (
 	verbosityFlag = &cli.IntFlag{
@@ -235,7 +232,7 @@ func Setup(ctx *cli.Context) error {
 	}
 	if rotation {
 		// Lumberjack uses <processname>-lumberjack.log in is.TempDir() if empty.
-		// so typically /tmp/geth-lumberjack.log on linux
+		// so typically /tmp/gzond-lumberjack.log on linux
 		if len(logFile) > 0 {
 			context = append(context, "location", logFile)
 		} else {
@@ -326,7 +323,6 @@ func StartPProf(address string, withMetrics bool) {
 	if withMetrics {
 		exp.Exp(metrics.DefaultRegistry)
 	}
-	http.Handle("/memsize/", http.StripPrefix("/memsize", &Memsize))
 	log.Info("Starting pprof server", "addr", fmt.Sprintf("http://%s/debug/pprof", address))
 	go func() {
 		if err := http.ListenAndServe(address, nil); err != nil {

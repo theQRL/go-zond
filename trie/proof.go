@@ -22,8 +22,8 @@ import (
 	"fmt"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes

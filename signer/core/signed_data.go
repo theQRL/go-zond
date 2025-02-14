@@ -26,18 +26,12 @@ import (
 	"github.com/theQRL/go-zond/accounts"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
-	"github.com/theQRL/go-zond/consensus/clique"
-	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/signer/core/apitypes"
 )
 
 // sign receives a request and produces a signature
-//
-// Note, the produced signature conforms to the secp256k1 curve R, S and V values,
-// where the V value will be 27 or 28 for legacy reasons, if legacyV==true.
-func (api *SignerAPI) sign(req *SignDataRequest, legacyV bool) (hexutil.Bytes, error) {
+func (api *SignerAPI) sign(req *SignDataRequest) (hexutil.Bytes, error) {
 	// We make the request prior to looking up if we actually have the account, to prevent
 	// account-enumeration via the API
 	res, err := api.UI.ApproveSignData(req)
@@ -64,9 +58,6 @@ func (api *SignerAPI) sign(req *SignDataRequest, legacyV bool) (hexutil.Bytes, e
 	if err != nil {
 		return nil, err
 	}
-	if legacyV {
-		signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
-	}
 	return signature, nil
 }
 
@@ -75,11 +66,11 @@ func (api *SignerAPI) sign(req *SignDataRequest, legacyV bool) (hexutil.Bytes, e
 //
 // Different types of validation occur.
 func (api *SignerAPI) SignData(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (hexutil.Bytes, error) {
-	var req, transformV, err = api.determineSignatureFormat(ctx, contentType, addr, data)
+	var req, err = api.determineSignatureFormat(ctx, contentType, addr, data)
 	if err != nil {
 		return nil, err
 	}
-	signature, err := api.sign(req, transformV)
+	signature, err := api.sign(req)
 	if err != nil {
 		api.UI.ShowError(err.Error())
 		return nil, err
@@ -93,14 +84,12 @@ func (api *SignerAPI) SignData(ctx context.Context, contentType string, addr com
 // charset, ok := params["charset"]
 // As it is now, we accept any charset and just treat it as 'raw'.
 // This method returns the mimetype for signing along with the request
-func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (*SignDataRequest, bool, error) {
-	var (
-		req          *SignDataRequest
-		useEthereumV = true // Default to use V = 27 or 28, the legacy Ethereum format
-	)
+func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (*SignDataRequest, error) {
+	var req *SignDataRequest
+
 	mediaType, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return nil, useEthereumV, err
+		return nil, err
 	}
 
 	switch mediaType {
@@ -108,7 +97,7 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 		// Data with an intended validator
 		validatorData, err := UnmarshalValidatorData(data)
 		if err != nil {
-			return nil, useEthereumV, err
+			return nil, err
 		}
 		sighash, msg := SignTextValidator(validatorData)
 		messages := []*apitypes.NameValueType{
@@ -134,50 +123,20 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 			},
 		}
 		req = &SignDataRequest{ContentType: mediaType, Rawdata: []byte(msg), Messages: messages, Hash: sighash}
-	case apitypes.ApplicationClique.Mime:
-		// Clique is the Ethereum PoA standard
-		cliqueData, err := fromHex(data)
-		if err != nil {
-			return nil, useEthereumV, err
-		}
-		header := &types.Header{}
-		if err := rlp.DecodeBytes(cliqueData, header); err != nil {
-			return nil, useEthereumV, err
-		}
-		// Add space in the extradata to put the signature
-		newExtra := make([]byte, len(header.Extra)+65)
-		copy(newExtra, header.Extra)
-		header.Extra = newExtra
-
-		// Get back the rlp data, encoded by us
-		sighash, cliqueRlp, err := cliqueHeaderHashAndRlp(header)
-		if err != nil {
-			return nil, useEthereumV, err
-		}
-		messages := []*apitypes.NameValueType{
-			{
-				Name:  "Clique header",
-				Typ:   "clique",
-				Value: fmt.Sprintf("clique header %d [%#x]", header.Number, header.Hash()),
-			},
-		}
-		// Clique uses V on the form 0 or 1
-		useEthereumV = false
-		req = &SignDataRequest{ContentType: mediaType, Rawdata: cliqueRlp, Messages: messages, Hash: sighash}
 	case apitypes.DataTyped.Mime:
 		// EIP-712 conformant typed data
 		var err error
 		req, err = typedDataRequest(data)
 		if err != nil {
-			return nil, useEthereumV, err
+			return nil, err
 		}
 	default: // also case TextPlain.Mime:
-		// Calculates an Ethereum ECDSA signature for:
-		// hash = keccak256("\x19Ethereum Signed Message:\n${message length}${message}")
+		// Calculates a Zond Dilithium signature for:
+		// hash = keccak256("\x19Zond Signed Message:\n${message length}${message}")
 		// We expect input to be a hex-encoded string
 		textData, err := fromHex(data)
 		if err != nil {
-			return nil, useEthereumV, err
+			return nil, err
 		}
 		sighash, msg := accounts.TextAndHash(textData)
 		messages := []*apitypes.NameValueType{
@@ -191,7 +150,7 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 	}
 	req.Address = addr
 	req.Meta = MetadataFromContext(ctx)
-	return req, useEthereumV, nil
+	return req, nil
 }
 
 // SignTextValidator signs the given message which can be further recovered
@@ -200,23 +159,6 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 func SignTextValidator(validatorData apitypes.ValidatorData) (hexutil.Bytes, string) {
 	msg := fmt.Sprintf("\x19\x00%s%s", string(validatorData.Address.Bytes()), string(validatorData.Message))
 	return crypto.Keccak256([]byte(msg)), msg
-}
-
-// cliqueHeaderHashAndRlp returns the hash which is used as input for the proof-of-authority
-// signing. It is the hash of the entire header apart from the 65 byte signature
-// contained at the end of the extra data.
-//
-// The method requires the extra data to be at least 65 bytes -- the original implementation
-// in clique.go panics if this is the case, thus it's been reimplemented here to avoid the panic
-// and simply return an error instead
-func cliqueHeaderHashAndRlp(header *types.Header) (hash, rlp []byte, err error) {
-	if len(header.Extra) < 65 {
-		err = fmt.Errorf("clique header extradata too short, %d < 65", len(header.Extra))
-		return
-	}
-	rlp = clique.CliqueRLP(header)
-	hash = clique.SealHash(header).Bytes()
-	return hash, rlp, err
 }
 
 // SignTypedData signs EIP-712 conformant typed data
@@ -242,7 +184,7 @@ func (api *SignerAPI) signTypedData(ctx context.Context, addr common.MixedcaseAd
 	if validationMessages != nil {
 		req.Callinfo = validationMessages.Messages
 	}
-	signature, err := api.sign(req, true)
+	signature, err := api.sign(req)
 	if err != nil {
 		api.UI.ShowError(err.Error())
 		return nil, nil, err
@@ -287,35 +229,6 @@ func typedDataRequest(data any) (*SignDataRequest, error) {
 		Rawdata:     []byte(rawData),
 		Messages:    messages,
 		Hash:        sighash}, nil
-}
-
-// EcRecover recovers the address associated with the given sig.
-// Only compatible with `text/plain`
-func (api *SignerAPI) EcRecover(ctx context.Context, data hexutil.Bytes, sig hexutil.Bytes) (common.Address, error) {
-	// Returns the address for the Account that was used to create the signature.
-	//
-	// Note, this function is compatible with zond_sign and personal_sign. As such it recovers
-	// the address of:
-	// hash = keccak256("\x19Ethereum Signed Message:\n${message length}${message}")
-	// addr = ecrecover(hash, signature)
-	//
-	// Note, the signature must conform to the secp256k1 curve R, S and V values, where
-	// the V value must be 27 or 28 for legacy reasons.
-	//
-	// https://github.com/theQRL/go-zond/wiki/Management-APIs#personal_ecRecover
-	if len(sig) != 65 {
-		return common.Address{}, errors.New("signature must be 65 bytes long")
-	}
-	if sig[64] != 27 && sig[64] != 28 {
-		return common.Address{}, errors.New("invalid Ethereum signature (V is not 27 or 28)")
-	}
-	sig[64] -= 27 // Transform yellow paper V from 27/28 to 0/1
-	hash := accounts.TextHash(data)
-	rpk, err := crypto.SigToPub(hash, sig)
-	if err != nil {
-		return common.Address{}, err
-	}
-	return crypto.PubkeyToAddress(*rpk), nil
 }
 
 // UnmarshalValidatorData converts the bytes input to typed data

@@ -16,6 +16,7 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/tests"
 
@@ -41,7 +42,6 @@ type flatCallTrace struct {
 type flatCallTraceAction struct {
 	Author         common.Address `json:"author,omitempty"`
 	RewardType     string         `json:"rewardType,omitempty"`
-	SelfDestructed common.Address `json:"address,omitempty"`
 	Balance        hexutil.Big    `json:"balance,omitempty"`
 	CallType       string         `json:"callType,omitempty"`
 	CreationMethod string         `json:"creationMethod,omitempty"`
@@ -85,7 +85,7 @@ func flatCallTracerTestRunner(tracerName string, filename string, dirPath string
 	if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
 		return fmt.Errorf("failed to parse testcase input: %v", err)
 	}
-	signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)), uint64(test.Context.Time))
+	signer := types.MakeSigner(test.Genesis.Config)
 	origin, _ := signer.Sender(tx)
 	txContext := vm.TxContext{
 		Origin:   origin,
@@ -97,24 +97,24 @@ func flatCallTracerTestRunner(tracerName string, filename string, dirPath string
 		Coinbase:    test.Context.Miner,
 		BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
 		Time:        uint64(test.Context.Time),
-		Difficulty:  (*big.Int)(test.Context.Difficulty),
 		GasLimit:    uint64(test.Context.GasLimit),
+		BaseFee:     big.NewInt(params.InitialBaseFee),
 	}
 	triedb, _, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false, rawdb.HashScheme)
 	defer triedb.Close()
 
-	// Create the tracer, the EVM environment and run it
+	// Create the tracer, the ZVM environment and run it
 	tracer, err := tracers.DefaultDirectory.New(tracerName, new(tracers.Context), test.TracerConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create call tracer: %v", err)
 	}
-	evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
+	zvm := vm.NewZVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
 
 	msg, err := core.TransactionToMessage(tx, signer, nil)
 	if err != nil {
 		return fmt.Errorf("failed to prepare transaction for tracing: %v", err)
 	}
-	st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+	st := core.NewStateTransition(zvm, msg, new(core.GasPool).AddGas(tx.Gas()))
 
 	if _, err = st.TransitionDb(); err != nil {
 		return fmt.Errorf("failed to execute transaction: %v", err)
@@ -149,6 +149,7 @@ func flatCallTracerTestRunner(tracerName string, filename string, dirPath string
 	return nil
 }
 
+// TODO(now.youtrack.cloud/issue/TGZ-13)
 // Iterates over all the input-output datasets in the tracer parity test harness and
 // runs the Native tracer against them.
 func TestFlatCallTracerNative(t *testing.T) {

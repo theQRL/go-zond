@@ -35,6 +35,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 	"github.com/theQRL/go-zond/accounts"
 	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/cmd/utils"
@@ -42,20 +44,17 @@ import (
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/internal/ethapi"
 	"github.com/theQRL/go-zond/internal/flags"
+	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/signer/core"
 	"github.com/theQRL/go-zond/signer/core/apitypes"
 	"github.com/theQRL/go-zond/signer/fourbyte"
 	"github.com/theQRL/go-zond/signer/rules"
 	"github.com/theQRL/go-zond/signer/storage"
-	"github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 )
 
@@ -100,7 +99,7 @@ var (
 	chainIdFlag = &cli.Int64Flag{
 		Name:  "chainid",
 		Value: params.MainnetChainConfig.ChainID.Int64(),
-		Usage: "Chain id to use for signing (1=mainnet, 5=Goerli)",
+		Usage: "Chain id to use for signing (1=mainnet)",
 	}
 	rpcPortFlag = &cli.IntFlag{
 		Name:     "http.port",
@@ -243,8 +242,8 @@ The gendoc generates example structures of the json-rpc communication types.
 	importRawCommand = &cli.Command{
 		Action:    accountImport,
 		Name:      "importraw",
-		Usage:     "Import a hex-encoded private key.",
-		ArgsUsage: "<keyfile>",
+		Usage:     "Import a hex-encoded seed.",
+		ArgsUsage: "<file>",
 		Flags: []cli.Flag{
 			logLevelFlag,
 			keystoreFlag,
@@ -252,14 +251,14 @@ The gendoc generates example structures of the json-rpc communication types.
 			acceptFlag,
 		},
 		Description: `
-Imports an unencrypted private key from <keyfile> and creates a new account.
+Imports a seed from <file> and creates a new account.
 Prints the address.
-The keyfile is assumed to contain an unencrypted private key in hexadecimal format.
+The file is assumed to contain a seed in hexadecimal format.
 The account is saved in encrypted format, you are prompted for a password.
 `}
 )
 
-var app = flags.NewApp("Manage Ethereum account operations")
+var app = flags.NewApp("Manage Zond account operations")
 
 func init() {
 	app.Name = "Clef"
@@ -269,7 +268,7 @@ func init() {
 		configdirFlag,
 		chainIdFlag,
 		utils.LightKDFFlag,
-		utils.NoUSBFlag,
+		utils.USBFlag,
 		utils.SmartCardDaemonPathFlag,
 		utils.HTTPListenAddrFlag,
 		utils.HTTPVirtualHostsFlag,
@@ -408,8 +407,9 @@ func initInternalApi(c *cli.Context) (*core.UIServerAPI, core.UIClientAPI, error
 		ksLoc                     = c.String(keystoreFlag.Name)
 		lightKdf                  = c.Bool(utils.LightKDFFlag.Name)
 	)
-	am := core.StartClefAccountManager(ksLoc, true, lightKdf, "")
-	api := core.NewSignerAPI(am, 0, true, ui, nil, false, pwStorage)
+	am := core.StartClefAccountManager(ksLoc /*false,*/, lightKdf /*""*/)
+	defer am.Close()
+	api := core.NewSignerAPI(am, 0 /*false,*/, ui, nil, false, pwStorage)
 	internalApi := core.NewUIServerAPI(api)
 	return internalApi, ui, nil
 }
@@ -421,11 +421,12 @@ func setCredential(ctx *cli.Context) error {
 	if err := initialize(ctx); err != nil {
 		return err
 	}
-	addr := ctx.Args().First()
-	if !common.IsHexAddress(addr) {
-		utils.Fatalf("Invalid address specified: %s", addr)
+	addressStr := ctx.Args().First()
+	address, err := common.NewAddressFromString(addressStr)
+	if err != nil {
+		utils.Fatalf("Invalid address specified: %s", addressStr)
 	}
-	address := common.HexToAddress(addr)
+
 	password := utils.GetPassPhrase("Please enter a password to store for this address:", true)
 	fmt.Println()
 
@@ -451,11 +452,11 @@ func removeCredential(ctx *cli.Context) error {
 	if err := initialize(ctx); err != nil {
 		return err
 	}
-	addr := ctx.Args().First()
-	if !common.IsHexAddress(addr) {
-		utils.Fatalf("Invalid address specified: %s", addr)
+	addressStr := ctx.Args().First()
+	address, err := common.NewAddressFromString(addressStr)
+	if err != nil {
+		utils.Fatalf("Invalid address specified: %s", addressStr)
 	}
-	address := common.HexToAddress(addr)
 
 	stretchedKey, err := readMasterKey(ctx, nil)
 	if err != nil {
@@ -548,16 +549,17 @@ func listWallets(c *cli.Context) error {
 	return nil
 }
 
-// accountImport imports a raw hexadecimal private key via CLI.
+// accountImport imports a raw hexadecimal seed via CLI.
 func accountImport(c *cli.Context) error {
 	if c.Args().Len() != 1 {
-		return errors.New("<keyfile> must be given as first argument.")
+		return errors.New("<file> must be given as first argument")
 	}
 	internalApi, ui, err := initInternalApi(c)
 	if err != nil {
 		return err
 	}
-	pKey, err := crypto.LoadECDSA(c.Args().First())
+
+	hexSeed, err := readSeedFromFile(c.Args().First())
 	if err != nil {
 		return err
 	}
@@ -581,9 +583,10 @@ func accountImport(c *cli.Context) error {
 		return err
 	}
 	if first != second {
+		//lint:ignore ST1005 This is a message for the user
 		return errors.New("Passwords do not match")
 	}
-	acc, err := internalApi.ImportRawKey(hex.EncodeToString(crypto.FromECDSA(pKey)), first)
+	acc, err := internalApi.ImportRawKey(hexSeed, first)
 	if err != nil {
 		return err
 	}
@@ -696,13 +699,13 @@ func signer(c *cli.Context) error {
 		ksLoc    = c.String(keystoreFlag.Name)
 		lightKdf = c.Bool(utils.LightKDFFlag.Name)
 		advanced = c.Bool(advancedMode.Name)
-		nousb    = c.Bool(utils.NoUSBFlag.Name)
-		scpath   = c.String(utils.SmartCardDaemonPathFlag.Name)
+		// usbEnabled = c.Bool(utils.USBFlag.Name)
+		// scpath = c.String(utils.SmartCardDaemonPathFlag.Name)
 	)
 	log.Info("Starting signer", "chainid", chainId, "keystore", ksLoc,
 		"light-kdf", lightKdf, "advanced", advanced)
-	am := core.StartClefAccountManager(ksLoc, nousb, lightKdf, scpath)
-	apiImpl := core.NewSignerAPI(am, chainId, nousb, ui, db, advanced, pwStorage)
+	am := core.StartClefAccountManager(ksLoc /*usbEnabled,*/, lightKdf /*, scpath*/)
+	apiImpl := core.NewSignerAPI(am, chainId /*usbEnabled,*/, ui, db, advanced, pwStorage)
 
 	// Establish the bidirectional communication, by creating a new UI backend and registering
 	// it with the UI.
@@ -898,7 +901,7 @@ func testExternalUI(api *core.SignerAPI) {
 	ctx = context.WithValue(ctx, "local", "main")
 	errs := make([]string, 0)
 
-	a := common.HexToAddress("0xdeadbeef000000000000000000000000deadbeef")
+	a, _ := common.NewAddressFromString("Zdeadbeef000000000000000000000000deadbeef")
 	addErr := func(errStr string) {
 		log.Info("Test error", "err", errStr)
 		errs = append(errs, errStr)
@@ -940,38 +943,12 @@ func testExternalUI(api *core.SignerAPI) {
 		time.Sleep(delay)
 		expectResponse("showerror", "Did you see the message? [yes/no]", "yes")
 	}
-	{ // Sign data test - clique header
-		api.UI.ShowInfo("Please approve the next request for signing a clique header")
-		time.Sleep(delay)
-		cliqueHeader := types.Header{
-			ParentHash:  common.HexToHash("0000H45H"),
-			UncleHash:   common.HexToHash("0000H45H"),
-			Coinbase:    common.HexToAddress("0000H45H"),
-			Root:        common.HexToHash("0000H00H"),
-			TxHash:      common.HexToHash("0000H45H"),
-			ReceiptHash: common.HexToHash("0000H45H"),
-			Difficulty:  big.NewInt(1337),
-			Number:      big.NewInt(1337),
-			GasLimit:    1338,
-			GasUsed:     1338,
-			Time:        1338,
-			Extra:       []byte("Extra data Extra data Extra data  Extra data  Extra data  Extra data  Extra data Extra data"),
-			MixDigest:   common.HexToHash("0x0000H45H"),
-		}
-		cliqueRlp, err := rlp.EncodeToBytes(cliqueHeader)
-		if err != nil {
-			utils.Fatalf("Should not error: %v", err)
-		}
-		addr, _ := common.NewMixedcaseAddressFromString("0x0011223344556677889900112233445566778899")
-		_, err = api.SignData(ctx, accounts.MimetypeClique, *addr, hexutil.Encode(cliqueRlp))
-		expectApprove("signdata - clique header", err)
-	}
 	{ // Sign data test - typed data
 		api.UI.ShowInfo("Please approve the next request for signing EIP-712 typed data")
 		time.Sleep(delay)
-		addr, _ := common.NewMixedcaseAddressFromString("0x0011223344556677889900112233445566778899")
-		data := `{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Person":[{"name":"name","type":"string"},{"name":"test","type":"uint8"},{"name":"wallet","type":"address"}],"Mail":[{"name":"from","type":"Person"},{"name":"to","type":"Person"},{"name":"contents","type":"string"}]},"primaryType":"Mail","domain":{"name":"Ether Mail","version":"1","chainId":"1","verifyingContract":"0xCCCcccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"},"message":{"from":{"name":"Cow","test":"3","wallet":"0xcD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826"},"to":{"name":"Bob","wallet":"0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB","test":"2"},"contents":"Hello, Bob!"}}`
-		//_, err := api.SignData(ctx, accounts.MimetypeTypedData, *addr, hexutil.Encode([]byte(data)))
+		addr, _ := common.NewMixedcaseAddressFromString("Z0011223344556677889900112233445566778899")
+		data := `{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Person":[{"name":"name","type":"string"},{"name":"test","type":"uint8"},{"name":"wallet","type":"address"}],"Mail":[{"name":"from","type":"Person"},{"name":"to","type":"Person"},{"name":"contents","type":"string"}]},"primaryType":"Mail","domain":{"name":"Ether Mail","version":"1","chainId":"1","verifyingContract":"ZCCCcccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"},"message":{"from":{"name":"Cow","test":"3","wallet":"ZcD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826"},"to":{"name":"Bob","wallet":"ZbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB","test":"2"},"contents":"Hello, Bob!"}}`
+		// _, err := api.SignData(ctx, accounts.MimetypeTypedData, *addr, hexutil.Encode([]byte(data)))
 		var typedData apitypes.TypedData
 		json.Unmarshal([]byte(data), &typedData)
 		_, err := api.SignTypedData(ctx, *addr, typedData)
@@ -980,14 +957,14 @@ func testExternalUI(api *core.SignerAPI) {
 	{ // Sign data test - plain text
 		api.UI.ShowInfo("Please approve the next request for signing text")
 		time.Sleep(delay)
-		addr, _ := common.NewMixedcaseAddressFromString("0x0011223344556677889900112233445566778899")
+		addr, _ := common.NewMixedcaseAddressFromString("Z0011223344556677889900112233445566778899")
 		_, err := api.SignData(ctx, accounts.MimetypeTextPlain, *addr, hexutil.Encode([]byte("hello world")))
 		expectApprove("signdata - text", err)
 	}
 	{ // Sign data test - plain text reject
 		api.UI.ShowInfo("Please deny the next request for signing text")
 		time.Sleep(delay)
-		addr, _ := common.NewMixedcaseAddressFromString("0x0011223344556677889900112233445566778899")
+		addr, _ := common.NewMixedcaseAddressFromString("Z0011223344556677889900112233445566778899")
 		_, err := api.SignData(ctx, accounts.MimetypeTextPlain, *addr, hexutil.Encode([]byte("hello world")))
 		expectDeny("signdata - text", err)
 	}
@@ -997,14 +974,15 @@ func testExternalUI(api *core.SignerAPI) {
 		data := hexutil.Bytes([]byte{})
 		to := common.NewMixedcaseAddress(a)
 		tx := apitypes.SendTxArgs{
-			Data:     &data,
-			Nonce:    0x1,
-			Value:    hexutil.Big(*big.NewInt(6)),
-			From:     common.NewMixedcaseAddress(a),
-			To:       &to,
-			GasPrice: (*hexutil.Big)(big.NewInt(5)),
-			Gas:      1000,
-			Input:    nil,
+			Data:                 &data,
+			Nonce:                0x1,
+			Value:                hexutil.Big(*big.NewInt(6)),
+			From:                 common.NewMixedcaseAddress(a),
+			To:                   &to,
+			MaxFeePerGas:         (*hexutil.Big)(big.NewInt(5)),
+			MaxPriorityFeePerGas: (*hexutil.Big)(big.NewInt(0)),
+			Gas:                  1000,
+			Input:                nil,
 		}
 		_, err := api.SignTransaction(ctx, tx, nil)
 		expectDeny("signtransaction [1]", err)
@@ -1071,8 +1049,9 @@ func decryptSeed(keyjson []byte, auth string) ([]byte, error) {
 // GenDoc outputs examples of all structures used in json-rpc communication
 func GenDoc(ctx *cli.Context) error {
 	var (
-		a    = common.HexToAddress("0xdeadbeef000000000000000000000000deadbeef")
-		b    = common.HexToAddress("0x1111111122222222222233333333334444444444")
+		a, _ = common.NewAddressFromString("Zdeadbeef000000000000000000000000deadbeef")
+		b, _ = common.NewAddressFromString("Z1111111122222222222233333333334444444444")
+		c, _ = common.NewAddressFromString("Zcowbeef000000cowbeef00000000000000000c0w")
 		meta = core.Metadata{
 			Scheme:    "http",
 			Local:     "localhost:8545",
@@ -1131,14 +1110,15 @@ func GenDoc(ctx *cli.Context) error {
 				{Typ: "Info", Message: "User should see this as well"},
 			},
 			Transaction: apitypes.SendTxArgs{
-				Data:     &data,
-				Nonce:    0x1,
-				Value:    hexutil.Big(*big.NewInt(6)),
-				From:     common.NewMixedcaseAddress(a),
-				To:       nil,
-				GasPrice: (*hexutil.Big)(big.NewInt(5)),
-				Gas:      1000,
-				Input:    nil,
+				Data:                 &data,
+				Nonce:                0x1,
+				Value:                hexutil.Big(*big.NewInt(6)),
+				From:                 common.NewMixedcaseAddress(a),
+				To:                   nil,
+				MaxFeePerGas:         (*hexutil.Big)(big.NewInt(5)),
+				MaxPriorityFeePerGas: (*hexutil.Big)(big.NewInt(0)),
+				Gas:                  1000,
+				Input:                nil,
 			}})
 	}
 	{ // Sign tx response
@@ -1147,14 +1127,15 @@ func GenDoc(ctx *cli.Context) error {
 			", because the UI is free to make modifications to the transaction.",
 			&core.SignTxResponse{Approved: true,
 				Transaction: apitypes.SendTxArgs{
-					Data:     &data,
-					Nonce:    0x4,
-					Value:    hexutil.Big(*big.NewInt(6)),
-					From:     common.NewMixedcaseAddress(a),
-					To:       nil,
-					GasPrice: (*hexutil.Big)(big.NewInt(5)),
-					Gas:      1000,
-					Input:    nil,
+					Data:                 &data,
+					Nonce:                0x4,
+					Value:                hexutil.Big(*big.NewInt(6)),
+					From:                 common.NewMixedcaseAddress(a),
+					To:                   nil,
+					MaxFeePerGas:         (*hexutil.Big)(big.NewInt(5)),
+					MaxPriorityFeePerGas: (*hexutil.Big)(big.NewInt(0)),
+					Gas:                  1000,
+					Input:                nil,
 				}})
 		add("SignTxResponse - deny", "Response to SignTxRequest. When denying a request, there's no need to "+
 			"provide the transaction in return",
@@ -1178,7 +1159,7 @@ func GenDoc(ctx *cli.Context) error {
 		rlpdata := common.FromHex("0xf85d640101948a8eafb1cf62bfbeb1741769dae1a9dd47996192018026a0716bd90515acb1e68e5ac5867aa11a1e65399c3349d479f5fb698554ebc6f293a04e8a4ebfff434e971e0ef12c5bf3a881b06fd04fc3f8b8a7291fb67a26a1d4ed")
 		var tx types.Transaction
 		tx.UnmarshalBinary(rlpdata)
-		add("OnApproved - SignTransactionResult", desc, &ethapi.SignTransactionResult{Raw: rlpdata, Tx: &tx})
+		add("OnApproved - SignTransactionResult", desc, &zondapi.SignTransactionResult{Raw: rlpdata, Tx: &tx})
 	}
 	{ // User input
 		add("UserInputRequest", "Sent when clef needs the user to provide data. If 'password' is true, the input field should be treated accordingly (echo-free)",
@@ -1202,11 +1183,11 @@ func GenDoc(ctx *cli.Context) error {
 			&core.ListResponse{
 				Accounts: []accounts.Account{
 					{
-						Address: common.HexToAddress("0xcowbeef000000cowbeef00000000000000000c0w"),
+						Address: c,
 						URL:     accounts.URL{Path: ".. ignored .."},
 					},
 					{
-						Address: common.HexToAddress("0xffffffffffffffffffffffffffffffffffffffff"),
+						Address: common.MaxAddress,
 					},
 				}})
 	}
@@ -1218,4 +1199,58 @@ These data types are defined in the channel between clef and the UI`)
 		fmt.Println(elem)
 	}
 	return nil
+}
+
+func readSeedFromFile(file string) (string, error) {
+	fd, err := os.Open(file)
+	if err != nil {
+		return "", err
+	}
+	defer fd.Close()
+
+	r := bufio.NewReader(fd)
+	buf := make([]byte, 96)
+	n, err := readASCII(buf, r)
+	if err != nil {
+		return "", err
+	} else if n != len(buf) {
+		return "", errors.New("seed too short, want 96 hex characters")
+	}
+	if err := checkKeyFileEnd(r); err != nil {
+		return "", err
+	}
+
+	return string(buf), nil
+}
+
+// checkKeyFileEnd skips over additional newlines at the end of a key file.
+func checkKeyFileEnd(r *bufio.Reader) error {
+	for i := 0; ; i++ {
+		b, err := r.ReadByte()
+		switch {
+		case err == io.EOF:
+			return nil
+		case err != nil:
+			return err
+		case b != '\n' && b != '\r':
+			return fmt.Errorf("invalid character %q at end of file", b)
+		case i >= 2:
+			return errors.New("key file too long, want 48 hex characters")
+		}
+	}
+}
+
+// readASCII reads into 'buf', stopping when the buffer is full or
+// when a non-printable control character is encountered.
+func readASCII(buf []byte, r *bufio.Reader) (n int, err error) {
+	for ; n < len(buf); n++ {
+		buf[n], err = r.ReadByte()
+		switch {
+		case err == io.EOF || buf[n] < '!':
+			return n, nil
+		case err != nil:
+			return n, err
+		}
+	}
+	return n, nil
 }

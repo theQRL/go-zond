@@ -31,8 +31,7 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/internal/ethapi"
-	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/signer/core"
 	"github.com/theQRL/go-zond/signer/core/apitypes"
 	"github.com/theQRL/go-zond/signer/fourbyte"
@@ -50,9 +49,9 @@ func (ui *headlessUi) OnInputRequired(info core.UserInputRequest) (core.UserInpu
 	return core.UserInputResponse{Text: input}, nil
 }
 
-func (ui *headlessUi) OnSignerStartup(info core.StartupInfo)        {}
-func (ui *headlessUi) RegisterUIServer(api *core.UIServerAPI)       {}
-func (ui *headlessUi) OnApprovedTx(tx ethapi.SignTransactionResult) {}
+func (ui *headlessUi) OnSignerStartup(info core.StartupInfo)         {}
+func (ui *headlessUi) RegisterUIServer(api *core.UIServerAPI)        {}
+func (ui *headlessUi) OnApprovedTx(tx zondapi.SignTransactionResult) {}
 
 func (ui *headlessUi) ApproveTx(request *core.SignTxRequest) (core.SignTxResponse, error) {
 	switch <-ui.approveCh {
@@ -121,8 +120,8 @@ func setup(t *testing.T) (*core.SignerAPI, *headlessUi) {
 		t.Fatal(err.Error())
 	}
 	ui := &headlessUi{make(chan string, 20), make(chan string, 20)}
-	am := core.StartClefAccountManager(tmpDirName(t), true, true, "")
-	api := core.NewSignerAPI(am, 1337, true, ui, db, true, &storage.NoStorage{})
+	am := core.StartClefAccountManager(tmpDirName(t) /*false,*/, true /*, ""*/)
+	api := core.NewSignerAPI(am, 1337 /*true,*/, ui, db, true, &storage.NoStorage{})
 	return api, ui
 }
 func createAccount(ui *headlessUi, api *core.SignerAPI, t *testing.T) {
@@ -217,27 +216,28 @@ func TestNewAcc(t *testing.T) {
 }
 
 func mkTestTx(from common.MixedcaseAddress) apitypes.SendTxArgs {
-	to := common.NewMixedcaseAddress(common.HexToAddress("0x1337"))
+	address, _ := common.NewAddressFromString("Z0000000000000000000000000000000000001337")
+	to := common.NewMixedcaseAddress(address)
 	gas := hexutil.Uint64(21000)
-	gasPrice := (hexutil.Big)(*big.NewInt(2000000000))
+	maxFeePerGas := (hexutil.Big)(*big.NewInt(2000000000))
 	value := (hexutil.Big)(*big.NewInt(1e18))
 	nonce := (hexutil.Uint64)(0)
 	data := hexutil.Bytes(common.Hex2Bytes("01020304050607080a"))
 	tx := apitypes.SendTxArgs{
-		From:     from,
-		To:       &to,
-		Gas:      gas,
-		GasPrice: &gasPrice,
-		Value:    value,
-		Data:     &data,
-		Nonce:    nonce}
+		From:         from,
+		To:           &to,
+		Gas:          gas,
+		MaxFeePerGas: &maxFeePerGas,
+		Value:        value,
+		Data:         &data,
+		Nonce:        nonce}
 	return tx
 }
 
 func TestSignTx(t *testing.T) {
 	var (
 		list      []common.Address
-		res, res2 *ethapi.SignTransactionResult
+		res, res2 *zondapi.SignTransactionResult
 		err       error
 	)
 
@@ -277,12 +277,14 @@ func TestSignTx(t *testing.T) {
 	control.approveCh <- "Y"
 	control.inputCh <- "a_long_password"
 	res, err = api.SignTransaction(context.Background(), tx, &methodSig)
-
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	parsedTx := &types.Transaction{}
-	rlp.DecodeBytes(res.Raw, parsedTx)
+	if err := parsedTx.UnmarshalBinary(res.Raw); err != nil {
+		t.Fatal(err)
+	}
 
 	//The tx should NOT be modified by the UI
 	if parsedTx.Value().Cmp(tx.Value.ToInt()) != 0 {
@@ -308,7 +310,9 @@ func TestSignTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	parsedTx2 := &types.Transaction{}
-	rlp.DecodeBytes(res.Raw, parsedTx2)
+	if err := parsedTx2.UnmarshalBinary(res.Raw); err != nil {
+		t.Fatal(err)
+	}
 
 	//The tx should be modified by the UI
 	if parsedTx2.Value().Cmp(tx.Value.ToInt()) != 0 {

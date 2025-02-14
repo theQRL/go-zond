@@ -54,7 +54,7 @@ func (s Storage) Copy() Storage {
 	return cpy
 }
 
-// stateObject represents an Ethereum account which is being modified.
+// stateObject represents a Zond account which is being modified.
 //
 // The usage pattern is as follows:
 // - First you need to obtain a state object.
@@ -62,8 +62,8 @@ func (s Storage) Copy() Storage {
 // - Finally, call commit to return the changes of storage trie and update account data.
 type stateObject struct {
 	db       *StateDB
-	address  common.Address      // address of ethereum account
-	addrHash common.Hash         // hash of ethereum address of the account
+	address  common.Address      // address of zond account
+	addrHash common.Hash         // hash of zond address of the account
 	origin   *types.StateAccount // Account original data without any change applied, nil means it was not existent
 	data     types.StateAccount  // Account data with all mutations applied in the scope of block
 
@@ -78,12 +78,7 @@ type stateObject struct {
 	// Cache flags.
 	dirtyCode bool // true if the code was updated
 
-	// Flag whether the account was marked as self-destructed. The self-destructed account
-	// is still accessible in the scope of same transaction.
-	selfDestructed bool
-
-	// Flag whether the account was marked as deleted. A self-destructed account
-	// or an account that is considered as empty will be marked as deleted at
+	// Flag whether the account was marked as deleted. An account that is considered as empty will be marked as deleted at
 	// the end of transaction and no longer accessible anymore.
 	deleted bool
 
@@ -119,19 +114,10 @@ func (s *stateObject) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &s.data)
 }
 
-func (s *stateObject) markSelfdestructed() {
-	s.selfDestructed = true
-}
-
 func (s *stateObject) touch() {
 	s.db.journal.append(touchChange{
 		account: &s.address,
 	})
-	if s.address == ripemd {
-		// Explicitly put it in the dirty-cache, which is otherwise generated from
-		// flattened journals.
-		s.db.journal.dirty(s.address)
-	}
 }
 
 // getTrie returns the associated storage trie. The trie will be opened
@@ -449,7 +435,6 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	obj.dirtyStorage = s.dirtyStorage.Copy()
 	obj.originStorage = s.originStorage.Copy()
 	obj.pendingStorage = s.pendingStorage.Copy()
-	obj.selfDestructed = s.selfDestructed
 	obj.dirtyCode = s.dirtyCode
 	obj.deleted = s.deleted
 	return obj

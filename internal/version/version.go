@@ -54,7 +54,7 @@ func VCS() (VCSInfo, bool) {
 }
 
 // ClientName creates a software name/version identifier according to common
-// conventions in the Ethereum p2p network.
+// conventions in the Zond p2p network.
 func ClientName(clientIdentifier string) string {
 	git, _ := VCS()
 	return fmt.Sprintf("%s/v%v/%v-%v/%v",

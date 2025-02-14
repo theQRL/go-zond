@@ -135,12 +135,11 @@ type nodeFilterC struct {
 }
 
 var filterFlags = map[string]nodeFilterC{
-	"-limit":       {1, trueFilter}, // needed to skip over -limit
-	"-ip":          {1, ipFilter},
-	"-min-age":     {1, minAgeFilter},
+	"-limit":        {1, trueFilter}, // needed to skip over -limit
+	"-ip":           {1, ipFilter},
+	"-min-age":      {1, minAgeFilter},
 	"-zond-network": {1, ethFilter},
-	"-les-server":  {0, lesFilter},
-	"-snap":        {0, snapFilter},
+	"-snap":         {0, snapFilter},
 }
 
 // parseFilters parses nodeFilters from args.
@@ -230,12 +229,6 @@ func ethFilter(args []string) (nodeFilter, error) {
 	switch args[0] {
 	case "mainnet":
 		filter = forkid.NewStaticFilter(params.MainnetChainConfig, core.DefaultGenesisBlock().ToBlock())
-	case "goerli":
-		filter = forkid.NewStaticFilter(params.GoerliChainConfig, core.DefaultGoerliGenesisBlock().ToBlock())
-	case "sepolia":
-		filter = forkid.NewStaticFilter(params.SepoliaChainConfig, core.DefaultSepoliaGenesisBlock().ToBlock())
-	case "holesky":
-		filter = forkid.NewStaticFilter(params.HoleskyChainConfig, core.DefaultHoleskyGenesisBlock().ToBlock())
 	default:
 		return nil, fmt.Errorf("unknown network %q", args[0])
 	}
@@ -249,16 +242,6 @@ func ethFilter(args []string) (nodeFilter, error) {
 			return false
 		}
 		return filter(eth.ForkID) == nil
-	}
-	return f, nil
-}
-
-func lesFilter(args []string) (nodeFilter, error) {
-	f := func(n nodeJSON) bool {
-		var les struct {
-			Tail []rlp.RawValue `rlp:"tail"`
-		}
-		return n.N.Load(enr.WithEntry("les", &les)) == nil
 	}
 	return f, nil
 }

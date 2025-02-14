@@ -29,7 +29,7 @@ import (
 	"github.com/theQRL/go-zond/common/hexutil"
 )
 
-var testAddrHex = "970e8128ab834e8eac17ab8e3812f010678cf791"
+var testAddr, _ = common.NewAddressFromString("Z970e8128ab834e8eac17ab8e3812f010678cf791")
 var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
 
 // These tests are sanity checks.
@@ -93,7 +93,6 @@ func TestUnmarshalPubkey(t *testing.T) {
 
 func TestSign(t *testing.T) {
 	key, _ := HexToECDSA(testPrivHex)
-	addr := common.HexToAddress(testAddrHex)
 
 	msg := Keccak256([]byte("foo"))
 	sig, err := Sign(msg, key)
@@ -106,8 +105,8 @@ func TestSign(t *testing.T) {
 	}
 	pubKey, _ := UnmarshalPubkey(recoveredPub)
 	recoveredAddr := PubkeyToAddress(*pubKey)
-	if addr != recoveredAddr {
-		t.Errorf("Address mismatch: want: %x have: %x", addr, recoveredAddr)
+	if testAddr != recoveredAddr {
+		t.Errorf("Address mismatch: want: %x have: %x", testAddr, recoveredAddr)
 	}
 
 	// should be equal to SigToPub
@@ -116,8 +115,8 @@ func TestSign(t *testing.T) {
 		t.Errorf("ECRecover error: %s", err)
 	}
 	recoveredAddr2 := PubkeyToAddress(*recoveredPub2)
-	if addr != recoveredAddr2 {
-		t.Errorf("Address mismatch: want: %x have: %x", addr, recoveredAddr2)
+	if testAddr != recoveredAddr2 {
+		t.Errorf("Address mismatch: want: %x have: %x", testAddr, recoveredAddr2)
 	}
 }
 
@@ -132,17 +131,19 @@ func TestInvalidSign(t *testing.T) {
 
 func TestNewContractAddress(t *testing.T) {
 	key, _ := HexToECDSA(testPrivHex)
-	addr := common.HexToAddress(testAddrHex)
 	genAddr := PubkeyToAddress(key.PublicKey)
 	// sanity check before using addr to create contract address
-	checkAddr(t, genAddr, addr)
+	checkAddr(t, genAddr, testAddr)
 
-	caddr0 := CreateAddress(addr, 0)
-	caddr1 := CreateAddress(addr, 1)
-	caddr2 := CreateAddress(addr, 2)
-	checkAddr(t, common.HexToAddress("333c3310824b7c685133f2bedb2ca4b8b4df633d"), caddr0)
-	checkAddr(t, common.HexToAddress("8bda78331c916a08481428e4b07c96d3e916d165"), caddr1)
-	checkAddr(t, common.HexToAddress("c9ddedf451bc62ce88bf9292afb13df35b670699"), caddr2)
+	caddr0 := CreateAddress(testAddr, 0)
+	caddr1 := CreateAddress(testAddr, 1)
+	caddr2 := CreateAddress(testAddr, 2)
+	addr0, _ := common.NewAddressFromString("Z333c3310824b7c685133f2bedb2ca4b8b4df633d")
+	addr1, _ := common.NewAddressFromString("Z8bda78331c916a08481428e4b07c96d3e916d165")
+	addr2, _ := common.NewAddressFromString("Zc9ddedf451bc62ce88bf9292afb13df35b670699")
+	checkAddr(t, addr0, caddr0)
+	checkAddr(t, addr1, caddr1)
+	checkAddr(t, addr2, caddr2)
 }
 
 func TestLoadECDSA(t *testing.T) {

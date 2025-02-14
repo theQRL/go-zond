@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package bind generates Ethereum contract Go bindings.
+// Package bind generates Zond contract Go bindings.
 //
 // Detailed usage document and tutorial available on the go-ethereum Wiki page:
-// https://github.com/theQRL/go-zond/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
+// https://github.com/ethereum/go-ethereum/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
 package bind
 
 import (
@@ -94,7 +94,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 	)
 	for i := 0; i < len(types); i++ {
 		// Parse the actual ABI to generate the binding for
-		evmABI, err := abi.JSON(strings.NewReader(abis[i]))
+		zvmABI, err := abi.JSON(strings.NewReader(abis[i]))
 		if err != nil {
 			return "", err
 		}
@@ -123,13 +123,13 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			eventIdentifiers    = make(map[string]bool)
 		)
 
-		for _, input := range evmABI.Constructor.Inputs {
+		for _, input := range zvmABI.Constructor.Inputs {
 			if hasStruct(input.Type) {
 				bindStructType[lang](input.Type, structs)
 			}
 		}
 
-		for _, original := range evmABI.Methods {
+		for _, original := range zvmABI.Methods {
 			// Normalize the method for capital cases and non-anonymous inputs/outputs
 			normalized := original
 			normalizedName := methodNormalizer[lang](alias(aliases, original.Name))
@@ -179,7 +179,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 				transacts[original.Name] = &tmplMethod{Original: original, Normalized: normalized, Structured: structured(original.Outputs)}
 			}
 		}
-		for _, original := range evmABI.Events {
+		for _, original := range zvmABI.Events {
 			// Skip anonymous events as they don't support explicit filtering
 			if original.Anonymous {
 				continue
@@ -227,17 +227,17 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			events[original.Name] = &tmplEvent{Original: original, Normalized: normalized}
 		}
 		// Add two special fallback functions if they exist
-		if evmABI.HasFallback() {
-			fallback = &tmplMethod{Original: evmABI.Fallback}
+		if zvmABI.HasFallback() {
+			fallback = &tmplMethod{Original: zvmABI.Fallback}
 		}
-		if evmABI.HasReceive() {
-			receive = &tmplMethod{Original: evmABI.Receive}
+		if zvmABI.HasReceive() {
+			receive = &tmplMethod{Original: zvmABI.Receive}
 		}
 		contracts[types[i]] = &tmplContract{
 			Type:        capitalise(types[i]),
 			InputABI:    strings.ReplaceAll(strippedABI, "\"", "\\\""),
 			InputBin:    strings.TrimPrefix(strings.TrimSpace(bytecodes[i]), "0x"),
-			Constructor: evmABI.Constructor,
+			Constructor: zvmABI.Constructor,
 			Calls:       calls,
 			Transacts:   transacts,
 			Fallback:    fallback,
@@ -302,13 +302,13 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 	return buffer.String(), nil
 }
 
-// bindType is a set of type binders that convert Solidity types to some supported
+// bindType is a set of type binders that convert Hyperion types to some supported
 // programming language types.
 var bindType = map[Lang]func(kind abi.Type, structs map[string]*tmplStruct) string{
 	LangGo: bindTypeGo,
 }
 
-// bindBasicTypeGo converts basic solidity types(except array, slice and tuple) to Go ones.
+// bindBasicTypeGo converts basic hyperion types(except array, slice and tuple) to Go ones.
 func bindBasicTypeGo(kind abi.Type) string {
 	switch kind.T {
 	case abi.AddressTy:
@@ -332,8 +332,8 @@ func bindBasicTypeGo(kind abi.Type) string {
 	}
 }
 
-// bindTypeGo converts solidity types to Go ones. Since there is no clear mapping
-// from all Solidity types to Go ones (e.g. uint17), those that cannot be exactly
+// bindTypeGo converts hyperion types to Go ones. Since there is no clear mapping
+// from all Hyperion types to Go ones (e.g. uint17), those that cannot be exactly
 // mapped will use an upscaled type (e.g. BigDecimal).
 func bindTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	switch kind.T {
@@ -348,18 +348,18 @@ func bindTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	}
 }
 
-// bindTopicType is a set of type binders that convert Solidity types to some
+// bindTopicType is a set of type binders that convert Hyperion types to some
 // supported programming language topic types.
 var bindTopicType = map[Lang]func(kind abi.Type, structs map[string]*tmplStruct) string{
 	LangGo: bindTopicTypeGo,
 }
 
-// bindTopicTypeGo converts a Solidity topic type to a Go one. It is almost the same
+// bindTopicTypeGo converts a Hyperion topic type to a Go one. It is almost the same
 // functionality as for simple types, but dynamic types get converted to hashes.
 func bindTopicTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	bound := bindTypeGo(kind, structs)
 
-	// todo(rjl493456442) according solidity documentation, indexed event
+	// todo(rjl493456442) according hyperion documentation, indexed event
 	// parameters that are not value types i.e. arrays and structs are not
 	// stored directly but instead a keccak256-hash of an encoding is stored.
 	//
@@ -371,20 +371,21 @@ func bindTopicTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	return bound
 }
 
-// bindStructType is a set of type binders that convert Solidity tuple types to some supported
+// bindStructType is a set of type binders that convert Hyperion tuple types to some supported
 // programming language struct definition.
 var bindStructType = map[Lang]func(kind abi.Type, structs map[string]*tmplStruct) string{
 	LangGo: bindStructTypeGo,
 }
 
-// bindStructTypeGo converts a Solidity tuple type to a Go one and records the mapping
+// bindStructTypeGo converts a Hyperion tuple type to a Go one and records the mapping
 // in the given map.
 // Notably, this function will resolve and record nested struct recursively.
 func bindStructTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 	switch kind.T {
 	case abi.TupleTy:
+		// TODO(now.youtrack.cloud/issue/TGZ-29)
 		// We compose a raw struct name and a canonical parameter expression
-		// together here. The reason is before solidity v0.5.11, kind.TupleRawName
+		// together here. The reason is before hyperion v0.5.11, kind.TupleRawName
 		// is empty, so we use canonical parameter expression to distinguish
 		// different struct definition. From the consideration of backward
 		// compatibility, we concat these two together so that if kind.TupleRawName
@@ -438,7 +439,7 @@ func alias(aliases map[string]string, n string) string {
 	return n
 }
 
-// methodNormalizer is a name transformer that modifies Solidity method names to
+// methodNormalizer is a name transformer that modifies Hyperion method names to
 // conform to target language naming conventions.
 var methodNormalizer = map[Lang]func(string) string{
 	LangGo: abi.ToCamelCase,

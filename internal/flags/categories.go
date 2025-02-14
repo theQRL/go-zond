@@ -19,12 +19,10 @@ package flags
 import "github.com/urfave/cli/v2"
 
 const (
-	EthCategory        = "ETHEREUM"
-	LightCategory      = "LIGHT CLIENT"
+	ZondCategory       = "ZOND"
 	DevCategory        = "DEVELOPER CHAIN"
 	StateCategory      = "STATE HISTORY MANAGEMENT"
-	TxPoolCategory     = "TRANSACTION POOL (EVM)"
-	BlobPoolCategory   = "TRANSACTION POOL (BLOB)"
+	TxPoolCategory     = "TRANSACTION POOL (ZVM)"
 	PerfCategory       = "PERFORMANCE TUNING"
 	AccountCategory    = "ACCOUNT"
 	APICategory        = "API AND CONSOLE"

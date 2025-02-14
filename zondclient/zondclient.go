@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package zondclient provides a client for the Ethereum RPC API.
+// Package zondclient provides a client for the Zond RPC API.
 package zondclient
 
 import (
@@ -31,7 +31,7 @@ import (
 	"github.com/theQRL/go-zond/rpc"
 )
 
-// Client defines typed wrappers for the Ethereum RPC API.
+// Client defines typed wrappers for the Zond RPC API.
 type Client struct {
 	c *rpc.Client
 }
@@ -80,7 +80,7 @@ func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
 // BlockByHash returns the given full block.
 //
 // Note that loading full blocks requires two requests. Use HeaderByHash
-// if you don't need all transactions or uncle headers.
+// if you don't need all transactions.
 func (ec *Client) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return ec.getBlock(ctx, "zond_getBlockByHash", hash, true)
 }
@@ -89,7 +89,7 @@ func (ec *Client) BlockByHash(ctx context.Context, hash common.Hash) (*types.Blo
 // latest known block is returned.
 //
 // Note that loading full blocks requires two requests. Use HeaderByNumber
-// if you don't need all transactions or uncle headers.
+// if you don't need all transactions.
 func (ec *Client) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
 	return ec.getBlock(ctx, "zond_getBlockByNumber", toBlockNumArg(number), true)
 }
@@ -121,7 +121,6 @@ func (ec *Client) BlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumb
 type rpcBlock struct {
 	Hash         common.Hash         `json:"hash"`
 	Transactions []rpcTransaction    `json:"transactions"`
-	UncleHashes  []common.Hash       `json:"uncles"`
 	Withdrawals  []*types.Withdrawal `json:"withdrawals,omitempty"`
 }
 
@@ -146,42 +145,12 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 	if err := json.Unmarshal(raw, &body); err != nil {
 		return nil, err
 	}
-	// Quick-verify transaction and uncle lists. This mostly helps with debugging the server.
-	if head.UncleHash == types.EmptyUncleHash && len(body.UncleHashes) > 0 {
-		return nil, errors.New("server returned non-empty uncle list but block header indicates no uncles")
-	}
-	if head.UncleHash != types.EmptyUncleHash && len(body.UncleHashes) == 0 {
-		return nil, errors.New("server returned empty uncle list but block header indicates uncles")
-	}
+	// Quick-verify transaction list. This mostly helps with debugging the server.
 	if head.TxHash == types.EmptyTxsHash && len(body.Transactions) > 0 {
 		return nil, errors.New("server returned non-empty transaction list but block header indicates no transactions")
 	}
 	if head.TxHash != types.EmptyTxsHash && len(body.Transactions) == 0 {
 		return nil, errors.New("server returned empty transaction list but block header indicates transactions")
-	}
-	// Load uncles because they are not included in the block response.
-	var uncles []*types.Header
-	if len(body.UncleHashes) > 0 {
-		uncles = make([]*types.Header, len(body.UncleHashes))
-		reqs := make([]rpc.BatchElem, len(body.UncleHashes))
-		for i := range reqs {
-			reqs[i] = rpc.BatchElem{
-				Method: "zond_getUncleByBlockHashAndIndex",
-				Args:   []interface{}{body.Hash, hexutil.EncodeUint64(uint64(i))},
-				Result: &uncles[i],
-			}
-		}
-		if err := ec.c.BatchCallContext(ctx, reqs); err != nil {
-			return nil, err
-		}
-		for i := range reqs {
-			if reqs[i].Error != nil {
-				return nil, reqs[i].Error
-			}
-			if uncles[i] == nil {
-				return nil, fmt.Errorf("got null header for uncle %d of block %x", i, body.Hash[:])
-			}
-		}
 	}
 	// Fill the sender cache of transactions in the block.
 	txs := make([]*types.Transaction, len(body.Transactions))
@@ -191,7 +160,11 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs, uncles).WithWithdrawals(body.Withdrawals), nil
+	return types.NewBlockWithHeader(head).WithBody(
+		types.Body{
+			Transactions: txs,
+			Withdrawals:  body.Withdrawals,
+		}), nil
 }
 
 // HeaderByHash returns the block header with the given hash.
@@ -241,7 +214,7 @@ func (ec *Client) TransactionByHash(ctx context.Context, hash common.Hash) (tx *
 		return nil, false, err
 	} else if json == nil {
 		return nil, false, zond.NotFound
-	} else if r := json.tx.RawSignatureValue(); r == nil {
+	} else if sig := json.tx.RawSignatureValue(); sig == nil {
 		return nil, false, errors.New("server returned transaction without signature")
 	}
 	if json.From != nil && json.BlockHash != nil {
@@ -293,7 +266,7 @@ func (ec *Client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 	}
 	if json == nil {
 		return nil, zond.NotFound
-	} else if r := json.tx.RawSignatureValue(); r == nil {
+	} else if sig := json.tx.RawSignatureValue(); sig == nil {
 		return nil, errors.New("server returned transaction without signature")
 	}
 	if json.From != nil && json.BlockHash != nil {
@@ -307,10 +280,8 @@ func (ec *Client) TransactionInBlock(ctx context.Context, blockHash common.Hash,
 func (ec *Client) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	var r *types.Receipt
 	err := ec.c.CallContext(ctx, &r, "zond_getTransactionReceipt", txHash)
-	if err == nil {
-		if r == nil {
-			return nil, zond.NotFound
-		}
+	if err == nil && r == nil {
+		return nil, zond.NotFound
 	}
 	return r, err
 }
@@ -337,7 +308,7 @@ func (ec *Client) SyncProgress(ctx context.Context) (*zond.SyncProgress, error) 
 // SubscribeNewHead subscribes to notifications about the current blockchain head
 // on the given channel.
 func (ec *Client) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (zond.Subscription, error) {
-	sub, err := ec.c.EthSubscribe(ctx, ch, "newHeads")
+	sub, err := ec.c.ZondSubscribe(ctx, ch, "newHeads")
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
 		// of letting default golang behavior wrap it with non-nil interface that stores
@@ -413,7 +384,7 @@ func (ec *Client) SubscribeFilterLogs(ctx context.Context, q zond.FilterQuery, c
 	if err != nil {
 		return nil, err
 	}
-	sub, err := ec.c.EthSubscribe(ctx, ch, "logs", arg)
+	sub, err := ec.c.ZondSubscribe(ctx, ch, "logs", arg)
 	if err != nil {
 		// Defensively prefer returning nil interface explicitly on error-path, instead
 		// of letting default golang behavior wrap it with non-nil interface that stores
@@ -510,7 +481,7 @@ func (ec *Client) CallContractAtHash(ctx context.Context, msg zond.CallMsg, bloc
 	return hex, nil
 }
 
-// PendingCallContract executes a message call transaction using the EVM.
+// PendingCallContract executes a message call transaction using the ZVM.
 // The state seen by the contract call is the pending state.
 func (ec *Client) PendingCallContract(ctx context.Context, msg zond.CallMsg) ([]byte, error) {
 	var hex hexutil.Bytes
@@ -523,15 +494,15 @@ func (ec *Client) PendingCallContract(ctx context.Context, msg zond.CallMsg) ([]
 
 // SuggestGasPrice retrieves the currently suggested gas price to allow a timely
 // execution of a transaction.
-func (ec *Client) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
+func (zc *Client) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
-	if err := ec.c.CallContext(ctx, &hex, "zond_gasPrice"); err != nil {
+	if err := zc.c.CallContext(ctx, &hex, "zond_gasPrice"); err != nil {
 		return nil, err
 	}
 	return (*big.Int)(&hex), nil
 }
 
-// SuggestGasTipCap retrieves the currently suggested gas tip cap after 1559 to
+// SuggestGasTipCap retrieves the currently suggested gas tip cap to
 // allow a timely execution of a transaction.
 func (ec *Client) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
@@ -627,8 +598,14 @@ func toCallArg(msg zond.CallMsg) interface{} {
 	if msg.Gas != 0 {
 		arg["gas"] = hexutil.Uint64(msg.Gas)
 	}
-	if msg.GasPrice != nil {
-		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+	if msg.GasFeeCap != nil {
+		arg["maxFeePerGas"] = (*hexutil.Big)(msg.GasFeeCap)
+	}
+	if msg.GasTipCap != nil {
+		arg["maxPriorityFeePerGas"] = (*hexutil.Big)(msg.GasTipCap)
+	}
+	if msg.AccessList != nil {
+		arg["accessList"] = msg.AccessList
 	}
 	return arg
 }

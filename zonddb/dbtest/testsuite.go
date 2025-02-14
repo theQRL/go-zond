@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"crypto/rand"
 	"reflect"
+	"slices"
 	"sort"
 	"testing"
 
 	"github.com/theQRL/go-zond/zonddb"
-	"golang.org/x/exp/slices"
 )
 
 // TestDatabaseSuite runs a suite of tests against a KeyValueStore database

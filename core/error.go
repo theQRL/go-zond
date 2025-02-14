@@ -26,16 +26,13 @@ var (
 	// ErrKnownBlock is returned when a block to import is already known locally.
 	ErrKnownBlock = errors.New("block already known")
 
-	// ErrBannedHash is returned if a block to import is on the banned list.
-	ErrBannedHash = errors.New("banned hash")
-
 	// ErrNoGenesis is returned when there is no Genesis Block.
 	ErrNoGenesis = errors.New("genesis not found in chain")
 
 	errSideChainReceipts = errors.New("side blocks can't be accepted as ancient chain data")
 )
 
-// List of evm-call-message pre-checking errors. All state transition messages will
+// List of zvm-call-message pre-checking errors. All state transition messages will
 // be pre-checked before execution. If any invalidation detected, the corresponding
 // error should be returned which is defined here.
 //
@@ -100,8 +97,4 @@ var (
 
 	// ErrSenderNoEOA is returned if the sender of a transaction is a contract.
 	ErrSenderNoEOA = errors.New("sender not an eoa")
-
-	// ErrBlobFeeCapTooLow is returned if the transaction fee cap is less than the
-	// blob gas fee of the block.
-	ErrBlobFeeCapTooLow = errors.New("max fee per blob gas less than block blob gas fee")
 )

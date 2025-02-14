@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -32,7 +33,6 @@ import (
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/p2p/dnsdisc"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/exp/slices"
 )
 
 const (

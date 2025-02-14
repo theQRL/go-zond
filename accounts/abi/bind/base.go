@@ -52,14 +52,13 @@ type CallOpts struct {
 }
 
 // TransactOpts is the collection of authorization data required to create a
-// valid Ethereum transaction.
+// valid Zond transaction.
 type TransactOpts struct {
-	From   common.Address // Ethereum account to send the transaction from
+	From   common.Address // Zond account to send the transaction from
 	Nonce  *big.Int       // Nonce to use for the transaction execution (nil = use pending state)
 	Signer SignerFn       // Method to use for signing the transaction (mandatory)
 
 	Value     *big.Int // Funds to transfer along the transaction (nil = 0 = no funds)
-	GasPrice  *big.Int // Gas price to use for the transaction execution (nil = gas price oracle)
 	GasFeeCap *big.Int // Gas fee cap to use for the 1559 transaction execution (nil = gas price oracle)
 	GasTipCap *big.Int // Gas priority fee cap to use for the 1559 transaction execution (nil = gas price oracle)
 	GasLimit  uint64   // Gas limit to set for the transaction execution (0 = estimate)
@@ -109,11 +108,11 @@ func (m *MetaData) GetAbi() (*abi.ABI, error) {
 }
 
 // BoundContract is the base wrapper object that reflects a contract on the
-// Ethereum network. It contains a collection of methods that are used by the
+// Zond network. It contains a collection of methods that are used by the
 // higher level contract bindings to operate.
 type BoundContract struct {
-	address    common.Address     // Deployment address of the contract on the Ethereum blockchain
-	abi        abi.ABI            // Reflect based ABI to access the correct Ethereum methods
+	address    common.Address     // Deployment address of the contract on the Zond blockchain
+	abi        abi.ABI            // Reflect based ABI to access the correct Zond methods
 	caller     ContractCaller     // Read interface to interact with the blockchain
 	transactor ContractTransactor // Write interface to interact with the blockchain
 	filterer   ContractFilterer   // Event filtering to interact with the blockchain
@@ -131,7 +130,7 @@ func NewBoundContract(address common.Address, abi abi.ABI, caller ContractCaller
 	}
 }
 
-// DeployContract deploys a contract onto the Ethereum blockchain and binds the
+// DeployContract deploys a contract onto the Zond blockchain and binds the
 // deployment address with a Go wrapper.
 func DeployContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend ContractBackend, params ...interface{}) (common.Address, *types.Transaction, *BoundContract, error) {
 	// Otherwise try to deploy the contract
@@ -271,7 +270,7 @@ func (c *BoundContract) createDynamicTx(opts *TransactOpts, contract *common.Add
 	gasLimit := opts.GasLimit
 	if opts.GasLimit == 0 {
 		var err error
-		gasLimit, err = c.estimateGasLimit(opts, contract, input, nil, gasTipCap, gasFeeCap, value)
+		gasLimit, err = c.estimateGasLimit(opts, contract, input, gasTipCap, gasFeeCap, value)
 		if err != nil {
 			return nil, err
 		}
@@ -293,50 +292,7 @@ func (c *BoundContract) createDynamicTx(opts *TransactOpts, contract *common.Add
 	return types.NewTx(baseTx), nil
 }
 
-func (c *BoundContract) createLegacyTx(opts *TransactOpts, contract *common.Address, input []byte) (*types.Transaction, error) {
-	if opts.GasFeeCap != nil || opts.GasTipCap != nil {
-		return nil, errors.New("maxFeePerGas or maxPriorityFeePerGas specified but london is not active yet")
-	}
-	// Normalize value
-	value := opts.Value
-	if value == nil {
-		value = new(big.Int)
-	}
-	// Estimate GasPrice
-	gasPrice := opts.GasPrice
-	if gasPrice == nil {
-		price, err := c.transactor.SuggestGasPrice(ensureContext(opts.Context))
-		if err != nil {
-			return nil, err
-		}
-		gasPrice = price
-	}
-	// Estimate GasLimit
-	gasLimit := opts.GasLimit
-	if opts.GasLimit == 0 {
-		var err error
-		gasLimit, err = c.estimateGasLimit(opts, contract, input, gasPrice, nil, nil, value)
-		if err != nil {
-			return nil, err
-		}
-	}
-	// create the transaction
-	nonce, err := c.getNonce(opts)
-	if err != nil {
-		return nil, err
-	}
-	baseTx := &types.LegacyTx{
-		To:       contract,
-		Nonce:    nonce,
-		GasPrice: gasPrice,
-		Gas:      gasLimit,
-		Value:    value,
-		Data:     input,
-	}
-	return types.NewTx(baseTx), nil
-}
-
-func (c *BoundContract) estimateGasLimit(opts *TransactOpts, contract *common.Address, input []byte, gasPrice, gasTipCap, gasFeeCap, value *big.Int) (uint64, error) {
+func (c *BoundContract) estimateGasLimit(opts *TransactOpts, contract *common.Address, input []byte, gasTipCap, gasFeeCap, value *big.Int) (uint64, error) {
 	if contract != nil {
 		// Gas estimation cannot succeed without code for method invocations.
 		if code, err := c.transactor.PendingCodeAt(ensureContext(opts.Context), c.address); err != nil {
@@ -348,7 +304,6 @@ func (c *BoundContract) estimateGasLimit(opts *TransactOpts, contract *common.Ad
 	msg := zond.CallMsg{
 		From:      opts.From,
 		To:        contract,
-		GasPrice:  gasPrice,
 		GasTipCap: gasTipCap,
 		GasFeeCap: gasFeeCap,
 		Value:     value,
@@ -368,27 +323,18 @@ func (c *BoundContract) getNonce(opts *TransactOpts) (uint64, error) {
 // transact executes an actual transaction invocation, first deriving any missing
 // authorization fields, and then scheduling the transaction for execution.
 func (c *BoundContract) transact(opts *TransactOpts, contract *common.Address, input []byte) (*types.Transaction, error) {
-	if opts.GasPrice != nil && (opts.GasFeeCap != nil || opts.GasTipCap != nil) {
-		return nil, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
-	}
 	// Create the transaction
 	var (
 		rawTx *types.Transaction
 		err   error
 	)
-	if opts.GasPrice != nil {
-		rawTx, err = c.createLegacyTx(opts, contract, input)
-	} else if opts.GasFeeCap != nil && opts.GasTipCap != nil {
+	if opts.GasFeeCap != nil && opts.GasTipCap != nil {
 		rawTx, err = c.createDynamicTx(opts, contract, input, nil)
 	} else {
-		// Only query for basefee if gasPrice not specified
 		if head, errHead := c.transactor.HeaderByNumber(ensureContext(opts.Context), nil); errHead != nil {
 			return nil, errHead
-		} else if head.BaseFee != nil {
-			rawTx, err = c.createDynamicTx(opts, contract, input, head)
 		} else {
-			// Chain is not London ready -> use legacy transaction
-			rawTx, err = c.createLegacyTx(opts, contract, input)
+			rawTx, err = c.createDynamicTx(opts, contract, input, head)
 		}
 	}
 	if err != nil {

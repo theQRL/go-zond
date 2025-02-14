@@ -102,7 +102,7 @@ type NodeConfig struct {
 	Lifecycles []string
 
 	// Properties are the names of the properties this node should hold
-	// within running services (e.g. "bootnode", "lightnode" or any custom values)
+	// within running services (e.g. "bootnode" or any custom values)
 	// These values need to be checked and acted upon by node Services
 	Properties []string
 
@@ -259,7 +259,7 @@ type ServiceContext struct {
 
 // RPCDialer is used when initialising services which need to connect to
 // other nodes in the network (for example a simulated Swarm node which needs
-// to connect to a Geth node to resolve ENS names)
+// to connect to a Gzond node to resolve ENS names)
 type RPCDialer interface {
 	DialRPC(id enode.ID) (*rpc.Client, error)
 }

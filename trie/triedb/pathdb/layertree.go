@@ -88,8 +88,8 @@ func (tree *layerTree) len() int {
 // add inserts a new layer into the tree if it can be linked to an existing old parent.
 func (tree *layerTree) add(root common.Hash, parentRoot common.Hash, block uint64, nodes *trienode.MergedNodeSet, states *triestate.Set) error {
 	// Reject noop updates to avoid self-loops. This is a special case that can
-	// happen for clique networks and proof-of-stake networks where empty blocks
-	// don't modify the state (0 block subsidy).
+	// happen for proof-of-stake networks where empty blocks don't modify the
+	// state (0 block subsidy).
 	//
 	// Although we could silently ignore this internally, it should be the caller's
 	// responsibility to avoid even attempting to insert such a layer.

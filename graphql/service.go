@@ -26,7 +26,7 @@ import (
 
 	"github.com/graph-gophers/graphql-go"
 	gqlErrors "github.com/graph-gophers/graphql-go/errors"
-	"github.com/theQRL/go-zond/internal/ethapi"
+	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/zond/filters"
@@ -73,12 +73,12 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 
 				// Setting this disables gzip compression in package node.
-				w.Header().Set("transfer-encoding", "identity")
+				w.Header().Set("Transfer-Encoding", "identity")
 
 				// Flush the response. Since we are writing close to the response timeout,
 				// chunked transfer encoding must be disabled by setting content-length.
-				w.Header().Set("content-type", "application/json")
-				w.Header().Set("content-length", strconv.Itoa(len(responseJSON)))
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Content-Length", strconv.Itoa(len(responseJSON)))
 				w.Write(responseJSON)
 				if flush, ok := w.(http.Flusher); ok {
 					flush.Flush()
@@ -106,14 +106,14 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // New constructs a new GraphQL service instance.
-func New(stack *node.Node, backend ethapi.Backend, filterSystem *filters.FilterSystem, cors, vhosts []string) error {
+func New(stack *node.Node, backend zondapi.Backend, filterSystem *filters.FilterSystem, cors, vhosts []string) error {
 	_, err := newHandler(stack, backend, filterSystem, cors, vhosts)
 	return err
 }
 
 // newHandler returns a new `http.Handler` that will answer GraphQL queries.
 // It additionally exports an interactive query browser on the / endpoint.
-func newHandler(stack *node.Node, backend ethapi.Backend, filterSystem *filters.FilterSystem, cors, vhosts []string) (*handler, error) {
+func newHandler(stack *node.Node, backend zondapi.Backend, filterSystem *filters.FilterSystem, cors, vhosts []string) (*handler, error) {
 	q := Resolver{backend, filterSystem}
 
 	s, err := graphql.ParseSchema(schema, &q)

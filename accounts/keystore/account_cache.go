@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -31,7 +32,6 @@ import (
 	"github.com/theQRL/go-zond/accounts"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/log"
-	"golang.org/x/exp/slices"
 )
 
 // Minimum amount of time between cache reloads. This limit applies if the platform does
@@ -265,20 +265,23 @@ func (ac *accountCache) scanAccounts() error {
 		buf.Reset(fd)
 		// Parse the address.
 		key.Address = ""
-		err = json.NewDecoder(buf).Decode(&key)
-		addr := common.HexToAddress(key.Address)
-		switch {
-		case err != nil:
+		if err = json.NewDecoder(buf).Decode(&key); err != nil {
 			log.Debug("Failed to decode keystore key", "path", path, "err", err)
-		case addr == common.Address{}:
-			log.Debug("Failed to decode keystore key", "path", path, "err", "missing or zero address")
-		default:
-			return &accounts.Account{
-				Address: addr,
-				URL:     accounts.URL{Scheme: KeyStoreScheme, Path: path},
-			}
+			return nil
 		}
-		return nil
+		addr, err := common.NewAddressFromString(key.Address)
+		if err != nil {
+			log.Debug("Failed to decode keystore key", "path", path, "err", err)
+			return nil
+		}
+		if (addr == common.Address{}) {
+			log.Debug("Failed to decode keystore key", "path", path, "err", "zero address")
+			return nil
+		}
+		return &accounts.Account{
+			Address: addr,
+			URL:     accounts.URL{Scheme: KeyStoreScheme, Path: path},
+		}
 	}
 	// Process all the file diffs
 	start := time.Now()

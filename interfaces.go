@@ -124,6 +124,11 @@ type SyncProgress struct {
 	HealingBytecode  uint64 // Number of bytecodes pending
 }
 
+// Done returns the indicator if the initial sync is finished or not.
+func (prog SyncProgress) Done() bool {
+	return prog.CurrentBlock >= prog.HighestBlock
+}
+
 // ChainSyncReader wraps access to the node's current sync status. If there's no
 // sync currently running, it returns nil.
 type ChainSyncReader interface {
@@ -135,17 +140,16 @@ type CallMsg struct {
 	From      common.Address  // the sender of the 'transaction'
 	To        *common.Address // the destination contract (nil for contract creation)
 	Gas       uint64          // if 0, the call executes with near-infinite gas
-	GasPrice  *big.Int        // wei <-> gas exchange ratio
-	GasFeeCap *big.Int        // EIP-1559 fee cap per gas.
-	GasTipCap *big.Int        // EIP-1559 tip per gas.
+	GasFeeCap *big.Int        // fee cap per gas.
+	GasTipCap *big.Int        // tip per gas.
 	Value     *big.Int        // amount of wei sent along with the call
 	Data      []byte          // input data, usually an ABI-encoded contract method invocation
 
-	AccessList types.AccessList // EIP-2930 access list.
+	AccessList types.AccessList // access list.
 }
 
 // A ContractCaller provides contract calls, essentially transactions that are executed by
-// the EVM but not mined into the blockchain. ContractCall is a low-level method to
+// the ZVM but not mined into the blockchain. ContractCall is a low-level method to
 // execute such calls. For applications which are structured around specific contracts,
 // the abigen tool provides a nicer, properly typed way to perform calls.
 type ContractCaller interface {

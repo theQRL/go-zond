@@ -24,7 +24,7 @@ import (
 	"github.com/theQRL/go-zond/crypto"
 )
 
-// Event is an event potentially triggered by the EVM's LOG mechanism. The Event
+// Event is an event potentially triggered by the ZVM's LOG mechanism. The Event
 // holds type information (inputs) about the yielded output. Anonymous events
 // don't get the signature canonical representation as the first LOG topic.
 type Event struct {

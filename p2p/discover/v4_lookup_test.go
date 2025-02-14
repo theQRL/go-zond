@@ -20,13 +20,13 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"net"
+	"slices"
 	"testing"
 
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/p2p/discover/v4wire"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/enr"
-	"golang.org/x/exp/slices"
 )
 
 func TestUDPv4_Lookup(t *testing.T) {

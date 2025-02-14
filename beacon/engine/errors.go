@@ -17,12 +17,11 @@
 package engine
 
 import (
-	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/rpc"
 )
 
 // EngineAPIError is a standardized error message between consensus and execution
-// clients, also containing any custom error message Geth might include.
+// clients, also containing any custom error message Gzond might include.
 type EngineAPIError struct {
 	code int
 	msg  string
@@ -82,7 +81,6 @@ var (
 	InvalidParams            = &EngineAPIError{code: -32602, msg: "Invalid parameters"}
 	UnsupportedFork          = &EngineAPIError{code: -38005, msg: "Unsupported fork"}
 
-	STATUS_INVALID         = ForkChoiceResponse{PayloadStatus: PayloadStatusV1{Status: INVALID}, PayloadID: nil}
-	STATUS_SYNCING         = ForkChoiceResponse{PayloadStatus: PayloadStatusV1{Status: SYNCING}, PayloadID: nil}
-	INVALID_TERMINAL_BLOCK = PayloadStatusV1{Status: INVALID, LatestValidHash: &common.Hash{}}
+	STATUS_INVALID = ForkChoiceResponse{PayloadStatus: PayloadStatusV1{Status: INVALID}, PayloadID: nil}
+	STATUS_SYNCING = ForkChoiceResponse{PayloadStatus: PayloadStatusV1{Status: SYNCING}, PayloadID: nil}
 )

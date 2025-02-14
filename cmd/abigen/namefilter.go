@@ -6,8 +6,8 @@ import (
 )
 
 type nameFilter struct {
-	fulls map[string]bool // path/to/contract.sol:Type
-	files map[string]bool // path/to/contract.sol:*
+	fulls map[string]bool // path/to/contract.hyp:Type
+	files map[string]bool // path/to/contract.hyp:*
 	types map[string]bool // *:Type
 }
 

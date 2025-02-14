@@ -25,16 +25,17 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zond"
-	"github.com/theQRL/go-zond/zond/downloader"
-	"github.com/theQRL/go-zond/zond/ethconfig"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
+	"github.com/theQRL/go-zond/miner"
 	"github.com/theQRL/go-zond/node"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/params"
+	"github.com/theQRL/go-zond/zond"
+	"github.com/theQRL/go-zond/zond/downloader"
+	"github.com/theQRL/go-zond/zond/zondconfig"
 )
 
-func startSimulatedBeaconEthService(t *testing.T, genesis *core.Genesis) (*node.Node, *eth.Ethereum, *SimulatedBeacon) {
+func startSimulatedBeaconZondService(t *testing.T, genesis *core.Genesis) (*node.Node, *zond.Zond, *SimulatedBeacon) {
 	t.Helper()
 
 	n, err := node.New(&node.Config{
@@ -48,13 +49,13 @@ func startSimulatedBeaconEthService(t *testing.T, genesis *core.Genesis) (*node.
 		t.Fatal("can't create node:", err)
 	}
 
-	ethcfg := &ethconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256}
-	ethservice, err := eth.New(n, ethcfg)
+	zondcfg := &zondconfig.Config{Genesis: genesis, SyncMode: downloader.FullSync, TrieTimeout: time.Minute, TrieDirtyCache: 256, TrieCleanCache: 256, Miner: miner.DefaultConfig}
+	zondservice, err := zond.New(n, zondcfg)
 	if err != nil {
-		t.Fatal("can't create eth service:", err)
+		t.Fatal("can't create zond service:", err)
 	}
 
-	simBeacon, err := NewSimulatedBeacon(1, ethservice)
+	simBeacon, err := NewSimulatedBeacon(1, zondservice)
 	if err != nil {
 		t.Fatal("can't create simulated beacon:", err)
 	}
@@ -65,33 +66,33 @@ func startSimulatedBeaconEthService(t *testing.T, genesis *core.Genesis) (*node.
 		t.Fatal("can't start node:", err)
 	}
 
-	ethservice.SetSynced()
-	return n, ethservice, simBeacon
+	zondservice.SetSynced()
+	return n, zondservice, simBeacon
 }
 
 // send 20 transactions, >10 withdrawals and ensure they are included in order
 // send enough transactions to fill multiple blocks
 func TestSimulatedBeaconSendWithdrawals(t *testing.T) {
 	var withdrawals []types.Withdrawal
-	txs := make(map[common.Hash]types.Transaction)
+	txs := make(map[common.Hash]*types.Transaction)
 
 	var (
 		// testKey is a private key to use for funding a tester account.
-		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		testKey, _ = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 
-		// testAddr is the Ethereum address of the tester account.
-		testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
+		// testAddr is the Zond address of the tester account.
+		testAddr = testKey.GetAddress()
 	)
 
 	// short period (1 second) for testing purposes
 	var gasLimit uint64 = 10_000_000
 	genesis := core.DeveloperGenesisBlock(gasLimit, testAddr)
-	node, ethService, mock := startSimulatedBeaconEthService(t, genesis)
+	node, zondService, mock := startSimulatedBeaconZondService(t, genesis)
 	_ = mock
 	defer node.Close()
 
 	chainHeadCh := make(chan core.ChainHeadEvent, 10)
-	subscription := ethService.BlockChain().SubscribeChainHeadEvent(chainHeadCh)
+	subscription := zondService.BlockChain().SubscribeChainHeadEvent(chainHeadCh)
 	defer subscription.Unsubscribe()
 
 	// generate some withdrawals
@@ -103,15 +104,15 @@ func TestSimulatedBeaconSendWithdrawals(t *testing.T) {
 	}
 
 	// generate a bunch of transactions
-	signer := types.NewEIP155Signer(ethService.BlockChain().Config().ChainID)
+	signer := types.NewShanghaiSigner(zondService.BlockChain().Config().ChainID)
 	for i := 0; i < 20; i++ {
-		tx, err := types.SignTx(types.NewTransaction(uint64(i), common.Address{}, big.NewInt(1000), params.TxGas, big.NewInt(params.InitialBaseFee), nil), signer, testKey)
+		tx, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: uint64(i), To: &common.Address{}, Value: big.NewInt(1000), Gas: params.TxGas, GasFeeCap: big.NewInt(params.InitialBaseFee), Data: nil}), signer, testKey)
 		if err != nil {
 			t.Fatalf("error signing transaction, err=%v", err)
 		}
-		txs[tx.Hash()] = *tx
+		txs[tx.Hash()] = tx
 
-		if err := ethService.APIBackend.SendTx(context.Background(), tx); err != nil {
+		if err := zondService.APIBackend.SendTx(context.Background(), tx); err != nil {
 			t.Fatal("SendTx failed", err)
 		}
 	}

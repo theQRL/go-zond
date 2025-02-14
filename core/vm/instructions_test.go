@@ -22,17 +22,13 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strings"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/params"
-	"github.com/holiman/uint256"
 )
 
 type TwoOperandTestcase struct {
@@ -105,10 +101,10 @@ func init() {
 
 func testTwoOperandOp(t *testing.T, tests []TwoOperandTestcase, opFn executionFunc, name string) {
 	var (
-		env            = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewZVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		pc             = uint64(0)
-		evmInterpreter = env.interpreter
+		zvmInterpreter = env.interpreter
 	)
 
 	for i, test := range tests {
@@ -117,7 +113,7 @@ func testTwoOperandOp(t *testing.T, tests []TwoOperandTestcase, opFn executionFu
 		expected := new(uint256.Int).SetBytes(common.Hex2Bytes(test.Expected))
 		stack.push(x)
 		stack.push(y)
-		opFn(&pc, evmInterpreter, &ScopeContext{nil, stack, nil})
+		opFn(&pc, zvmInterpreter, &ScopeContext{nil, stack, nil})
 		if len(stack.data) != 1 {
 			t.Errorf("Expected one item on stack after %v, got %d: ", name, len(stack.data))
 		}
@@ -204,9 +200,9 @@ func TestSAR(t *testing.T) {
 
 func TestAddMod(t *testing.T) {
 	var (
-		env            = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewZVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		evmInterpreter = NewEVMInterpreter(env)
+		zvmInterpreter = NewZVMInterpreter(env)
 		pc             = uint64(0)
 	)
 	tests := []struct {
@@ -232,7 +228,7 @@ func TestAddMod(t *testing.T) {
 		stack.push(z)
 		stack.push(y)
 		stack.push(x)
-		opAddmod(&pc, evmInterpreter, &ScopeContext{nil, stack, nil})
+		opAddmod(&pc, zvmInterpreter, &ScopeContext{nil, stack, nil})
 		actual := stack.pop()
 		if actual.Cmp(expected) != 0 {
 			t.Errorf("Testcase %d, expected  %x, got %x", i, expected, actual)
@@ -248,7 +244,7 @@ func TestWriteExpectedValues(t *testing.T) {
 	// getResult is a convenience function to generate the expected values
 	getResult := func(args []*twoOperandParams, opFn executionFunc) []TwoOperandTestcase {
 		var (
-			env         = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+			env         = NewZVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 			stack       = newstack()
 			pc          = uint64(0)
 			interpreter = env.interpreter
@@ -293,13 +289,13 @@ func TestJsonTestcases(t *testing.T) {
 
 func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 	var (
-		env            = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewZVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		scope          = &ScopeContext{nil, stack, nil}
-		evmInterpreter = NewEVMInterpreter(env)
+		zvmInterpreter = NewZVMInterpreter(env)
 	)
 
-	env.interpreter = evmInterpreter
+	env.interpreter = zvmInterpreter
 	// convert args
 	intArgs := make([]*uint256.Int, len(args))
 	for i, arg := range args {
@@ -311,7 +307,7 @@ func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 		for _, arg := range intArgs {
 			stack.push(arg)
 		}
-		op(&pc, evmInterpreter, scope)
+		op(&pc, zvmInterpreter, scope)
 		stack.pop()
 	}
 	bench.StopTimer()
@@ -534,25 +530,25 @@ func BenchmarkOpIsZero(b *testing.B) {
 
 func TestOpMstore(t *testing.T) {
 	var (
-		env            = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewZVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env)
+		zvmInterpreter = NewZVMInterpreter(env)
 	)
 
-	env.interpreter = evmInterpreter
+	env.interpreter = zvmInterpreter
 	mem.Resize(64)
 	pc := uint64(0)
 	v := "abcdef00000000000000abba000000000deaf000000c0de00100000000133700"
 	stack.push(new(uint256.Int).SetBytes(common.Hex2Bytes(v)))
 	stack.push(new(uint256.Int))
-	opMstore(&pc, evmInterpreter, &ScopeContext{mem, stack, nil})
+	opMstore(&pc, zvmInterpreter, &ScopeContext{mem, stack, nil})
 	if got := common.Bytes2Hex(mem.GetCopy(0, 32)); got != v {
 		t.Fatalf("Mstore fail, got %v, expected %v", got, v)
 	}
 	stack.push(new(uint256.Int).SetUint64(0x1))
 	stack.push(new(uint256.Int))
-	opMstore(&pc, evmInterpreter, &ScopeContext{mem, stack, nil})
+	opMstore(&pc, zvmInterpreter, &ScopeContext{mem, stack, nil})
 	if common.Bytes2Hex(mem.GetCopy(0, 32)) != "0000000000000000000000000000000000000000000000000000000000000001" {
 		t.Fatalf("Mstore failed to overwrite previous value")
 	}
@@ -560,13 +556,13 @@ func TestOpMstore(t *testing.T) {
 
 func BenchmarkOpMstore(bench *testing.B) {
 	var (
-		env            = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewZVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env)
+		zvmInterpreter = NewZVMInterpreter(env)
 	)
 
-	env.interpreter = evmInterpreter
+	env.interpreter = zvmInterpreter
 	mem.Resize(64)
 	pc := uint64(0)
 	memStart := new(uint256.Int)
@@ -576,61 +572,18 @@ func BenchmarkOpMstore(bench *testing.B) {
 	for i := 0; i < bench.N; i++ {
 		stack.push(value)
 		stack.push(memStart)
-		opMstore(&pc, evmInterpreter, &ScopeContext{mem, stack, nil})
-	}
-}
-
-func TestOpTstore(t *testing.T) {
-	var (
-		statedb, _     = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-		env            = NewEVM(BlockContext{}, TxContext{}, statedb, params.TestChainConfig, Config{})
-		stack          = newstack()
-		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env)
-		caller         = common.Address{}
-		to             = common.Address{1}
-		contractRef    = contractRef{caller}
-		contract       = NewContract(contractRef, AccountRef(to), new(big.Int), 0)
-		scopeContext   = ScopeContext{mem, stack, contract}
-		value          = common.Hex2Bytes("abcdef00000000000000abba000000000deaf000000c0de00100000000133700")
-	)
-
-	// Add a stateObject for the caller and the contract being called
-	statedb.CreateAccount(caller)
-	statedb.CreateAccount(to)
-
-	env.interpreter = evmInterpreter
-	pc := uint64(0)
-	// push the value to the stack
-	stack.push(new(uint256.Int).SetBytes(value))
-	// push the location to the stack
-	stack.push(new(uint256.Int))
-	opTstore(&pc, evmInterpreter, &scopeContext)
-	// there should be no elements on the stack after TSTORE
-	if stack.len() != 0 {
-		t.Fatal("stack wrong size")
-	}
-	// push the location to the stack
-	stack.push(new(uint256.Int))
-	opTload(&pc, evmInterpreter, &scopeContext)
-	// there should be one element on the stack after TLOAD
-	if stack.len() != 1 {
-		t.Fatal("stack wrong size")
-	}
-	val := stack.peek()
-	if !bytes.Equal(val.Bytes(), value) {
-		t.Fatal("incorrect element read from transient storage")
+		opMstore(&pc, zvmInterpreter, &ScopeContext{mem, stack, nil})
 	}
 }
 
 func BenchmarkOpKeccak256(bench *testing.B) {
 	var (
-		env            = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
+		env            = NewZVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env)
+		zvmInterpreter = NewZVMInterpreter(env)
 	)
-	env.interpreter = evmInterpreter
+	env.interpreter = zvmInterpreter
 	mem.Resize(32)
 	pc := uint64(0)
 	start := new(uint256.Int)
@@ -639,11 +592,11 @@ func BenchmarkOpKeccak256(bench *testing.B) {
 	for i := 0; i < bench.N; i++ {
 		stack.push(uint256.NewInt(32))
 		stack.push(start)
-		opKeccak256(&pc, evmInterpreter, &ScopeContext{mem, stack, nil})
+		opKeccak256(&pc, zvmInterpreter, &ScopeContext{mem, stack, nil})
 	}
 }
 
-func TestCreate2Addreses(t *testing.T) {
+func TestCreate2Addresses(t *testing.T) {
 	type testcase struct {
 		origin   string
 		salt     string
@@ -653,49 +606,49 @@ func TestCreate2Addreses(t *testing.T) {
 
 	for i, tt := range []testcase{
 		{
-			origin:   "0x0000000000000000000000000000000000000000",
+			origin:   "Z0000000000000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0x00",
-			expected: "0x4d1a2e2bb4f88f0250f26ffff098b0b30b26bf38",
+			expected: "Z4d1a2e2bb4f88f0250f26ffff098b0b30b26bf38",
 		},
 		{
-			origin:   "0xdeadbeef00000000000000000000000000000000",
+			origin:   "Zdeadbeef00000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0x00",
-			expected: "0xB928f69Bb1D91Cd65274e3c79d8986362984fDA3",
+			expected: "ZB928f69Bb1D91Cd65274e3c79d8986362984fDA3",
 		},
 		{
-			origin:   "0xdeadbeef00000000000000000000000000000000",
+			origin:   "Zdeadbeef00000000000000000000000000000000",
 			salt:     "0xfeed000000000000000000000000000000000000",
 			code:     "0x00",
-			expected: "0xD04116cDd17beBE565EB2422F2497E06cC1C9833",
+			expected: "ZD04116cDd17beBE565EB2422F2497E06cC1C9833",
 		},
 		{
-			origin:   "0x0000000000000000000000000000000000000000",
+			origin:   "Z0000000000000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0xdeadbeef",
-			expected: "0x70f2b2914A2a4b783FaEFb75f459A580616Fcb5e",
+			expected: "Z70f2b2914A2a4b783FaEFb75f459A580616Fcb5e",
 		},
 		{
-			origin:   "0x00000000000000000000000000000000deadbeef",
+			origin:   "Z00000000000000000000000000000000deadbeef",
 			salt:     "0xcafebabe",
 			code:     "0xdeadbeef",
-			expected: "0x60f3f640a8508fC6a86d45DF051962668E1e8AC7",
+			expected: "Z60f3f640a8508fC6a86d45DF051962668E1e8AC7",
 		},
 		{
-			origin:   "0x00000000000000000000000000000000deadbeef",
+			origin:   "Z00000000000000000000000000000000deadbeef",
 			salt:     "0xcafebabe",
 			code:     "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-			expected: "0x1d8bfDC5D46DC4f61D6b6115972536eBE6A8854C",
+			expected: "Z1d8bfDC5D46DC4f61D6b6115972536eBE6A8854C",
 		},
 		{
-			origin:   "0x0000000000000000000000000000000000000000",
+			origin:   "Z0000000000000000000000000000000000000000",
 			salt:     "0x0000000000000000000000000000000000000000",
 			code:     "0x",
-			expected: "0xE33C0C7F7df4809055C3ebA6c09CFe4BaF1BD9e0",
+			expected: "ZE33C0C7F7df4809055C3ebA6c09CFe4BaF1BD9e0",
 		},
 	} {
-		origin := common.BytesToAddress(common.FromHex(tt.origin))
+		origin, _ := common.NewAddressFromString(tt.origin)
 		salt := common.BytesToHash(common.FromHex(tt.salt))
 		code := common.FromHex(tt.code)
 		codeHash := crypto.Keccak256(code)
@@ -709,7 +662,7 @@ func TestCreate2Addreses(t *testing.T) {
 			gas, _ := gasCreate2(params.GasTable{}, nil, nil, stack, nil, 0)
 			fmt.Printf("Example %d\n* address `0x%x`\n* salt `0x%x`\n* init_code `0x%x`\n* gas (assuming no mem expansion): `%v`\n* result: `%s`\n\n", i,origin, salt, code, gas, address.String())
 		*/
-		expected := common.BytesToAddress(common.FromHex(tt.expected))
+		expected, _ := common.NewAddressFromString(tt.expected)
 		if !bytes.Equal(expected.Bytes(), address.Bytes()) {
 			t.Errorf("test %d: expected %s, got %s", i, expected.String(), address.String())
 		}
@@ -729,12 +682,12 @@ func TestRandom(t *testing.T) {
 		{name: "hash(0x010203)", random: crypto.Keccak256Hash([]byte{0x01, 0x02, 0x03})},
 	} {
 		var (
-			env            = NewEVM(BlockContext{Random: &tt.random}, TxContext{}, nil, params.TestChainConfig, Config{})
+			env            = NewZVM(BlockContext{Random: &tt.random}, TxContext{}, nil, params.TestChainConfig, Config{})
 			stack          = newstack()
 			pc             = uint64(0)
-			evmInterpreter = env.interpreter
+			zvmInterpreter = env.interpreter
 		)
-		opRandom(&pc, evmInterpreter, &ScopeContext{nil, stack, nil})
+		opRandom(&pc, zvmInterpreter, &ScopeContext{nil, stack, nil})
 		if len(stack.data) != 1 {
 			t.Errorf("Expected one item on stack after %v, got %d: ", tt.name, len(stack.data))
 		}
@@ -745,186 +698,6 @@ func TestRandom(t *testing.T) {
 		}
 		if actual.Cmp(expected) != 0 {
 			t.Errorf("Testcase %v: expected  %x, got %x", tt.name, expected, actual)
-		}
-	}
-}
-
-func TestBlobHash(t *testing.T) {
-	type testcase struct {
-		name   string
-		idx    uint64
-		expect common.Hash
-		hashes []common.Hash
-	}
-	var (
-		zero  = common.Hash{0}
-		one   = common.Hash{1}
-		two   = common.Hash{2}
-		three = common.Hash{3}
-	)
-	for _, tt := range []testcase{
-		{name: "[{1}]", idx: 0, expect: one, hashes: []common.Hash{one}},
-		{name: "[1,{2},3]", idx: 2, expect: three, hashes: []common.Hash{one, two, three}},
-		{name: "out-of-bounds (empty)", idx: 10, expect: zero, hashes: []common.Hash{}},
-		{name: "out-of-bounds", idx: 25, expect: zero, hashes: []common.Hash{one, two, three}},
-		{name: "out-of-bounds (nil)", idx: 25, expect: zero, hashes: nil},
-	} {
-		var (
-			env            = NewEVM(BlockContext{}, TxContext{BlobHashes: tt.hashes}, nil, params.TestChainConfig, Config{})
-			stack          = newstack()
-			pc             = uint64(0)
-			evmInterpreter = env.interpreter
-		)
-		stack.push(uint256.NewInt(tt.idx))
-		opBlobHash(&pc, evmInterpreter, &ScopeContext{nil, stack, nil})
-		if len(stack.data) != 1 {
-			t.Errorf("Expected one item on stack after %v, got %d: ", tt.name, len(stack.data))
-		}
-		actual := stack.pop()
-		expected, overflow := uint256.FromBig(new(big.Int).SetBytes(tt.expect.Bytes()))
-		if overflow {
-			t.Errorf("Testcase %v: invalid overflow", tt.name)
-		}
-		if actual.Cmp(expected) != 0 {
-			t.Errorf("Testcase %v: expected  %x, got %x", tt.name, expected, actual)
-		}
-	}
-}
-
-func TestOpMCopy(t *testing.T) {
-	// Test cases from https://eips.ethereum.org/EIPS/eip-5656#test-cases
-	for i, tc := range []struct {
-		dst, src, len string
-		pre           string
-		want          string
-		wantGas       uint64
-	}{
-		{ // MCOPY 0 32 32 - copy 32 bytes from offset 32 to offset 0.
-			dst: "0x0", src: "0x20", len: "0x20",
-			pre:     "0000000000000000000000000000000000000000000000000000000000000000 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-			want:    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-			wantGas: 6,
-		},
-
-		{ // MCOPY 0 0 32 - copy 32 bytes from offset 0 to offset 0.
-			dst: "0x0", src: "0x0", len: "0x20",
-			pre:     "0101010101010101010101010101010101010101010101010101010101010101",
-			want:    "0101010101010101010101010101010101010101010101010101010101010101",
-			wantGas: 6,
-		},
-		{ // MCOPY 0 1 8 - copy 8 bytes from offset 1 to offset 0 (overlapping).
-			dst: "0x0", src: "0x1", len: "0x8",
-			pre:     "000102030405060708 000000000000000000000000000000000000000000000000",
-			want:    "010203040506070808 000000000000000000000000000000000000000000000000",
-			wantGas: 6,
-		},
-		{ // MCOPY 1 0 8 - copy 8 bytes from offset 0 to offset 1 (overlapping).
-			dst: "0x1", src: "0x0", len: "0x8",
-			pre:     "000102030405060708 000000000000000000000000000000000000000000000000",
-			want:    "000001020304050607 000000000000000000000000000000000000000000000000",
-			wantGas: 6,
-		},
-		// Tests below are not in the EIP, but maybe should be added
-		{ // MCOPY 0xFFFFFFFFFFFF 0xFFFFFFFFFFFF 0 - copy zero bytes from out-of-bounds index(overlapping).
-			dst: "0xFFFFFFFFFFFF", src: "0xFFFFFFFFFFFF", len: "0x0",
-			pre:     "11",
-			want:    "11",
-			wantGas: 3,
-		},
-		{ // MCOPY 0xFFFFFFFFFFFF 0 0 - copy zero bytes from start of mem to out-of-bounds.
-			dst: "0xFFFFFFFFFFFF", src: "0x0", len: "0x0",
-			pre:     "11",
-			want:    "11",
-			wantGas: 3,
-		},
-		{ // MCOPY 0 0xFFFFFFFFFFFF 0 - copy zero bytes from out-of-bounds to start of mem
-			dst: "0x0", src: "0xFFFFFFFFFFFF", len: "0x0",
-			pre:     "11",
-			want:    "11",
-			wantGas: 3,
-		},
-		{ // MCOPY - copy 1 from space outside of uint64  space
-			dst: "0x0", src: "0x10000000000000000", len: "0x1",
-			pre: "0",
-		},
-		{ // MCOPY - copy 1 from 0 to space outside of uint64
-			dst: "0x10000000000000000", src: "0x0", len: "0x1",
-			pre: "0",
-		},
-		{ // MCOPY - copy nothing from 0 to space outside of uint64
-			dst: "0x10000000000000000", src: "0x0", len: "0x0",
-			pre:     "",
-			want:    "",
-			wantGas: 3,
-		},
-		{ // MCOPY - copy 1 from 0x20 to 0x10, with no prior allocated mem
-			dst: "0x10", src: "0x20", len: "0x1",
-			pre: "",
-			// 64 bytes
-			want:    "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-			wantGas: 12,
-		},
-		{ // MCOPY - copy 1 from 0x19 to 0x10, with no prior allocated mem
-			dst: "0x10", src: "0x19", len: "0x1",
-			pre: "",
-			// 32 bytes
-			want:    "0x0000000000000000000000000000000000000000000000000000000000000000",
-			wantGas: 9,
-		},
-	} {
-		var (
-			env            = NewEVM(BlockContext{}, TxContext{}, nil, params.TestChainConfig, Config{})
-			stack          = newstack()
-			pc             = uint64(0)
-			evmInterpreter = env.interpreter
-		)
-		data := common.FromHex(strings.ReplaceAll(tc.pre, " ", ""))
-		// Set pre
-		mem := NewMemory()
-		mem.Resize(uint64(len(data)))
-		mem.Set(0, uint64(len(data)), data)
-		// Push stack args
-		len, _ := uint256.FromHex(tc.len)
-		src, _ := uint256.FromHex(tc.src)
-		dst, _ := uint256.FromHex(tc.dst)
-
-		stack.push(len)
-		stack.push(src)
-		stack.push(dst)
-		wantErr := (tc.wantGas == 0)
-		// Calc mem expansion
-		var memorySize uint64
-		if memSize, overflow := memoryMcopy(stack); overflow {
-			if wantErr {
-				continue
-			}
-			t.Errorf("overflow")
-		} else {
-			var overflow bool
-			if memorySize, overflow = math.SafeMul(toWordSize(memSize), 32); overflow {
-				t.Error(ErrGasUintOverflow)
-			}
-		}
-		// and the dynamic cost
-		var haveGas uint64
-		if dynamicCost, err := gasMcopy(env, nil, stack, mem, memorySize); err != nil {
-			t.Error(err)
-		} else {
-			haveGas = GasFastestStep + dynamicCost
-		}
-		// Expand mem
-		if memorySize > 0 {
-			mem.Resize(memorySize)
-		}
-		// Do the copy
-		opMcopy(&pc, evmInterpreter, &ScopeContext{mem, stack, nil})
-		want := common.FromHex(strings.ReplaceAll(tc.want, " ", ""))
-		if have := mem.store; !bytes.Equal(want, have) {
-			t.Errorf("case %d: \nwant: %#x\nhave: %#x\n", i, want, have)
-		}
-		wantGas := tc.wantGas
-		if haveGas != wantGas {
-			t.Errorf("case %d: gas wrong, want %d have %d\n", i, wantGas, haveGas)
 		}
 	}
 }

@@ -92,9 +92,23 @@ func BenchmarkBloom9Lookup(b *testing.B) {
 }
 
 func BenchmarkCreateBloom(b *testing.B) {
+	to, _ := common.NewAddressFromString("Z0000000000000000000000000000000000000002")
 	var txs = Transactions{
-		NewContractCreation(1, big.NewInt(1), 1, big.NewInt(1), nil),
-		NewTransaction(2, common.HexToAddress("0x2"), big.NewInt(2), 2, big.NewInt(2), nil),
+		NewTx(&DynamicFeeTx{
+			Nonce:     1,
+			Value:     big.NewInt(1),
+			Gas:       1,
+			GasFeeCap: big.NewInt(1),
+			Data:      nil,
+		}),
+		NewTx(&DynamicFeeTx{
+			Nonce:     2,
+			To:        &to,
+			Value:     big.NewInt(2),
+			Gas:       2,
+			GasFeeCap: big.NewInt(2),
+			Data:      nil,
+		}),
 	}
 	var rSmall = Receipts{
 		&Receipt{

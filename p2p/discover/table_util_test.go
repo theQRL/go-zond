@@ -24,12 +24,12 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"slices"
 	"sync"
 
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/p2p/enode"
 	"github.com/theQRL/go-zond/p2p/enr"
-	"golang.org/x/exp/slices"
 )
 
 var nullNode *enode.Node

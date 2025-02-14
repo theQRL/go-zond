@@ -27,7 +27,6 @@ import (
 	"math/rand"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/theQRL/go-zond/common/hexutil"
 	"golang.org/x/crypto/sha3"
@@ -44,6 +43,14 @@ const (
 var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
+
+	// MaxAddress represents the maximum possible address value.
+	MaxAddress, _ = NewAddressFromString("Zffffffffffffffffffffffffffffffffffffffff")
+
+	// MaxHash represents the maximum possible hash value.
+	MaxHash = HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+
+	ErrInvalidAddress = errors.New("invalid address")
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
@@ -203,7 +210,7 @@ func (h UnprefixedHash) MarshalText() ([]byte, error) {
 
 /////////// Address
 
-// Address represents the 20 byte address of an Ethereum account.
+// Address represents the 20 byte address of a Zond account.
 type Address [AddressLength]byte
 
 // BytesToAddress returns Address with value b.
@@ -218,16 +225,23 @@ func BytesToAddress(b []byte) Address {
 // If b is larger than len(h), b will be cropped from the left.
 func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 
-// HexToAddress returns Address with byte values of s.
-// If s is larger than len(h), s will be cropped from the left.
-func HexToAddress(s string) Address { return BytesToAddress(FromHex(s)) }
-
-// IsHexAddress verifies whether a string can represent a valid hex-encoded
-// Ethereum address or not.
-func IsHexAddress(s string) bool {
-	if has0xPrefix(s) {
-		s = s[2:]
+// NewAddressFromString returns Address with byte values of s.
+func NewAddressFromString(hexaddr string) (Address, error) {
+	if !IsAddress(hexaddr) {
+		return Address{}, ErrInvalidAddress
 	}
+	rawAddr, _ := hex.DecodeString(hexaddr[1:])
+	return BytesToAddress(rawAddr), nil
+}
+
+// IsAddress verifies whether a string can represent a valid hex-encoded
+// Zond address or not.
+func IsAddress(s string) bool {
+	if !hasZPrefix(s) {
+		return false
+	}
+	s = s[1:]
+
 	return len(s) == 2*AddressLength && isHex(s)
 }
 
@@ -260,11 +274,11 @@ func (a *Address) checksumHex() []byte {
 
 	// compute checksum
 	sha := sha3.NewLegacyKeccak256()
-	sha.Write(buf[2:])
+	sha.Write(buf[1:])
 	hash := sha.Sum(nil)
-	for i := 2; i < len(buf); i++ {
-		hashByte := hash[(i-2)/2]
-		if i%2 == 0 {
+	for i := 1; i < len(buf); i++ {
+		hashByte := hash[(i-1)/2]
+		if (i+1)%2 == 0 {
 			hashByte = hashByte >> 4
 		} else {
 			hashByte &= 0xf
@@ -277,9 +291,9 @@ func (a *Address) checksumHex() []byte {
 }
 
 func (a Address) hex() []byte {
-	var buf [len(a)*2 + 2]byte
-	copy(buf[:2], "0x")
-	hex.Encode(buf[2:], a[:])
+	var buf [len(a)*2 + 1]byte
+	copy(buf[:1], hexutil.PrefixZ)
+	hex.Encode(buf[1:], a[:])
 	return buf[:]
 }
 
@@ -298,7 +312,7 @@ func (a Address) Format(s fmt.State, c rune) {
 		// %x disables the checksum.
 		hex := a.hex()
 		if !s.Flag('#') {
-			hex = hex[2:]
+			hex = hex[1:]
 		}
 		if c == 'X' {
 			hex = bytes.ToUpper(hex)
@@ -322,17 +336,17 @@ func (a *Address) SetBytes(b []byte) {
 
 // MarshalText returns the hex representation of a.
 func (a Address) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(a[:]).MarshalText()
+	return hexutil.BytesZ(a[:]).MarshalText()
 }
 
 // UnmarshalText parses a hash in hex syntax.
 func (a *Address) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("Address", input, a[:])
+	return hexutil.UnmarshalFixedTextZ("Address", input, a[:])
 }
 
-// UnmarshalJSON parses a hash in hex syntax.
+// UnmarshalJSON parses a address in hex syntax.
 func (a *Address) UnmarshalJSON(input []byte) error {
-	return hexutil.UnmarshalFixedJSON(addressT, input, a[:])
+	return hexutil.UnmarshalFixedJSONZ(addressT, input, a[:])
 }
 
 // Scan implements Scanner for database/sql.
@@ -353,7 +367,7 @@ func (a Address) Value() (driver.Value, error) {
 	return a[:], nil
 }
 
-// ImplementsGraphQLType returns true if Hash implements the specified GraphQL type.
+// ImplementsGraphQLType returns true if Address implements the specified GraphQL type.
 func (a Address) ImplementsGraphQLType(name string) bool { return name == "Address" }
 
 // UnmarshalGraphQL unmarshals the provided GraphQL query data.
@@ -366,19 +380,6 @@ func (a *Address) UnmarshalGraphQL(input interface{}) error {
 		err = fmt.Errorf("unexpected type %T for Address", input)
 	}
 	return err
-}
-
-// UnprefixedAddress allows marshaling an Address without 0x prefix.
-type UnprefixedAddress Address
-
-// UnmarshalText decodes the address from hex. The 0x prefix is optional.
-func (a *UnprefixedAddress) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedUnprefixedText("UnprefixedAddress", input, a[:])
-}
-
-// MarshalText encodes the address as hex.
-func (a UnprefixedAddress) MarshalText() ([]byte, error) {
-	return []byte(hex.EncodeToString(a[:])), nil
 }
 
 // MixedcaseAddress retains the original string, which may or may not be
@@ -395,16 +396,16 @@ func NewMixedcaseAddress(addr Address) MixedcaseAddress {
 
 // NewMixedcaseAddressFromString is mainly meant for unit-testing
 func NewMixedcaseAddressFromString(hexaddr string) (*MixedcaseAddress, error) {
-	if !IsHexAddress(hexaddr) {
-		return nil, errors.New("invalid address")
+	if !IsAddress(hexaddr) {
+		return nil, ErrInvalidAddress
 	}
-	a := FromHex(hexaddr)
-	return &MixedcaseAddress{addr: BytesToAddress(a), original: hexaddr}, nil
+	rawAddr, _ := hex.DecodeString(hexaddr[1:])
+	return &MixedcaseAddress{addr: BytesToAddress(rawAddr), original: hexaddr}, nil
 }
 
 // UnmarshalJSON parses MixedcaseAddress
 func (ma *MixedcaseAddress) UnmarshalJSON(input []byte) error {
-	if err := hexutil.UnmarshalFixedJSON(addressT, input, ma.addr[:]); err != nil {
+	if err := hexutil.UnmarshalFixedJSONZ(addressT, input, ma.addr[:]); err != nil {
 		return err
 	}
 	return json.Unmarshal(input, &ma.original)
@@ -412,10 +413,7 @@ func (ma *MixedcaseAddress) UnmarshalJSON(input []byte) error {
 
 // MarshalJSON marshals the original value
 func (ma MixedcaseAddress) MarshalJSON() ([]byte, error) {
-	if strings.HasPrefix(ma.original, "0x") || strings.HasPrefix(ma.original, "0X") {
-		return json.Marshal(fmt.Sprintf("0x%s", ma.original[2:]))
-	}
-	return json.Marshal(fmt.Sprintf("0x%s", ma.original))
+	return json.Marshal(ma.original)
 }
 
 // Address returns the address
@@ -441,19 +439,6 @@ func (ma *MixedcaseAddress) Original() string {
 	return ma.original
 }
 
-// AddressEIP55 is an alias of Address with a customized json marshaller
-type AddressEIP55 Address
-
-// String returns the hex representation of the address in the manner of EIP55.
-func (addr AddressEIP55) String() string {
-	return Address(addr).Hex()
-}
-
-// MarshalJSON marshals the address in the manner of EIP55.
-func (addr AddressEIP55) MarshalJSON() ([]byte, error) {
-	return json.Marshal(addr.String())
-}
-
 type Decimal uint64
 
 func isString(input []byte) bool {
@@ -471,4 +456,15 @@ func (d *Decimal) UnmarshalJSON(input []byte) error {
 	} else {
 		return err
 	}
+}
+
+type PrettyBytes []byte
+
+// TerminalString implements log.TerminalStringer, formatting a string for console
+// output during logging.
+func (b PrettyBytes) TerminalString() string {
+	if len(b) < 7 {
+		return fmt.Sprintf("%x", b)
+	}
+	return fmt.Sprintf("%#x...%x (%dB)", b[:3], b[len(b)-3:], len(b))
 }

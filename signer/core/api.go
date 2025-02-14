@@ -17,23 +17,18 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"reflect"
 
 	"github.com/theQRL/go-zond/accounts"
 	"github.com/theQRL/go-zond/accounts/keystore"
-	"github.com/theQRL/go-zond/accounts/scwallet"
-	"github.com/theQRL/go-zond/accounts/usbwallet"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
-	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/internal/ethapi"
+	"github.com/theQRL/go-zond/internal/zondapi"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rpc"
 	"github.com/theQRL/go-zond/signer/core/apitypes"
@@ -56,17 +51,13 @@ type ExternalAPI interface {
 	// New request to create a new account
 	New(ctx context.Context) (common.Address, error)
 	// SignTransaction request to sign the specified transaction
-	SignTransaction(ctx context.Context, args apitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error)
+	SignTransaction(ctx context.Context, args apitypes.SendTxArgs, methodSelector *string) (*zondapi.SignTransactionResult, error)
 	// SignData - request to sign the given data (plus prefix)
 	SignData(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (hexutil.Bytes, error)
 	// SignTypedData - request to sign the given structured data (plus prefix)
 	SignTypedData(ctx context.Context, addr common.MixedcaseAddress, data apitypes.TypedData) (hexutil.Bytes, error)
-	// EcRecover - recover public key from given message and signature
-	EcRecover(ctx context.Context, data hexutil.Bytes, sig hexutil.Bytes) (common.Address, error)
 	// Version info about the APIs
 	Version(ctx context.Context) (string, error)
-	// SignGnosisSafeTransaction signs/confirms a gnosis-safe multisig transaction
-	SignGnosisSafeTx(ctx context.Context, signerAddress common.MixedcaseAddress, gnosisTx GnosisSafeTx, methodSelector *string) (*GnosisSafeTx, error)
 }
 
 // UIClientAPI specifies what method a UI needs to implement to be able to be used as a
@@ -87,7 +78,7 @@ type UIClientAPI interface {
 	ShowInfo(message string)
 	// OnApprovedTx notifies the UI about a transaction having been successfully signed.
 	// This method can be used by a UI to keep track of e.g. how much has been sent to a particular recipient.
-	OnApprovedTx(tx ethapi.SignTransactionResult)
+	OnApprovedTx(tx zondapi.SignTransactionResult)
 	// OnSignerStartup is invoked when the signer boots, and tells the UI info about external API location and version
 	// information
 	OnSignerStartup(info StartupInfo)
@@ -130,7 +121,7 @@ type Metadata struct {
 	Origin    string `json:"Origin"`
 }
 
-func StartClefAccountManager(ksLocation string, nousb, lightKDF bool, scpath string) *accounts.Manager {
+func StartClefAccountManager(ksLocation string /*usbEnabled bool,*/, lightKDF bool /*scpath string*/) *accounts.Manager {
 	var (
 		backends []accounts.Backend
 		n, p     = keystore.StandardScryptN, keystore.StandardScryptP
@@ -142,48 +133,52 @@ func StartClefAccountManager(ksLocation string, nousb, lightKDF bool, scpath str
 	if len(ksLocation) > 0 {
 		backends = append(backends, keystore.NewKeyStore(ksLocation, n, p))
 	}
-	if !nousb {
-		// Start a USB hub for Ledger hardware wallets
-		if ledgerhub, err := usbwallet.NewLedgerHub(); err != nil {
-			log.Warn(fmt.Sprintf("Failed to start Ledger hub, disabling: %v", err))
-		} else {
-			backends = append(backends, ledgerhub)
-			log.Debug("Ledger support enabled")
-		}
-		// Start a USB hub for Trezor hardware wallets (HID version)
-		if trezorhub, err := usbwallet.NewTrezorHubWithHID(); err != nil {
-			log.Warn(fmt.Sprintf("Failed to start HID Trezor hub, disabling: %v", err))
-		} else {
-			backends = append(backends, trezorhub)
-			log.Debug("Trezor support enabled via HID")
-		}
-		// Start a USB hub for Trezor hardware wallets (WebUSB version)
-		if trezorhub, err := usbwallet.NewTrezorHubWithWebUSB(); err != nil {
-			log.Warn(fmt.Sprintf("Failed to start WebUSB Trezor hub, disabling: %v", err))
-		} else {
-			backends = append(backends, trezorhub)
-			log.Debug("Trezor support enabled via WebUSB")
-		}
-	}
 
-	// Start a smart card hub
-	if len(scpath) > 0 {
-		// Sanity check that the smartcard path is valid
-		fi, err := os.Stat(scpath)
-		if err != nil {
-			log.Info("Smartcard socket file missing, disabling", "err", err)
-		} else {
-			if fi.Mode()&os.ModeType != os.ModeSocket {
-				log.Error("Invalid smartcard socket file type", "path", scpath, "type", fi.Mode().String())
+	// TODO(now.youtrack.cloud/issue/TGZ-4)
+	/*
+		if usbEnabled {
+			// Start a USB hub for Ledger hardware wallets
+			if ledgerhub, err := usbwallet.NewLedgerHub(); err != nil {
+				log.Warn(fmt.Sprintf("Failed to start Ledger hub, disabling: %v", err))
 			} else {
-				if schub, err := scwallet.NewHub(scpath, scwallet.Scheme, ksLocation); err != nil {
-					log.Warn(fmt.Sprintf("Failed to start smart card hub, disabling: %v", err))
+				backends = append(backends, ledgerhub)
+				log.Debug("Ledger support enabled")
+			}
+			// Start a USB hub for Trezor hardware wallets (HID version)
+			if trezorhub, err := usbwallet.NewTrezorHubWithHID(); err != nil {
+				log.Warn(fmt.Sprintf("Failed to start HID Trezor hub, disabling: %v", err))
+			} else {
+				backends = append(backends, trezorhub)
+				log.Debug("Trezor support enabled via HID")
+			}
+			// Start a USB hub for Trezor hardware wallets (WebUSB version)
+			if trezorhub, err := usbwallet.NewTrezorHubWithWebUSB(); err != nil {
+				log.Warn(fmt.Sprintf("Failed to start WebUSB Trezor hub, disabling: %v", err))
+			} else {
+				backends = append(backends, trezorhub)
+				log.Debug("Trezor support enabled via WebUSB")
+			}
+		}
+
+		// Start a smart card hub
+		if len(scpath) > 0 {
+			// Sanity check that the smartcard path is valid
+			fi, err := os.Stat(scpath)
+			if err != nil {
+				log.Info("Smartcard socket file missing, disabling", "err", err)
+			} else {
+				if fi.Mode()&os.ModeType != os.ModeSocket {
+					log.Error("Invalid smartcard socket file type", "path", scpath, "type", fi.Mode().String())
 				} else {
-					backends = append(backends, schub)
+					if schub, err := scwallet.NewHub(scpath, scwallet.Scheme, ksLocation); err != nil {
+						log.Warn(fmt.Sprintf("Failed to start smart card hub, disabling: %v", err))
+					} else {
+						backends = append(backends, schub)
+					}
 				}
 			}
 		}
-	}
+	*/
 
 	// Clef doesn't allow insecure http account unlock.
 	return accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: false}, backends...)
@@ -283,16 +278,20 @@ var ErrRequestDenied = errors.New("request denied")
 // key that is generated when a new Account is created.
 // noUSB disables USB support that is required to support hardware devices such as
 // ledger and trezor.
-func NewSignerAPI(am *accounts.Manager, chainID int64, noUSB bool, ui UIClientAPI, validator Validator, advancedMode bool, credentials storage.Storage) *SignerAPI {
+func NewSignerAPI(am *accounts.Manager, chainID int64 /*usbEnabled bool,*/, ui UIClientAPI, validator Validator, advancedMode bool, credentials storage.Storage) *SignerAPI {
 	if advancedMode {
 		log.Info("Clef is in advanced mode: will warn instead of reject")
 	}
 	signer := &SignerAPI{big.NewInt(chainID), am, ui, validator, !advancedMode, credentials}
-	if !noUSB {
-		signer.startUSBListener()
-	}
+	/*
+		if usbEnabled {
+			signer.startUSBListener()
+		}
+	*/
 	return signer
 }
+
+/*
 func (api *SignerAPI) openTrezor(url accounts.URL) {
 	resp, err := api.UI.OnInputRequired(UserInputRequest{
 		Prompt: "Pin required to open Trezor wallet\n" +
@@ -385,6 +384,7 @@ func (api *SignerAPI) derivationLoop(events chan accounts.WalletEvent) {
 		}
 	}
 }
+*/
 
 // List returns the set of wallet this signer manages. Each wallet can contain
 // multiple accounts.
@@ -483,10 +483,6 @@ func logDiff(original *SignTxRequest, new *SignTxResponse) bool {
 		modified = true
 		log.Info("Gas changed by UI", "was", g0, "is", g1)
 	}
-	if a, b := original.Transaction.GasPrice, new.Transaction.GasPrice; intPtrModified(a, b) {
-		log.Info("GasPrice changed by UI", "was", a, "is", b)
-		modified = true
-	}
 	if a, b := original.Transaction.MaxPriorityFeePerGas, new.Transaction.MaxPriorityFeePerGas; intPtrModified(a, b) {
 		log.Info("maxPriorityFeePerGas changed by UI", "was", a, "is", b)
 		modified = true
@@ -541,7 +537,7 @@ func (api *SignerAPI) lookupOrQueryPassword(address common.Address, title, promp
 }
 
 // SignTransaction signs the given Transaction and returns it both as json and rlp-encoded form
-func (api *SignerAPI) SignTransaction(ctx context.Context, args apitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error) {
+func (api *SignerAPI) SignTransaction(ctx context.Context, args apitypes.SendTxArgs, methodSelector *string) (*zondapi.SignTransactionResult, error) {
 	var (
 		err    error
 		result SignTxResponse
@@ -608,59 +604,12 @@ func (api *SignerAPI) SignTransaction(ctx context.Context, args apitypes.SendTxA
 	if err != nil {
 		return nil, err
 	}
-	response := ethapi.SignTransactionResult{Raw: data, Tx: signedTx}
+	response := zondapi.SignTransactionResult{Raw: data, Tx: signedTx}
 
 	// Finally, send the signed tx to the UI
 	api.UI.OnApprovedTx(response)
 	// ...and to the external caller
 	return &response, nil
-}
-
-func (api *SignerAPI) SignGnosisSafeTx(ctx context.Context, signerAddress common.MixedcaseAddress, gnosisTx GnosisSafeTx, methodSelector *string) (*GnosisSafeTx, error) {
-	// Do the usual validations, but on the last-stage transaction
-	args := gnosisTx.ArgsForValidation()
-	msgs, err := api.validator.ValidateTransaction(methodSelector, args)
-	if err != nil {
-		return nil, err
-	}
-	// If we are in 'rejectMode', then reject rather than show the user warnings
-	if api.rejectMode {
-		if err := msgs.GetWarnings(); err != nil {
-			log.Info("Signing aborted due to warnings. In order to continue despite warnings, please use the flag '--advanced'.")
-			return nil, err
-		}
-	}
-	typedData := gnosisTx.ToTypedData()
-	// might aswell error early.
-	// we are expected to sign. If our calculated hash does not match what they want,
-	// The gnosis safetx input contains a 'safeTxHash' which is the expected safeTxHash that
-	sighash, _, err := apitypes.TypedDataAndHash(typedData)
-	if err != nil {
-		return nil, err
-	}
-	if !bytes.Equal(sighash, gnosisTx.InputExpHash.Bytes()) {
-		// It might be the case that the json is missing chain id.
-		if gnosisTx.ChainId == nil {
-			gnosisTx.ChainId = (*math.HexOrDecimal256)(api.chainID)
-			typedData = gnosisTx.ToTypedData()
-			sighash, _, _ = apitypes.TypedDataAndHash(typedData)
-			if !bytes.Equal(sighash, gnosisTx.InputExpHash.Bytes()) {
-				return nil, fmt.Errorf("mismatched safeTxHash; have %#x want %#x", sighash, gnosisTx.InputExpHash[:])
-			}
-		}
-	}
-	signature, preimage, err := api.signTypedData(ctx, signerAddress, typedData, msgs)
-
-	if err != nil {
-		return nil, err
-	}
-	checkSummedSender, _ := common.NewMixedcaseAddressFromString(signerAddress.Address().Hex())
-
-	gnosisTx.Signature = signature
-	gnosisTx.SafeTxHash = common.BytesToHash(preimage)
-	gnosisTx.Sender = *checkSummedSender // Must be checksummed to be accepted by relay
-
-	return &gnosisTx, nil
 }
 
 // Returns the external api version. This method does not require user acceptance. Available methods are

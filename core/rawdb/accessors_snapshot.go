@@ -20,8 +20,8 @@ import (
 	"encoding/binary"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // ReadSnapshotDisabled retrieves if the snapshot maintenance is disabled.

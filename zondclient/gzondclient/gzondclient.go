@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package gzondclient provides an RPC client for geth-specific APIs.
+// Package gzondclient provides an RPC client for gzond-specific APIs.
 package gzondclient
 
 import (
@@ -33,9 +33,9 @@ import (
 	"github.com/theQRL/go-zond/rpc"
 )
 
-// Client is a wrapper around rpc.Client that implements geth-specific functionality.
+// Client is a wrapper around rpc.Client that implements gzond-specific functionality.
 //
-// If you want to use the standardized Ethereum RPC functionality, use zondclient.Client instead.
+// If you want to use the standardized Zond RPC functionality, use zondclient.Client instead.
 type Client struct {
 	c *rpc.Client
 }
@@ -154,7 +154,7 @@ func (ec *Client) CallContract(ctx context.Context, msg zond.CallMsg, blockNumbe
 // overrides specifies a map of contract states that should be overwritten before executing
 // the message call.
 //
-// blockOverrides specifies block fields exposed to the EVM that can be overridden for the call.
+// blockOverrides specifies block fields exposed to the ZVM that can be overridden for the call.
 //
 // Please use zondclient.CallContract instead if you don't need the override functionality.
 func (ec *Client) CallContractWithBlockOverrides(ctx context.Context, msg zond.CallMsg, blockNumber *big.Int, overrides *map[common.Address]OverrideAccount, blockOverrides BlockOverrides) ([]byte, error) {
@@ -166,14 +166,14 @@ func (ec *Client) CallContractWithBlockOverrides(ctx context.Context, msg zond.C
 	return hex, err
 }
 
-// GCStats retrieves the current garbage collection stats from a geth node.
+// GCStats retrieves the current garbage collection stats from a gzond node.
 func (ec *Client) GCStats(ctx context.Context) (*debug.GCStats, error) {
 	var result debug.GCStats
 	err := ec.c.CallContext(ctx, &result, "debug_gcStats")
 	return &result, err
 }
 
-// MemStats retrieves the current memory stats from a geth node.
+// MemStats retrieves the current memory stats from a gzond node.
 func (ec *Client) MemStats(ctx context.Context) (*runtime.MemStats, error) {
 	var result runtime.MemStats
 	err := ec.c.CallContext(ctx, &result, "debug_memStats")
@@ -187,7 +187,7 @@ func (ec *Client) SetHead(ctx context.Context, number *big.Int) error {
 	return ec.c.CallContext(ctx, nil, "debug_setHead", toBlockNumArg(number))
 }
 
-// GetNodeInfo retrieves the node info of a geth node.
+// GetNodeInfo retrieves the node info of a gzond node.
 func (ec *Client) GetNodeInfo(ctx context.Context) (*p2p.NodeInfo, error) {
 	var result p2p.NodeInfo
 	err := ec.c.CallContext(ctx, &result, "admin_nodeInfo")
@@ -196,12 +196,12 @@ func (ec *Client) GetNodeInfo(ctx context.Context) (*p2p.NodeInfo, error) {
 
 // SubscribeFullPendingTransactions subscribes to new pending transactions.
 func (ec *Client) SubscribeFullPendingTransactions(ctx context.Context, ch chan<- *types.Transaction) (*rpc.ClientSubscription, error) {
-	return ec.c.EthSubscribe(ctx, ch, "newPendingTransactions", true)
+	return ec.c.ZondSubscribe(ctx, ch, "newPendingTransactions", true)
 }
 
 // SubscribePendingTransactions subscribes to new pending transaction hashes.
 func (ec *Client) SubscribePendingTransactions(ctx context.Context, ch chan<- common.Hash) (*rpc.ClientSubscription, error) {
-	return ec.c.EthSubscribe(ctx, ch, "newPendingTransactions")
+	return ec.c.ZondSubscribe(ctx, ch, "newPendingTransactions")
 }
 
 func toBlockNumArg(number *big.Int) string {
@@ -233,8 +233,14 @@ func toCallArg(msg zond.CallMsg) interface{} {
 	if msg.Gas != 0 {
 		arg["gas"] = hexutil.Uint64(msg.Gas)
 	}
-	if msg.GasPrice != nil {
-		arg["gasPrice"] = (*hexutil.Big)(msg.GasPrice)
+	if msg.GasFeeCap != nil {
+		arg["maxFeePerGas"] = (*hexutil.Big)(msg.GasFeeCap)
+	}
+	if msg.GasTipCap != nil {
+		arg["maxPriorityFeePerGas"] = (*hexutil.Big)(msg.GasTipCap)
+	}
+	if msg.AccessList != nil {
+		arg["accessList"] = msg.AccessList
 	}
 	return arg
 }
@@ -289,8 +295,6 @@ func (a OverrideAccount) MarshalJSON() ([]byte, error) {
 type BlockOverrides struct {
 	// Number overrides the block number.
 	Number *big.Int
-	// Difficulty overrides the block difficulty.
-	Difficulty *big.Int
 	// Time overrides the block timestamp. Time is applied only when
 	// it is non-zero.
 	Time uint64
@@ -309,21 +313,19 @@ type BlockOverrides struct {
 
 func (o BlockOverrides) MarshalJSON() ([]byte, error) {
 	type override struct {
-		Number     *hexutil.Big    `json:"number,omitempty"`
-		Difficulty *hexutil.Big    `json:"difficulty,omitempty"`
-		Time       hexutil.Uint64  `json:"time,omitempty"`
-		GasLimit   hexutil.Uint64  `json:"gasLimit,omitempty"`
-		Coinbase   *common.Address `json:"coinbase,omitempty"`
-		Random     *common.Hash    `json:"random,omitempty"`
-		BaseFee    *hexutil.Big    `json:"baseFee,omitempty"`
+		Number   *hexutil.Big    `json:"number,omitempty"`
+		Time     hexutil.Uint64  `json:"time,omitempty"`
+		GasLimit hexutil.Uint64  `json:"gasLimit,omitempty"`
+		Coinbase *common.Address `json:"coinbase,omitempty"`
+		Random   *common.Hash    `json:"random,omitempty"`
+		BaseFee  *hexutil.Big    `json:"baseFee,omitempty"`
 	}
 
 	output := override{
-		Number:     (*hexutil.Big)(o.Number),
-		Difficulty: (*hexutil.Big)(o.Difficulty),
-		Time:       hexutil.Uint64(o.Time),
-		GasLimit:   hexutil.Uint64(o.GasLimit),
-		BaseFee:    (*hexutil.Big)(o.BaseFee),
+		Number:   (*hexutil.Big)(o.Number),
+		Time:     hexutil.Uint64(o.Time),
+		GasLimit: hexutil.Uint64(o.GasLimit),
+		BaseFee:  (*hexutil.Big)(o.BaseFee),
 	}
 	if o.Coinbase != (common.Address{}) {
 		output.Coinbase = &o.Coinbase

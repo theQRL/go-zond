@@ -31,7 +31,6 @@ import (
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/metrics"
-	"github.com/theQRL/go-zond/params"
 )
 
 const (
@@ -65,7 +64,6 @@ type fetchResult struct {
 	pending atomic.Int32 // Flag telling what deliveries are outstanding
 
 	Header       *types.Header
-	Uncles       []*types.Header
 	Transactions types.Transactions
 	Receipts     types.Receipts
 	Withdrawals  types.Withdrawals
@@ -84,6 +82,14 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 		item.pending.Store(item.pending.Load() | (1 << receiptType))
 	}
 	return item
+}
+
+// body returns a representation of the fetch result as a types.Body object.
+func (f *fetchResult) body() types.Body {
+	return types.Body{
+		Transactions: f.Transactions,
+		Withdrawals:  f.Withdrawals,
+	}
 }
 
 // SetBodyDone flags the body as finished.
@@ -366,9 +372,6 @@ func (q *queue) Results(block bool) []*fetchResult {
 	for _, result := range results {
 		// Recalculate the result item weights to prevent memory exhaustion
 		size := result.Header.Size()
-		for _, uncle := range result.Uncles {
-			size += uncle.Size()
-		}
 		for _, receipt := range result.Receipts {
 			size += receipt.Size()
 		}
@@ -772,16 +775,12 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, hashes []comm
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
 func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListHashes []common.Hash,
-	uncleLists [][]*types.Header, uncleListHashes []common.Hash,
 	withdrawalLists [][]*types.Withdrawal, withdrawalListHashes []common.Hash) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	validate := func(index int, header *types.Header) error {
 		if txListHashes[index] != header.TxHash {
-			return errInvalidBody
-		}
-		if uncleListHashes[index] != header.UncleHash {
 			return errInvalidBody
 		}
 		if header.WithdrawalsHash == nil {
@@ -797,43 +796,12 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 				return errInvalidBody
 			}
 		}
-		// Blocks must have a number of blobs corresponding to the header gas usage,
-		// and zero before the Cancun hardfork.
-		var blobs int
-		for _, tx := range txLists[index] {
-			// Count the number of blobs to validate against the header's blobGasUsed
-			blobs += len(tx.BlobHashes())
 
-			// Validate the data blobs individually too
-			if tx.Type() == types.BlobTxType {
-				if len(tx.BlobHashes()) == 0 {
-					return errInvalidBody
-				}
-				for _, hash := range tx.BlobHashes() {
-					if hash[0] != params.BlobTxHashVersion {
-						return errInvalidBody
-					}
-				}
-				if tx.BlobTxSidecar() != nil {
-					return errInvalidBody
-				}
-			}
-		}
-		if header.BlobGasUsed != nil {
-			if want := *header.BlobGasUsed / params.BlobTxBlobGasPerBlob; uint64(blobs) != want { // div because the header is surely good vs the body might be bloated
-				return errInvalidBody
-			}
-		} else {
-			if blobs != 0 {
-				return errInvalidBody
-			}
-		}
 		return nil
 	}
 
 	reconstruct := func(index int, result *fetchResult) {
 		result.Transactions = txLists[index]
-		result.Uncles = uncleLists[index]
 		result.Withdrawals = withdrawalLists[index]
 		result.SetBodyDone()
 	}

@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
@@ -38,12 +38,12 @@ import (
 // contains a transaction and every 5th an uncle to allow testing correct block
 // reassembly.
 func makeChain(n int, seed byte, parent *types.Block, empty bool) ([]*types.Block, []types.Receipts) {
-	blocks, receipts := core.GenerateChain(params.TestChainConfig, parent, ethash.NewFaker(), testDB, n, func(i int, block *core.BlockGen) {
+	blocks, receipts := core.GenerateChain(params.TestChainConfig, parent, beacon.NewFaker(), testDB, n, func(i int, block *core.BlockGen) {
 		block.SetCoinbase(common.Address{seed})
 		// Add one tx to every secondblock
 		if !empty && i%2 == 0 {
-			signer := types.MakeSigner(params.TestChainConfig, block.Number(), block.Timestamp())
-			tx, err := types.SignTx(types.NewTransaction(block.TxNonce(testAddress), common.Address{seed}, big.NewInt(1000), params.TxGas, block.BaseFee(), nil), signer, testKey)
+			signer := types.MakeSigner(params.TestChainConfig)
+			tx, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: block.TxNonce(testAddress), To: &common.Address{seed}, Value: big.NewInt(1000), Gas: params.TxGas, GasFeeCap: big.NewInt(875000000), Data: nil}), signer, testKey)
 			if err != nil {
 				panic(err)
 			}
@@ -318,28 +318,21 @@ func XTestDelivery(t *testing.T) {
 			f, _, _ := q.ReserveBodies(peer, rand.Intn(30))
 			if f != nil {
 				var (
-					emptyList []*types.Header
-					txset     [][]*types.Transaction
-					uncleset  [][]*types.Header
+					txset [][]*types.Transaction
 				)
 				numToSkip := rand.Intn(len(f.Headers))
 				for _, hdr := range f.Headers[0 : len(f.Headers)-numToSkip] {
 					txset = append(txset, world.getTransactions(hdr.Number.Uint64()))
-					uncleset = append(uncleset, emptyList)
 				}
 				var (
-					txsHashes   = make([]common.Hash, len(txset))
-					uncleHashes = make([]common.Hash, len(uncleset))
+					txsHashes = make([]common.Hash, len(txset))
 				)
 				hasher := trie.NewStackTrie(nil)
 				for i, txs := range txset {
 					txsHashes[i] = types.DeriveSha(types.Transactions(txs), hasher)
 				}
-				for i, uncles := range uncleset {
-					uncleHashes[i] = types.CalcUncleHash(uncles)
-				}
 				time.Sleep(100 * time.Millisecond)
-				_, err := q.DeliverBodies(peer.id, txset, txsHashes, uncleset, uncleHashes, nil, nil)
+				_, err := q.DeliverBodies(peer.id, txset, txsHashes, nil, nil)
 				if err != nil {
 					fmt.Printf("delivered %d bodies %v\n", len(txset), err)
 				}

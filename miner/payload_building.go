@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/beacon/engine"
+	beaconparams "github.com/theQRL/go-zond/beacon/params"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/log"
@@ -40,21 +41,16 @@ type BuildPayloadArgs struct {
 	FeeRecipient common.Address    // The provided recipient address for collecting transaction fee
 	Random       common.Hash       // The provided randomness value
 	Withdrawals  types.Withdrawals // The provided withdrawals
-	BeaconRoot   *common.Hash      // The provided beaconRoot (Cancun)
 }
 
 // Id computes an 8-byte identifier by hashing the components of the payload arguments.
 func (args *BuildPayloadArgs) Id() engine.PayloadID {
-	// Hash
 	hasher := sha256.New()
 	hasher.Write(args.Parent[:])
 	binary.Write(hasher, binary.BigEndian, args.Timestamp)
 	hasher.Write(args.Random[:])
 	hasher.Write(args.FeeRecipient[:])
 	rlp.Encode(hasher, args.Withdrawals)
-	if args.BeaconRoot != nil {
-		hasher.Write(args.BeaconRoot[:])
-	}
 	var out engine.PayloadID
 	copy(out[:], hasher.Sum(nil)[:8])
 	return out
@@ -69,7 +65,6 @@ type Payload struct {
 	id       engine.PayloadID
 	empty    *types.Block
 	full     *types.Block
-	sidecars []*types.BlobTxSidecar
 	fullFees *big.Int
 	stop     chan struct{}
 	lock     sync.Mutex
@@ -104,7 +99,6 @@ func (payload *Payload) update(r *newPayloadResult, elapsed time.Duration) {
 	if payload.full == nil || r.fees.Cmp(payload.fullFees) > 0 {
 		payload.full = r.block
 		payload.fullFees = r.fees
-		payload.sidecars = r.sidecars
 
 		feesInEther := new(big.Float).Quo(new(big.Float).SetInt(r.fees), big.NewFloat(params.Ether))
 		log.Info("Updated payload",
@@ -134,9 +128,9 @@ func (payload *Payload) Resolve() *engine.ExecutionPayloadEnvelope {
 		close(payload.stop)
 	}
 	if payload.full != nil {
-		return engine.BlockToExecutableData(payload.full, payload.fullFees, payload.sidecars)
+		return engine.BlockToExecutableData(payload.full, payload.fullFees)
 	}
-	return engine.BlockToExecutableData(payload.empty, big.NewInt(0), nil)
+	return engine.BlockToExecutableData(payload.empty, big.NewInt(0))
 }
 
 // ResolveEmpty is basically identical to Resolve, but it expects empty block only.
@@ -145,7 +139,7 @@ func (payload *Payload) ResolveEmpty() *engine.ExecutionPayloadEnvelope {
 	payload.lock.Lock()
 	defer payload.lock.Unlock()
 
-	return engine.BlockToExecutableData(payload.empty, big.NewInt(0), nil)
+	return engine.BlockToExecutableData(payload.empty, big.NewInt(0))
 }
 
 // ResolveFull is basically identical to Resolve, but it expects full block only.
@@ -171,11 +165,11 @@ func (payload *Payload) ResolveFull() *engine.ExecutionPayloadEnvelope {
 	default:
 		close(payload.stop)
 	}
-	return engine.BlockToExecutableData(payload.full, payload.fullFees, payload.sidecars)
+	return engine.BlockToExecutableData(payload.full, payload.fullFees)
 }
 
 // buildPayload builds the payload according to the provided parameters.
-func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
+func (miner *Miner) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 	// Build the initial version with no transaction included. It should be fast
 	// enough to run. The empty payload can at least make sure there is something
 	// to deliver for not missing slot.
@@ -186,10 +180,9 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		coinbase:    args.FeeRecipient,
 		random:      args.Random,
 		withdrawals: args.Withdrawals,
-		beaconRoot:  args.BeaconRoot,
 		noTxs:       true,
 	}
-	empty := w.getSealingBlock(emptyParams)
+	empty := miner.generateWork(emptyParams)
 	if empty.err != nil {
 		return nil, empty.err
 	}
@@ -205,11 +198,10 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 		timer := time.NewTimer(0)
 		defer timer.Stop()
 
-		// Setup the timer for terminating the process if SECONDS_PER_SLOT (12s in
+		// Setup the timer for terminating the process if SECONDS_PER_SLOT (60s in
 		// the Mainnet configuration) have passed since the point in time identified
 		// by the timestamp parameter.
-		// TODO: (cyyber) Move hard coded 12 to config
-		endTimer := time.NewTimer(time.Second * 60)
+		endTimer := time.NewTimer(time.Second * beaconparams.SecondsPerSlot)
 
 		fullParams := &generateParams{
 			timestamp:   args.Timestamp,
@@ -218,7 +210,6 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 			coinbase:    args.FeeRecipient,
 			random:      args.Random,
 			withdrawals: args.Withdrawals,
-			beaconRoot:  args.BeaconRoot,
 			noTxs:       false,
 		}
 
@@ -226,11 +217,13 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 			select {
 			case <-timer.C:
 				start := time.Now()
-				r := w.getSealingBlock(fullParams)
+				r := miner.generateWork(fullParams)
 				if r.err == nil {
 					payload.update(r, time.Since(start))
+				} else {
+					log.Info("Error while generating work", "id", payload.id, "err", r.err)
 				}
-				timer.Reset(w.recommit)
+				timer.Reset(miner.config.Recommit)
 			case <-payload.stop:
 				log.Info("Stopping work on payload", "id", payload.id, "reason", "delivery")
 				return

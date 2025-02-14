@@ -50,6 +50,12 @@ var (
 		{referenceBig("-80a7f2c1bcc396c00"), "-0x80a7f2c1bcc396c00"},
 	}
 
+	encodeZTests = []marshalTest{
+		{[]byte{}, "Z"},
+		{[]byte{0}, "Z00"},
+		{[]byte{0, 0, 1, 2}, "Z00000102"},
+	}
+
 	encodeUint64Tests = []marshalTest{
 		{uint64(0), "0x0"},
 		{uint64(1), "0x1"},
@@ -117,6 +123,24 @@ var (
 		},
 	}
 
+	decodeZTests = []unmarshalTest{ // invalid
+		{input: ``, wantErr: ErrEmptyString},
+		{input: `0`, wantErr: ErrMissingPrefixZ},
+		{input: `z`, wantErr: ErrMissingPrefixZ},
+		{input: `Z0`, wantErr: ErrOddLength},
+		{input: `Z023`, wantErr: ErrOddLength},
+		{input: `Zzz`, wantErr: ErrSyntax},
+		{input: `Z01zz01`, wantErr: ErrSyntax},
+		// valid
+		{input: `Z`, want: []byte{}},
+		{input: `Z02`, want: []byte{0x02}},
+		{input: `Zffffffffff`, want: []byte{0xff, 0xff, 0xff, 0xff, 0xff}},
+		{
+			input: `Zffffffffffffffffffffffffffffffffffff`,
+			want:  []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		},
+	}
+
 	decodeUint64Tests = []unmarshalTest{
 		// invalid
 		{input: `0`, wantErr: ErrMissingPrefix},
@@ -174,6 +198,28 @@ func TestDecodeBig(t *testing.T) {
 			continue
 		}
 		if dec.Cmp(test.want.(*big.Int)) != 0 {
+			t.Errorf("input %s: value mismatch: got %x, want %x", test.input, dec, test.want)
+			continue
+		}
+	}
+}
+
+func TestEncodeZ(t *testing.T) {
+	for _, test := range encodeZTests {
+		enc := EncodeZ(test.input.([]byte))
+		if enc != test.want {
+			t.Errorf("input %x: wrong encoding %s", test.input, enc)
+		}
+	}
+}
+
+func TestDecodeZ(t *testing.T) {
+	for _, test := range decodeZTests {
+		dec, err := DecodeZ(test.input)
+		if !checkError(t, test.input, err, test.wantErr) {
+			continue
+		}
+		if !bytes.Equal(test.want.([]byte), dec) {
 			t.Errorf("input %s: value mismatch: got %x, want %x", test.input, dec, test.want)
 			continue
 		}

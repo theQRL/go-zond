@@ -19,7 +19,6 @@ package zond
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/theQRL/go-zond/common"
@@ -35,8 +34,8 @@ const (
 )
 
 // Handshake executes the zond protocol handshake, negotiating version number,
-// network IDs, difficulties, head and genesis blocks.
-func (p *Peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash, forkID forkid.ID, forkFilter forkid.Filter) error {
+// network IDs, head and genesis blocks.
+func (p *Peer) Handshake(network uint64, head common.Hash, genesis common.Hash, forkID forkid.ID, forkFilter forkid.Filter) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 
@@ -46,7 +45,6 @@ func (p *Peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 		errc <- p2p.Send(p.rw, StatusMsg, &StatusPacket{
 			ProtocolVersion: uint32(p.version),
 			NetworkID:       network,
-			TD:              td,
 			Head:            head,
 			Genesis:         genesis,
 			ForkID:          forkID,
@@ -69,13 +67,8 @@ func (p *Peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 			return p2p.DiscReadTimeout
 		}
 	}
-	p.td, p.head = status.TD, status.Head
+	p.head = status.Head
 
-	// TD at mainnet block #7753254 is 76 bits. If it becomes 100 million times
-	// larger, it will still fit within 100 bits
-	if tdlen := p.td.BitLen(); tdlen > 100 {
-		return fmt.Errorf("too large total difficulty: bitlen %d", tdlen)
-	}
 	return nil
 }
 

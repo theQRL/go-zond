@@ -14,109 +14,19 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package web3ext contains geth specific web3.js extensions.
+// Package web3ext contains gzond specific web3.js extensions.
 package web3ext
 
 var Modules = map[string]string{
-	"admin":    AdminJs,
-	"clique":   CliqueJs,
-	"ethash":   EthashJs,
-	"debug":    DebugJs,
-	"zond":     EthJs,
-	"miner":    MinerJs,
-	"net":      NetJs,
-	"personal": PersonalJs,
-	"rpc":      RpcJs,
-	"txpool":   TxpoolJs,
-	"les":      LESJs,
-	"vflux":    VfluxJs,
-	"dev":      DevJs,
+	"admin":  AdminJs,
+	"debug":  DebugJs,
+	"zond":   ZondJs,
+	"miner":  MinerJs,
+	"net":    NetJs,
+	"rpc":    RpcJs,
+	"txpool": TxpoolJs,
+	"dev":    DevJs,
 }
-
-const CliqueJs = `
-web3._extend({
-	property: 'clique',
-	methods: [
-		new web3._extend.Method({
-			name: 'getSnapshot',
-			call: 'clique_getSnapshot',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'getSnapshotAtHash',
-			call: 'clique_getSnapshotAtHash',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'getSigners',
-			call: 'clique_getSigners',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'getSignersAtHash',
-			call: 'clique_getSignersAtHash',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'propose',
-			call: 'clique_propose',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'discard',
-			call: 'clique_discard',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'status',
-			call: 'clique_status',
-			params: 0
-		}),
-		new web3._extend.Method({
-			name: 'getSigner',
-			call: 'clique_getSigner',
-			params: 1,
-			inputFormatter: [null]
-		}),
-	],
-	properties: [
-		new web3._extend.Property({
-			name: 'proposals',
-			getter: 'clique_proposals'
-		}),
-	]
-});
-`
-
-const EthashJs = `
-web3._extend({
-	property: 'ethash',
-	methods: [
-		new web3._extend.Method({
-			name: 'getWork',
-			call: 'ethash_getWork',
-			params: 0
-		}),
-		new web3._extend.Method({
-			name: 'getHashrate',
-			call: 'ethash_getHashrate',
-			params: 0
-		}),
-		new web3._extend.Method({
-			name: 'submitWork',
-			call: 'ethash_submitWork',
-			params: 3,
-		}),
-		new web3._extend.Method({
-			name: 'submitHashrate',
-			call: 'ethash_submitHashrate',
-			params: 2,
-		}),
-	]
-});
-`
 
 const AdminJs = `
 web3._extend({
@@ -167,18 +77,6 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'stopHTTP',
 			call: 'admin_stopHTTP'
-		}),
-		// This method is deprecated.
-		new web3._extend.Method({
-			name: 'startRPC',
-			call: 'admin_startRPC',
-			params: 5,
-			inputFormatter: [null, null, null, null, null]
-		}),
-		// This method is deprecated.
-		new web3._extend.Method({
-			name: 'stopRPC',
-			call: 'admin_stopRPC'
 		}),
 		new web3._extend.Method({
 			name: 'startWS',
@@ -506,7 +404,7 @@ web3._extend({
 });
 `
 
-const EthJs = `
+const ZondJs = `
 web3._extend({
 	property: 'zond',
 	methods: [
@@ -650,20 +548,6 @@ web3._extend({
 	property: 'miner',
 	methods: [
 		new web3._extend.Method({
-			name: 'start',
-			call: 'miner_start',
-		}),
-		new web3._extend.Method({
-			name: 'stop',
-			call: 'miner_stop'
-		}),
-		new web3._extend.Method({
-			name: 'setEtherbase',
-			call: 'miner_setEtherbase',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
-		}),
-		new web3._extend.Method({
 			name: 'setExtra',
 			call: 'miner_setExtra',
 			params: 1
@@ -679,15 +563,6 @@ web3._extend({
 			call: 'miner_setGasLimit',
 			params: 1,
 			inputFormatter: [web3._extend.utils.fromDecimal]
-		}),
-		new web3._extend.Method({
-			name: 'setRecommitInterval',
-			call: 'miner_setRecommitInterval',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getHashrate',
-			call: 'miner_getHashrate'
 		}),
 	],
 	properties: []
@@ -705,62 +580,6 @@ web3._extend({
 		}),
 	]
 });
-`
-
-const PersonalJs = `
-web3._extend({
-	property: 'personal',
-	methods: [
-		new web3._extend.Method({
-			name: 'importRawKey',
-			call: 'personal_importRawKey',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'sign',
-			call: 'personal_sign',
-			params: 3,
-			inputFormatter: [null, web3._extend.formatters.inputAddressFormatter, null]
-		}),
-		new web3._extend.Method({
-			name: 'ecRecover',
-			call: 'personal_ecRecover',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'openWallet',
-			call: 'personal_openWallet',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'deriveAccount',
-			call: 'personal_deriveAccount',
-			params: 3
-		}),
-		new web3._extend.Method({
-			name: 'signTransaction',
-			call: 'personal_signTransaction',
-			params: 2,
-			inputFormatter: [web3._extend.formatters.inputTransactionFormatter, null]
-		}),
-		new web3._extend.Method({
-			name: 'unpair',
-			call: 'personal_unpair',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'initializeWallet',
-			call: 'personal_initializeWallet',
-			params: 1
-		})
-	],
-	properties: [
-		new web3._extend.Property({
-			name: 'listWallets',
-			getter: 'personal_listWallets'
-		}),
-	]
-})
 `
 
 const RpcJs = `
@@ -803,91 +622,6 @@ web3._extend({
 			name: 'contentFrom',
 			call: 'txpool_contentFrom',
 			params: 1,
-		}),
-	]
-});
-`
-
-const LESJs = `
-web3._extend({
-	property: 'les',
-	methods:
-	[
-		new web3._extend.Method({
-			name: 'getCheckpoint',
-			call: 'les_getCheckpoint',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'clientInfo',
-			call: 'les_clientInfo',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'priorityClientInfo',
-			call: 'les_priorityClientInfo',
-			params: 3
-		}),
-		new web3._extend.Method({
-			name: 'setClientParams',
-			call: 'les_setClientParams',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'setDefaultParams',
-			call: 'les_setDefaultParams',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'addBalance',
-			call: 'les_addBalance',
-			params: 2
-		}),
-	],
-	properties:
-	[
-		new web3._extend.Property({
-			name: 'latestCheckpoint',
-			getter: 'les_latestCheckpoint'
-		}),
-		new web3._extend.Property({
-			name: 'checkpointContractAddress',
-			getter: 'les_getCheckpointContractAddress'
-		}),
-		new web3._extend.Property({
-			name: 'serverInfo',
-			getter: 'les_serverInfo'
-		}),
-	]
-});
-`
-
-const VfluxJs = `
-web3._extend({
-	property: 'vflux',
-	methods:
-	[
-		new web3._extend.Method({
-			name: 'distribution',
-			call: 'vflux_distribution',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'timeout',
-			call: 'vflux_timeout',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'value',
-			call: 'vflux_value',
-			params: 2
-		}),
-	],
-	properties:
-	[
-		new web3._extend.Property({
-			name: 'requestStats',
-			getter: 'vflux_requestStats'
 		}),
 	]
 });

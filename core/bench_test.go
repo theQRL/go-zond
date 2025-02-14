@@ -23,12 +23,12 @@ import (
 	"github.com/theQRL/go-qrllib/dilithium"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/params"
-	"github.com/theQRL/go-zond/pqcrypto"
 	"github.com/theQRL/go-zond/zonddb"
 )
 
@@ -49,12 +49,6 @@ func BenchmarkInsertChain_valueTx_100kB_memdb(b *testing.B) {
 }
 func BenchmarkInsertChain_valueTx_100kB_diskdb(b *testing.B) {
 	benchInsertChain(b, true, genValueTx(100*1024))
-}
-func BenchmarkInsertChain_uncles_memdb(b *testing.B) {
-	benchInsertChain(b, false, genUncles)
-}
-func BenchmarkInsertChain_uncles_diskdb(b *testing.B) {
-	benchInsertChain(b, true, genUncles)
 }
 func BenchmarkInsertChain_ring200_memdb(b *testing.B) {
 	benchInsertChain(b, false, genTxRing(200))
@@ -83,19 +77,19 @@ func genValueTx(nbytes int) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		toaddr := common.Address{}
 		data := make([]byte, nbytes)
-		gas, _ := IntrinsicGas(data, nil, false, false, false, false)
-		signer := types.MakeSigner(gen.config, big.NewInt(int64(i)), gen.header.Time)
-		gasPrice := big.NewInt(0)
+		gas, _ := IntrinsicGas(data, nil, false)
+		signer := types.MakeSigner(gen.config)
+		baseFee := big.NewInt(0)
 		if gen.header.BaseFee != nil {
-			gasPrice = gen.header.BaseFee
+			baseFee = gen.header.BaseFee
 		}
-		tx, _ := types.SignNewTx(benchRootKey, signer, &types.LegacyTx{
-			Nonce:    gen.TxNonce(benchRootAddr),
-			To:       &toaddr,
-			Value:    big.NewInt(1),
-			Gas:      gas,
-			Data:     data,
-			GasPrice: gasPrice,
+		tx, _ := types.SignNewTx(benchRootKey, signer, &types.DynamicFeeTx{
+			Nonce:     gen.TxNonce(benchRootAddr),
+			To:        &toaddr,
+			Value:     big.NewInt(1),
+			Gas:       gas,
+			Data:      data,
+			GasFeeCap: baseFee,
 		})
 		gen.AddTx(tx)
 	}
@@ -124,11 +118,11 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		block := gen.PrevBlock(i - 1)
 		gas := block.GasLimit()
-		gasPrice := big.NewInt(0)
+		baseFee := big.NewInt(0)
 		if gen.header.BaseFee != nil {
-			gasPrice = gen.header.BaseFee
+			baseFee = gen.header.BaseFee
 		}
-		signer := types.MakeSigner(gen.config, big.NewInt(int64(i)), gen.header.Time)
+		signer := types.MakeSigner(gen.config)
 		for {
 			gas -= params.TxGas
 			if gas < params.TxGas {
@@ -142,12 +136,12 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 				panic("not enough funds")
 			}
 			tx, err := types.SignNewTx(ringKeys[from], signer,
-				&types.LegacyTx{
-					Nonce:    gen.TxNonce(ringAddrs[from]),
-					To:       &ringAddrs[to],
-					Value:    availableFunds,
-					Gas:      params.TxGas,
-					GasPrice: gasPrice,
+				&types.DynamicFeeTx{
+					Nonce:     gen.TxNonce(ringAddrs[from]),
+					To:        &ringAddrs[to],
+					Value:     availableFunds,
+					Gas:       params.TxGas,
+					GasFeeCap: baseFee,
 				})
 			if err != nil {
 				panic(err)
@@ -155,18 +149,6 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 			gen.AddTx(tx)
 			from = to
 		}
-	}
-}
-
-// genUncles generates blocks with two uncle headers.
-func genUncles(i int, gen *BlockGen) {
-	if i >= 7 {
-		b2 := gen.PrevBlock(i - 6).Header()
-		b2.Extra = []byte("foo")
-		gen.AddUncle(b2)
-		b3 := gen.PrevBlock(i - 6).Header()
-		b3.Extra = []byte("bar")
-		gen.AddUncle(b3)
 	}
 }
 
@@ -191,11 +173,11 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 		Config: params.TestChainConfig,
 		Alloc:  GenesisAlloc{benchRootAddr: {Balance: benchRootFunds}},
 	}
-	_, chain, _ := GenerateChainWithGenesis(gspec, ethash.NewFaker(), b.N, gen)
+	_, chain, _ := GenerateChainWithGenesis(gspec, beacon.NewFaker(), b.N, gen)
 
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	chainman, _ := NewBlockChain(db, nil, gspec, nil, ethash.NewFaker(), vm.Config{}, nil, nil)
+	chainman, _ := NewBlockChain(db, nil, gspec, beacon.NewFaker(), vm.Config{}, nil)
 	defer chainman.Stop()
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -250,8 +232,6 @@ func makeChainForBench(db zonddb.Database, full bool, count uint64) {
 			Coinbase:    common.Address{},
 			Number:      big.NewInt(int64(n)),
 			ParentHash:  hash,
-			Difficulty:  big.NewInt(1),
-			UncleHash:   types.EmptyUncleHash,
 			TxHash:      types.EmptyTxsHash,
 			ReceiptHash: types.EmptyReceiptsHash,
 		}
@@ -259,10 +239,9 @@ func makeChainForBench(db zonddb.Database, full bool, count uint64) {
 
 		rawdb.WriteHeader(db, header)
 		rawdb.WriteCanonicalHash(db, hash, n)
-		rawdb.WriteTd(db, hash, n, big.NewInt(int64(n+1)))
 
 		if n == 0 {
-			rawdb.WriteChainConfig(db, hash, params.AllEthashProtocolChanges)
+			rawdb.WriteChainConfig(db, hash, params.AllBeaconProtocolChanges)
 		}
 		rawdb.WriteHeadHeaderHash(db, hash)
 
@@ -307,7 +286,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}
-		chain, err := NewBlockChain(db, &cacheConfig, nil, nil, ethash.NewFaker(), vm.Config{}, nil, nil)
+		chain, err := NewBlockChain(db, &cacheConfig, nil, beacon.NewFaker(), vm.Config{}, nil)
 		if err != nil {
 			b.Fatalf("error creating chain: %v", err)
 		}

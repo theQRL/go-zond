@@ -1,0 +1,12 @@
+{
+  "Za94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+    "balance": "0x5ffd4878be161d74",
+    "code": "0x",
+    "nonce": "0xac",
+    "storage": {}
+  },
+  "Z20687Fa825ab4AD40A89C303F22F65FEf9778555":{
+    "balance": "0xfeedbead0000",
+    "nonce" : "0x00"
+  }
+}
