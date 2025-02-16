@@ -505,7 +505,7 @@ func maybeSkipArchive(env build.Environment) {
 func doDockerBuildx(cmdline []string) {
 	var (
 		platform = flag.String("platform", "", `Push a multi-arch docker image for the specified architectures (usually "linux/amd64,linux/arm64")`)
-		hubImage = flag.String("hub", "theqrl/gzond", `Where to upload the docker image`)
+		hubImage = flag.String("hub", "qrledger/go-zond", `Where to upload the docker image`)
 		upload   = flag.Bool("upload", false, `Whether to trigger upload`)
 	)
 	flag.CommandLine.Parse(cmdline)
@@ -515,8 +515,8 @@ func doDockerBuildx(cmdline []string) {
 	maybeSkipArchive(env)
 
 	// Retrieve the upload credentials and authenticate
-	user := getenvBase64("DOCKER_HUB_USERNAME")
-	pass := getenvBase64("DOCKER_HUB_PASSWORD")
+	user := []byte(os.Getenv("DOCKER_HUB_USERNAME"))
+	pass := []byte(os.Getenv("DOCKER_HUB_PASSWORD"))
 
 	if len(user) > 0 && len(pass) > 0 {
 		auther := exec.Command("docker", "login", "-u", string(user), "--password-stdin")
