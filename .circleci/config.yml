@@ -94,7 +94,17 @@ jobs:
           command: go run build/ci.go install ./cmd/gzond
       - prepare-publish-artifacts:
           platform: "darwin-amd64"
-          
+
+  build-and-deploy-docker-images:
+    machine:
+      image: ubuntu-2204:2023.07.1
+    steps:
+      - checkout
+      - run:
+          name: Build and Deploy Docker Images
+          command: |
+            go run build/ci.go dockerx -platform linux/amd64,linux/arm64 -hub qrledger/go-zond -upload true
+
 workflows:
   release:
     jobs:
@@ -105,5 +115,8 @@ workflows:
           filters:
             <<: *filters-release
       - publish-darwin-amd64-gzond-binary:
+          filters:
+            <<: *filters-release
+      - build-and-deploy-docker-images:
           filters:
             <<: *filters-release
