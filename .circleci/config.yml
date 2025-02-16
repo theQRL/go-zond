@@ -95,7 +95,7 @@ jobs:
       - prepare-publish-artifacts:
           platform: "darwin-amd64"
 
-  build-and-deploy-docker-image:
+  build-and-deploy-docker-images:
     machine: true
     steps:
       - checkout
