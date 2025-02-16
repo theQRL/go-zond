@@ -515,8 +515,8 @@ func doDockerBuildx(cmdline []string) {
 	maybeSkipArchive(env)
 
 	// Retrieve the upload credentials and authenticate
-	user := []byte(os.Getenv("DOCKER_HUB_USERNAME"))
-	pass := []byte(os.Getenv("DOCKER_HUB_PASSWORD"))
+	user := []byte(os.Getenv("DOCKERHUB_USERNAME"))
+	pass := []byte(os.Getenv("DOCKERHUB_TOKEN"))
 
 	if len(user) > 0 && len(pass) > 0 {
 		auther := exec.Command("docker", "login", "-u", string(user), "--password-stdin")
