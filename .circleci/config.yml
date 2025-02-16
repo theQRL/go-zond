@@ -95,9 +95,8 @@ jobs:
       - prepare-publish-artifacts:
           platform: "darwin-amd64"
 
-  build-and-deploy-docker-images:
-    machine:
-      image: ubuntu-2204:2023.07.1
+  build-and-deploy-docker-image:
+    machine: true
     steps:
       - checkout
       - run:
