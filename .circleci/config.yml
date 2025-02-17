@@ -46,7 +46,7 @@ commands:
 jobs:
   publish-linux-amd64-gzond-binary:
     docker:
-      - image: cimg/go:1.20
+      - image: cimg/go:1.22
     steps:
       - checkout
       - *restore_go_cache
@@ -76,14 +76,14 @@ jobs:
   publish-darwin-amd64-gzond-binary:
     macos:
       xcode: 14.2.0
-    resource_class: macos.x86.medium.gen2
+    resource_class: macos.m1.large.gen1
     steps:
       - checkout
       - run: |
           # NOTE(rgeraldes24): currently relying on brew auto update to have the latest
           # versions of golang available but this can be achieved in other ways!
-          brew install go@1.20
-          echo 'export PATH="/usr/local/opt/go@1.20/bin:$PATH"' >> /Users/distiller/.bash_profile
+          brew install go@1.22
+          echo 'export PATH="/usr/local/opt/go@1.22/bin:$PATH"' >> /Users/distiller/.bash_profile
           brew install coreutils
           brew install gpg
       - *restore_go_cache
