@@ -60,7 +60,7 @@ jobs:
   
   publish-linux-arm64-gzond-binary:
     machine:
-      image: ubuntu-2204:2023.07.1
+      image: ubuntu-2204:2024.11.1
     resource_class: arm.medium
     steps:
       - checkout
