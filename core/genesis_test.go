@@ -183,6 +183,7 @@ func TestGenesisHashes(t *testing.T) {
 		// TODO(now.youtrack.cloud/issue/TGZ-16)
 		{DefaultGenesisBlock(), params.MainnetGenesisHash},
 		{DefaultBetaNetGenesisBlock(), params.BetaNetGenesisHash},
+		{DefaultTestnetGenesisBlock(), params.TestnetGenesisHash},
 	} {
 		// Test via MustCommit
 		db := rawdb.NewMemoryDatabase()
@@ -192,6 +193,22 @@ func TestGenesisHashes(t *testing.T) {
 		// Test via ToBlock
 		if have := c.genesis.ToBlock().Hash(); have != c.want {
 			t.Errorf("case: %d a), want: %s, got: %s", i, c.want.Hex(), have.Hex())
+		}
+	}
+}
+
+// TestGenesisExtraDataLen checks length of extra data
+// should be exactly 32 bytes
+func TestGenesisExtraDataLen(t *testing.T) {
+	for i, c := range []struct {
+		genesis *Genesis
+	}{
+		{DefaultGenesisBlock()},
+		{DefaultBetaNetGenesisBlock()},
+		{DefaultTestnetGenesisBlock()},
+	} {
+		if len(c.genesis.ExtraData) != 32 {
+			t.Errorf("case: %d a), want: %d, got: %d", i, 32, len(c.genesis.ExtraData))
 		}
 	}
 }
