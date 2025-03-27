@@ -27,8 +27,11 @@ var MainnetBootnodes = []string{
 
 // BetaNetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // BetaNet test network.
-var BetaNetBootnodes = []string{
-	"enode://a1c66b0db0aef11f12327b83d0aea1e4f22d61afa0f7395633dd13ce9f84bd75b9e2ff583563944c33e6d9f552eaed36ba010ef365c92d37a00053035d2e3438@45.32.234.157:30303",
+var BetaNetBootnodes = []string{}
+
+var TestnetBootnodes = []string{
+	"enode://b28adace666b4b8fa5ca37f7e7a2bd9fdde6b9098b63b48d45d0d3a78e6420a2c1c1d0563ca893455c08ef3f89883d424a3998e1d5df7c9d7b3f068494053a6a@45.32.234.157:30303",
+	"enode://7d0e448ee220cd1de57ea43ce158649a4b895585a90a8f69e79f9d8efc2b252512a560ca6b8edd43b8addfa8bee4a5ea23d9ded6549fd54e5612b0926692895e@45.76.39.66:30303",
 }
 
 // TODO(now.youtrack.cloud/issue/TGZ-21)

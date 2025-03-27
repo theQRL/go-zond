@@ -501,6 +501,17 @@ func DefaultBetaNetGenesisBlock() *Genesis {
 	}
 }
 
+// DefaultTestnetGenesisBlock returns the BetaNet network genesis block.
+func DefaultTestnetGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:    params.TestnetChainConfig,
+		ExtraData: hexutil.MustDecode("0x82efec7f3c6d3b266171cb97fd52afced535c77d77979e24add05a6ea0ff3794"),
+		GasLimit:  0x1312d00,
+		Timestamp: 1743071966,
+		Alloc:     decodePreallocWithContractCode(testnetAllocData),
+	}
+}
+
 // DeveloperGenesisBlock returns the 'gzond --dev' genesis block.
 func DeveloperGenesisBlock(gasLimit uint64, faucet common.Address) *Genesis {
 	// Override the default period to the user requested one

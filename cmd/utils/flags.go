@@ -143,6 +143,11 @@ var (
 		Usage:    "BetaNet network: pre-configured proof-of-work test network",
 		Category: flags.ZondCategory,
 	}
+	TestnetFlag = &cli.BoolFlag{
+		Name:     "testnet",
+		Usage:    "Testnet network: pre-configured proof-of-stake test network",
+		Category: flags.ZondCategory,
+	}
 	// Dev mode
 	DeveloperFlag = &cli.BoolFlag{
 		Name:     "dev",
@@ -846,6 +851,7 @@ var (
 	// TestnetFlags is the flag group of all built-in supported testnets.
 	TestnetFlags = []cli.Flag{
 		BetaNetFlag,
+		TestnetFlag,
 	}
 	// NetworkFlags is the flag group of all built-in supported networks.
 	NetworkFlags = append([]cli.Flag{MainnetFlag}, TestnetFlags...)
@@ -870,7 +876,9 @@ func init() {
 // then a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.String(DataDirFlag.Name); path != "" {
-		if ctx.Bool(BetaNetFlag.Name) {
+		if ctx.Bool(TestnetFlag.Name) {
+			return filepath.Join(path, "testnet")
+		} else if ctx.Bool(BetaNetFlag.Name) {
 			return filepath.Join(path, "betanet")
 		}
 		return path
@@ -921,6 +929,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = SplitAndTrim(ctx.String(BootnodesFlag.Name))
 	case ctx.Bool(BetaNetFlag.Name):
 		urls = params.BetaNetBootnodes
+	case ctx.Bool(TestnetFlag.Name):
+		urls = params.TestnetBootnodes
 	}
 
 	// don't apply defaults if BootstrapNodes is already set
@@ -1298,6 +1308,8 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.Bool(BetaNetFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "betanet")
+	case ctx.Bool(TestnetFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
 	}
 }
 
@@ -1442,7 +1454,7 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 // SetZondConfig applies zond-related command line flags to the config.
 func SetZondConfig(ctx *cli.Context, stack *node.Node, cfg *zondconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, BetaNetFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, BetaNetFlag, TestnetFlag)
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 
 	// Set configurations from CLI flags
@@ -1587,6 +1599,12 @@ func SetZondConfig(ctx *cli.Context, stack *node.Node, cfg *zondconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultBetaNetGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.BetaNetGenesisHash)
+	case ctx.Bool(TestnetFlag.Name):
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 2
+		}
+		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.TestnetGenesisHash)
 	case ctx.Bool(DeveloperFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1867,6 +1885,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultGenesisBlock()
 	case ctx.Bool(BetaNetFlag.Name):
 		genesis = core.DefaultBetaNetGenesisBlock()
+	case ctx.Bool(TestnetFlag.Name):
+		genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.Bool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

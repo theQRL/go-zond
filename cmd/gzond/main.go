@@ -249,6 +249,9 @@ func prepare(ctx *cli.Context) {
 	case ctx.IsSet(utils.BetaNetFlag.Name):
 		log.Info("Starting Gzond on BetaNet testnet...")
 
+	case ctx.IsSet(utils.TestnetFlag.Name):
+		log.Info("Starting Gzond on Testnet 1...")
+
 	case ctx.IsSet(utils.DeveloperFlag.Name):
 		log.Info("Starting Gzond in ephemeral dev mode...")
 		log.Warn(`You are running Gzond in --dev mode. Please note the following:
