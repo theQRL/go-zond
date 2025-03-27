@@ -23,8 +23,8 @@ import (
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/zonddb/memorydb"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb/memorydb"
 )
 
 // reverse reverses the contents of a byte slice. It's used to update random accs

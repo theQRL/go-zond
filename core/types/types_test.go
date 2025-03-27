@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/rlp"
 )
 
@@ -41,34 +41,22 @@ func BenchmarkDecodeRLP(b *testing.B) {
 }
 
 func benchRLP(b *testing.B, encode bool) {
-	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
-	signer := NewLondonSigner(big.NewInt(1337))
+	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	to, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
+	signer := NewShanghaiSigner(big.NewInt(1337))
 	for _, tc := range []struct {
 		name string
 		obj  interface{}
 	}{
 		{
-			"legacy-header",
-			&Header{
-				Difficulty: big.NewInt(10000000000),
-				Number:     big.NewInt(1000),
-				GasLimit:   8_000_000,
-				GasUsed:    8_000_000,
-				Time:       555,
-				Extra:      make([]byte, 32),
-			},
-		},
-		{
 			"london-header",
 			&Header{
-				Difficulty: big.NewInt(10000000000),
-				Number:     big.NewInt(1000),
-				GasLimit:   8_000_000,
-				GasUsed:    8_000_000,
-				Time:       555,
-				Extra:      make([]byte, 32),
-				BaseFee:    big.NewInt(10000000000),
+				Number:   big.NewInt(1000),
+				GasLimit: 8_000_000,
+				GasUsed:  8_000_000,
+				Time:     555,
+				Extra:    make([]byte, 32),
+				BaseFee:  big.NewInt(10000000000),
 			},
 		},
 		{
@@ -86,28 +74,6 @@ func benchRLP(b *testing.B, encode bool) {
 				CumulativeGasUsed: 0x888888888,
 				Logs:              make([]*Log, 0),
 			},
-		},
-		{
-			"legacy-transaction",
-			MustSignNewTx(key, signer,
-				&LegacyTx{
-					Nonce:    1,
-					GasPrice: big.NewInt(500),
-					Gas:      1000000,
-					To:       &to,
-					Value:    big.NewInt(1),
-				}),
-		},
-		{
-			"access-transaction",
-			MustSignNewTx(key, signer,
-				&AccessListTx{
-					Nonce:    1,
-					GasPrice: big.NewInt(500),
-					Gas:      1000000,
-					To:       &to,
-					Value:    big.NewInt(1),
-				}),
 		},
 		{
 			"1559-transaction",

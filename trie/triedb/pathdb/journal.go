@@ -94,7 +94,7 @@ func (db *Database) loadJournal(diskRoot common.Hash) (layer, error) {
 		return nil, errMissDiskRoot
 	}
 	// The journal is not matched with persistent state, discard them.
-	// It can happen that geth crashes without persisting the journal.
+	// It can happen that gzond crashes without persisting the journal.
 	if !bytes.Equal(root.Bytes(), diskRoot.Bytes()) {
 		return nil, fmt.Errorf("%w want %x got %x", errUnmatchedJournal, root, diskRoot)
 	}

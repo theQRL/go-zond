@@ -22,6 +22,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	mrand "math/rand"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -30,15 +32,14 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/light"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/trie"
+	"github.com/theQRL/go-zond/trie/testutil"
 	"github.com/theQRL/go-zond/trie/triedb/pathdb"
 	"github.com/theQRL/go-zond/trie/trienode"
 	"github.com/theQRL/go-zond/zonddb"
 	"golang.org/x/crypto/sha3"
-	"golang.org/x/exp/slices"
 )
 
 func TestHashing(t *testing.T) {
@@ -61,7 +62,7 @@ func TestHashing(t *testing.T) {
 		}
 	}
 	var new = func() {
-		hasher := sha3.NewLegacyKeccak256().(crypto.KeccakState)
+		hasher := crypto.NewKeccakState()
 		var hash = make([]byte, 32)
 		for i := 0; i < len(bytecodes); i++ {
 			hasher.Reset()
@@ -93,7 +94,7 @@ func BenchmarkHashing(b *testing.B) {
 		}
 	}
 	var new = func() {
-		hasher := sha3.NewLegacyKeccak256().(crypto.KeccakState)
+		hasher := crypto.NewKeccakState()
 		var hash = make([]byte, 32)
 		for i := 0; i < len(bytecodes); i++ {
 			hasher.Reset()
@@ -254,7 +255,7 @@ func defaultAccountRequestHandler(t *testPeer, id uint64, root common.Hash, orig
 func createAccountRequestResponse(t *testPeer, root common.Hash, origin common.Hash, limit common.Hash, cap uint64) (keys []common.Hash, vals [][]byte, proofs [][]byte) {
 	var size uint64
 	if limit == (common.Hash{}) {
-		limit = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+		limit = common.MaxHash
 	}
 	for _, entry := range t.accountValues {
 		if size > cap {
@@ -273,7 +274,7 @@ func createAccountRequestResponse(t *testPeer, root common.Hash, origin common.H
 	// Unless we send the entire trie, we need to supply proofs
 	// Actually, we need to supply proofs either way! This seems to be an implementation
 	// quirk in go-ethereum
-	proof := light.NewNodeSet()
+	proof := trienode.NewProofSet()
 	if err := t.accountTrie.Prove(origin[:], proof); err != nil {
 		t.logger.Error("Could not prove inexistence of origin", "origin", origin, "error", err)
 	}
@@ -283,7 +284,7 @@ func createAccountRequestResponse(t *testPeer, root common.Hash, origin common.H
 			t.logger.Error("Could not prove last item", "error", err)
 		}
 	}
-	for _, blob := range proof.NodeList() {
+	for _, blob := range proof.List() {
 		proofs = append(proofs, blob)
 	}
 	return keys, vals, proofs
@@ -319,7 +320,7 @@ func createStorageRequestResponse(t *testPeer, root common.Hash, accounts []comm
 		if len(origin) > 0 {
 			originHash = common.BytesToHash(origin)
 		}
-		var limitHash = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+		var limitHash = common.MaxHash
 		if len(limit) > 0 {
 			limitHash = common.BytesToHash(limit)
 		}
@@ -353,7 +354,7 @@ func createStorageRequestResponse(t *testPeer, root common.Hash, accounts []comm
 		if originHash != (common.Hash{}) || (abort && len(keys) > 0) {
 			// If we're aborting, we need to prove the first and last item
 			// This terminates the response (and thus the loop)
-			proof := light.NewNodeSet()
+			proof := trienode.NewProofSet()
 			stTrie := t.storageTries[account]
 
 			// Here's a potential gotcha: when constructing the proof, we cannot
@@ -368,7 +369,7 @@ func createStorageRequestResponse(t *testPeer, root common.Hash, accounts []comm
 					t.logger.Error("Could not prove last item", "error", err)
 				}
 			}
-			for _, blob := range proof.NodeList() {
+			for _, blob := range proof.List() {
 				proofs = append(proofs, blob)
 			}
 			break
@@ -411,7 +412,7 @@ func createStorageRequestResponseAlwaysProve(t *testPeer, root common.Hash, acco
 		if exit {
 			// If we're aborting, we need to prove the first and last item
 			// This terminates the response (and thus the loop)
-			proof := light.NewNodeSet()
+			proof := trienode.NewProofSet()
 			stTrie := t.storageTries[account]
 
 			// Here's a potential gotcha: when constructing the proof, we cannot
@@ -427,7 +428,7 @@ func createStorageRequestResponseAlwaysProve(t *testPeer, root common.Hash, acco
 					t.logger.Error("Could not prove last item", "error", err)
 				}
 			}
-			for _, blob := range proof.NodeList() {
+			for _, blob := range proof.List() {
 				proofs = append(proofs, blob)
 			}
 			break
@@ -599,7 +600,7 @@ func testSyncBloatedProof(t *testing.T, scheme string) {
 			vals = append(vals, entry.v)
 		}
 		// The proofs
-		proof := light.NewNodeSet()
+		proof := trienode.NewProofSet()
 		if err := t.accountTrie.Prove(origin[:], proof); err != nil {
 			t.logger.Error("Could not prove origin", "origin", origin, "error", err)
 		}
@@ -614,7 +615,7 @@ func testSyncBloatedProof(t *testing.T, scheme string) {
 			keys = append(keys[:1], keys[2:]...)
 			vals = append(vals[:1], vals[2:]...)
 		}
-		for _, blob := range proof.NodeList() {
+		for _, blob := range proof.List() {
 			proofs = append(proofs, blob)
 		}
 		if err := t.remote.OnAccounts(t, requestId, keys, vals, proofs); err != nil {
@@ -762,7 +763,7 @@ func testSyncWithStorage(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 3, 3000, true, false)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 3, 3000, true, false, false)
 
 	mkSource := func(name string) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -772,7 +773,7 @@ func testSyncWithStorage(t *testing.T, scheme string) {
 		source.storageValues = storageElems
 		return source
 	}
-	syncer := setupSyncer(nodeScheme, mkSource("sourceA"))
+	syncer := setupSyncer(scheme, mkSource("sourceA"))
 	done := checkStall(t, term)
 	if err := syncer.Sync(sourceAccountTrie.Hash(), cancel); err != nil {
 		t.Fatalf("sync failed: %v", err)
@@ -799,7 +800,7 @@ func testMultiSyncManyUseless(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false, false)
 
 	mkSource := func(name string, noAccount, noStorage, noTrieNode bool) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -821,7 +822,7 @@ func testMultiSyncManyUseless(t *testing.T, scheme string) {
 	}
 
 	syncer := setupSyncer(
-		nodeScheme,
+		scheme,
 		mkSource("full", true, true, true),
 		mkSource("noAccounts", false, true, true),
 		mkSource("noStorage", true, false, true),
@@ -835,7 +836,7 @@ func testMultiSyncManyUseless(t *testing.T, scheme string) {
 	verifyTrie(scheme, syncer.db, sourceAccountTrie.Hash(), t)
 }
 
-// TestMultiSyncManyUseless contains one good peer, and many which doesn't return anything valuable at all
+// TestMultiSyncManyUselessWithLowTimeout contains one good peer, and many which doesn't return anything valuable at all
 func TestMultiSyncManyUselessWithLowTimeout(t *testing.T) {
 	t.Parallel()
 
@@ -853,7 +854,7 @@ func testMultiSyncManyUselessWithLowTimeout(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false, false)
 
 	mkSource := func(name string, noAccount, noStorage, noTrieNode bool) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -875,7 +876,7 @@ func testMultiSyncManyUselessWithLowTimeout(t *testing.T, scheme string) {
 	}
 
 	syncer := setupSyncer(
-		nodeScheme,
+		scheme,
 		mkSource("full", true, true, true),
 		mkSource("noAccounts", false, true, true),
 		mkSource("noStorage", true, false, true),
@@ -912,7 +913,7 @@ func testMultiSyncManyUnresponsive(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false, false)
 
 	mkSource := func(name string, noAccount, noStorage, noTrieNode bool) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -934,7 +935,7 @@ func testMultiSyncManyUnresponsive(t *testing.T, scheme string) {
 	}
 
 	syncer := setupSyncer(
-		nodeScheme,
+		scheme,
 		mkSource("full", true, true, true),
 		mkSource("noAccounts", false, true, true),
 		mkSource("noStorage", true, false, true),
@@ -1215,7 +1216,7 @@ func testSyncBoundaryStorageTrie(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 10, 1000, false, true)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 10, 1000, false, true, false)
 
 	mkSource := func(name string) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -1226,7 +1227,7 @@ func testSyncBoundaryStorageTrie(t *testing.T, scheme string) {
 		return source
 	}
 	syncer := setupSyncer(
-		nodeScheme,
+		scheme,
 		mkSource("peer-a"),
 		mkSource("peer-b"),
 	)
@@ -1257,7 +1258,7 @@ func testSyncWithStorageAndOneCappedPeer(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 300, 1000, false, false)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 300, 1000, false, false, false)
 
 	mkSource := func(name string, slow bool) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -1273,7 +1274,7 @@ func testSyncWithStorageAndOneCappedPeer(t *testing.T, scheme string) {
 	}
 
 	syncer := setupSyncer(
-		nodeScheme,
+		scheme,
 		mkSource("nice-a", false),
 		mkSource("slow", true),
 	)
@@ -1304,7 +1305,7 @@ func testSyncWithStorageAndCorruptPeer(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false, false)
 
 	mkSource := func(name string, handler storageHandlerFunc) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -1317,7 +1318,7 @@ func testSyncWithStorageAndCorruptPeer(t *testing.T, scheme string) {
 	}
 
 	syncer := setupSyncer(
-		nodeScheme,
+		scheme,
 		mkSource("nice-a", defaultStorageRequestHandler),
 		mkSource("nice-b", defaultStorageRequestHandler),
 		mkSource("nice-c", defaultStorageRequestHandler),
@@ -1348,7 +1349,7 @@ func testSyncWithStorageAndNonProvingPeer(t *testing.T, scheme string) {
 			})
 		}
 	)
-	nodeScheme, sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false)
+	sourceAccountTrie, elems, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 100, 3000, true, false, false)
 
 	mkSource := func(name string, handler storageHandlerFunc) *testPeer {
 		source := newTestPeer(name, t, term)
@@ -1360,7 +1361,7 @@ func testSyncWithStorageAndNonProvingPeer(t *testing.T, scheme string) {
 		return source
 	}
 	syncer := setupSyncer(
-		nodeScheme,
+		scheme,
 		mkSource("nice-a", defaultStorageRequestHandler),
 		mkSource("nice-b", defaultStorageRequestHandler),
 		mkSource("nice-c", defaultStorageRequestHandler),
@@ -1374,7 +1375,7 @@ func testSyncWithStorageAndNonProvingPeer(t *testing.T, scheme string) {
 	verifyTrie(scheme, syncer.db, sourceAccountTrie.Hash(), t)
 }
 
-// TestSyncWithStorage tests  basic sync using accounts + storage + code, against
+// TestSyncWithStorageMisbehavingProve tests  basic sync using accounts + storage + code, against
 // a peer who insists on delivering full storage sets _and_ proofs. This triggered
 // an error, where the recipient erroneously clipped the boundary nodes, but
 // did not mark the account for healing.
@@ -1411,6 +1412,45 @@ func testSyncWithStorageMisbehavingProve(t *testing.T, scheme string) {
 		t.Fatalf("sync failed: %v", err)
 	}
 	verifyTrie(scheme, syncer.db, sourceAccountTrie.Hash(), t)
+}
+
+// TestSyncWithUnevenStorage tests sync where the storage trie is not even
+// and with a few empty ranges.
+func TestSyncWithUnevenStorage(t *testing.T) {
+	t.Parallel()
+
+	testSyncWithUnevenStorage(t, rawdb.HashScheme)
+	testSyncWithUnevenStorage(t, rawdb.PathScheme)
+}
+
+func testSyncWithUnevenStorage(t *testing.T, scheme string) {
+	var (
+		once   sync.Once
+		cancel = make(chan struct{})
+		term   = func() {
+			once.Do(func() {
+				close(cancel)
+			})
+		}
+	)
+	accountTrie, accounts, storageTries, storageElems := makeAccountTrieWithStorage(scheme, 3, 256, false, false, true)
+
+	mkSource := func(name string) *testPeer {
+		source := newTestPeer(name, t, term)
+		source.accountTrie = accountTrie.Copy()
+		source.accountValues = accounts
+		source.setStorageTries(storageTries)
+		source.storageValues = storageElems
+		source.storageRequestHandler = func(t *testPeer, reqId uint64, root common.Hash, accounts []common.Hash, origin, limit []byte, max uint64) error {
+			return defaultStorageRequestHandler(t, reqId, root, accounts, origin, limit, 128) // retrieve storage in large mode
+		}
+		return source
+	}
+	syncer := setupSyncer(scheme, mkSource("source"))
+	if err := syncer.Sync(accountTrie.Hash(), cancel); err != nil {
+		t.Fatalf("sync failed: %v", err)
+	}
+	verifyTrie(scheme, syncer.db, accountTrie.Hash(), t)
 }
 
 type kv struct {
@@ -1459,7 +1499,7 @@ func getCodeByHash(hash common.Hash) []byte {
 	return nil
 }
 
-// makeAccountTrieNoStorage spits out a trie, along with the leafs
+// makeAccountTrieNoStorage spits out a trie, along with the leaves
 func makeAccountTrieNoStorage(n int, scheme string) (string, *trie.Trie, []*kv) {
 	var (
 		db      = trie.NewDatabase(rawdb.NewMemoryDatabase(), newDbConfig(scheme))
@@ -1511,7 +1551,7 @@ func makeBoundaryAccountTrie(scheme string, n int) (string, *trie.Trie, []*kv) {
 	for i := 0; i < accountConcurrency; i++ {
 		last := common.BigToHash(new(big.Int).Add(next.Big(), step))
 		if i == accountConcurrency-1 {
-			last = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+			last = common.MaxHash
 		}
 		boundaries = append(boundaries, last)
 		next = common.BigToHash(new(big.Int).Add(last.Big(), common.Big1))
@@ -1607,8 +1647,8 @@ func makeAccountTrieWithStorageWithUniqueStorage(scheme string, accounts, slots 
 	return db.Scheme(), accTrie, entries, storageTries, storageEntries
 }
 
-// makeAccountTrieWithStorage spits out a trie, along with the leafs
-func makeAccountTrieWithStorage(scheme string, accounts, slots int, code, boundary bool) (string, *trie.Trie, []*kv, map[common.Hash]*trie.Trie, map[common.Hash][]*kv) {
+// makeAccountTrieWithStorage spits out a trie, along with the leaves
+func makeAccountTrieWithStorage(scheme string, accounts, slots int, code, boundary bool, uneven bool) (*trie.Trie, []*kv, map[common.Hash]*trie.Trie, map[common.Hash][]*kv) {
 	var (
 		db             = trie.NewDatabase(rawdb.NewMemoryDatabase(), newDbConfig(scheme))
 		accTrie        = trie.NewEmpty(db)
@@ -1633,6 +1673,8 @@ func makeAccountTrieWithStorage(scheme string, accounts, slots int, code, bounda
 		)
 		if boundary {
 			stRoot, stNodes, stEntries = makeBoundaryStorageTrie(common.BytesToHash(key), slots, db)
+		} else if uneven {
+			stRoot, stNodes, stEntries = makeUnevenStorageTrie(common.BytesToHash(key), slots, db)
 		} else {
 			stRoot, stNodes, stEntries = makeStorageTrieWithSeed(common.BytesToHash(key), uint64(slots), 0, db)
 		}
@@ -1675,7 +1717,7 @@ func makeAccountTrieWithStorage(scheme string, accounts, slots int, code, bounda
 		}
 		storageTries[common.BytesToHash(key)] = trie
 	}
-	return db.Scheme(), accTrie, entries, storageTries, storageEntries
+	return accTrie, entries, storageTries, storageEntries
 }
 
 // makeStorageTrieWithSeed fills a storage trie with n items, returning the
@@ -1721,7 +1763,7 @@ func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (commo
 	for i := 0; i < accountConcurrency; i++ {
 		last := common.BigToHash(new(big.Int).Add(next.Big(), step))
 		if i == accountConcurrency-1 {
-			last = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+			last = common.MaxHash
 		}
 		boundaries = append(boundaries, last)
 		next = common.BigToHash(new(big.Int).Add(last.Big(), common.Big1))
@@ -1749,6 +1791,38 @@ func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (commo
 	}
 	slices.SortFunc(entries, (*kv).cmp)
 	root, nodes, _ := trie.Commit(false)
+	return root, nodes, entries
+}
+
+// makeUnevenStorageTrie constructs a storage tries will states distributed in
+// different range unevenly.
+func makeUnevenStorageTrie(owner common.Hash, slots int, db *trie.Database) (common.Hash, *trienode.NodeSet, []*kv) {
+	var (
+		entries []*kv
+		tr, _   = trie.New(trie.StorageTrieID(types.EmptyRootHash, owner, types.EmptyRootHash), db)
+		chosen  = make(map[byte]struct{})
+	)
+	for i := 0; i < 3; i++ {
+		var n int
+		for {
+			n = mrand.Intn(15) // the last range is set empty deliberately
+			if _, ok := chosen[byte(n)]; ok {
+				continue
+			}
+			chosen[byte(n)] = struct{}{}
+			break
+		}
+		for j := 0; j < slots/3; j++ {
+			key := append([]byte{byte(n)}, testutil.RandBytes(31)...)
+			val, _ := rlp.EncodeToBytes(testutil.RandBytes(32))
+
+			elem := &kv{key, val}
+			tr.MustUpdate(elem.k, elem.v)
+			entries = append(entries, elem)
+		}
+	}
+	slices.SortFunc(entries, (*kv).cmp)
+	root, nodes, _ := tr.Commit(false)
 	return root, nodes, entries
 }
 
@@ -1796,7 +1870,9 @@ func verifyTrie(scheme string, db zonddb.KeyValueStore, root common.Hash, t *tes
 // TestSyncAccountPerformance tests how efficient the snap algo is at minimizing
 // state healing
 func TestSyncAccountPerformance(t *testing.T) {
-	t.Parallel()
+	// These tests must not run in parallel: they modify the
+	// global var accountConcurrency
+	// t.Parallel()
 
 	testSyncAccountPerformance(t, rawdb.HashScheme)
 	testSyncAccountPerformance(t, rawdb.PathScheme)

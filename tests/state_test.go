@@ -60,14 +60,6 @@ func TestState(t *testing.T) {
 	// EOF is not part of cancun
 	st.skipLoad(`^stEOF/`)
 
-	// EIP-4844 tests need to be regenerated due to the data-to-blob rename
-	st.skipLoad(`^stEIP4844-blobtransactions/`)
-
-	// Expected failures:
-	// These EIP-4844 tests need to be regenerated.
-	st.fails(`stEIP4844-blobtransactions/opcodeBlobhashOutOfRange.json`, "test has incorrect state root")
-	st.fails(`stEIP4844-blobtransactions/opcodeBlobhBounds.json`, "test has incorrect state root")
-
 	// For Istanbul, older tests were moved into LegacyTests
 	for _, dir := range []string{
 		filepath.Join(baseDir, "EIPTests", "StateTests"),
@@ -147,7 +139,7 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	// Test failed, re-run with tracing enabled.
 	t.Error(err)
 	if gasLimit > traceErrorLimit {
-		t.Log("gas limit too high for EVM trace")
+		t.Log("gas limit too high for ZVM trace")
 		return
 	}
 	buf := new(bytes.Buffer)
@@ -159,15 +151,15 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 	}
 	w.Flush()
 	if buf.Len() == 0 {
-		t.Log("no EVM operation logs generated")
+		t.Log("no ZVM operation logs generated")
 	} else {
-		t.Log("EVM operation log:\n" + buf.String())
+		t.Log("ZVM operation log:\n" + buf.String())
 	}
-	// t.Logf("EVM output: 0x%x", tracer.Output())
-	// t.Logf("EVM error: %v", tracer.Error())
+	// t.Logf("ZVM output: 0x%x", tracer.Output())
+	// t.Logf("ZVM error: %v", tracer.Error())
 }
 
-func BenchmarkEVM(b *testing.B) {
+func BenchmarkZVM(b *testing.B) {
 	// Walk the directory.
 	dir := benchmarksDir
 	dirinfo, err := os.Stat(dir)
@@ -219,7 +211,7 @@ func runBenchmark(b *testing.B, t *StateTest) {
 				b.Error(err)
 				return
 			}
-			var rules = config.Rules(new(big.Int), false, 0)
+			var rules = config.Rules(new(big.Int), 0)
 
 			vmconfig.ExtraEips = eips
 			block := t.genesis(config).ToBlock()
@@ -227,13 +219,11 @@ func runBenchmark(b *testing.B, t *StateTest) {
 			defer triedb.Close()
 
 			var baseFee *big.Int
-			if rules.IsLondon {
-				baseFee = t.json.Env.BaseFee
-				if baseFee == nil {
-					// Retesteth uses `0x10` for genesis baseFee. Therefore, it defaults to
-					// parent - 2 : 0xa as the basefee for 'this' context.
-					baseFee = big.NewInt(0x0a)
-				}
+			baseFee = t.json.Env.BaseFee
+			if baseFee == nil {
+				// Retesteth uses `0x10` for genesis baseFee. Therefore, it defaults to
+				// parent - 2 : 0xa as the basefee for 'this' context.
+				baseFee = big.NewInt(0x0a)
 			}
 			post := t.json.Post[subtest.Fork][subtest.Index]
 			msg, err := t.json.Tx.toMessage(post, baseFee)
@@ -257,12 +247,12 @@ func runBenchmark(b *testing.B, t *StateTest) {
 				}
 			}
 
-			// Prepare the EVM.
-			txContext := core.NewEVMTxContext(msg)
-			context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
+			// Prepare the ZVM.
+			txContext := core.NewZVMTxContext(msg)
+			context := core.NewZVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 			context.GetHash = vmTestBlockHash
 			context.BaseFee = baseFee
-			evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
+			zvm := vm.NewZVM(context, txContext, statedb, config, vmconfig)
 
 			// Create "contract" for sender to cache code analysis.
 			sender := vm.NewContract(vm.AccountRef(msg.From), vm.AccountRef(msg.From),
@@ -281,7 +271,7 @@ func runBenchmark(b *testing.B, t *StateTest) {
 				start := time.Now()
 
 				// Execute the message.
-				_, leftOverGas, err := evm.Call(sender, *msg.To, msg.Data, msg.GasLimit, msg.Value)
+				_, leftOverGas, err := zvm.Call(sender, *msg.To, msg.Data, msg.GasLimit, msg.Value)
 				if err != nil {
 					b.Error(err)
 					return

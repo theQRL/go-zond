@@ -37,11 +37,11 @@ var (
 	// Flags needed by abigen
 	abiFlag = &cli.StringFlag{
 		Name:  "abi",
-		Usage: "Path to the Ethereum contract ABI json to bind, - for STDIN",
+		Usage: "Path to the Zond contract ABI json to bind, - for STDIN",
 	}
 	binFlag = &cli.StringFlag{
 		Name:  "bin",
-		Usage: "Path to the Ethereum contract bytecode (generate deploy method)",
+		Usage: "Path to the Zond contract bytecode (generate deploy method)",
 	}
 	typeFlag = &cli.StringFlag{
 		Name:  "type",
@@ -74,7 +74,7 @@ var (
 	}
 )
 
-var app = flags.NewApp("Ethereum ABI wrapper code generator")
+var app = flags.NewApp("Zond ABI wrapper code generator")
 
 func init() {
 	app.Name = "abigen"
@@ -105,7 +105,7 @@ func abigen(c *cli.Context) error {
 	default:
 		utils.Fatalf("Unsupported destination language \"%s\" (--lang)", c.String(langFlag.Name))
 	}
-	// If the entire solidity code was specified, build and bind based on that
+	// If the entire hyperion code was specified, build and bind based on that
 	var (
 		abis    []string
 		bins    []string

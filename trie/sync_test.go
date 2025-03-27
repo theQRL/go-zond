@@ -25,9 +25,9 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/trie/trienode"
 	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/zonddb/memorydb"
-	"github.com/theQRL/go-zond/trie/trienode"
 )
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.

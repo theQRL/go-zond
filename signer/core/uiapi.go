@@ -28,7 +28,7 @@ import (
 	"github.com/theQRL/go-zond/accounts/keystore"
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/math"
-	"github.com/theQRL/go-zond/pqcrypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 )
 
 // SignerUIAPI implements methods Clef provides for a UI to query, in the bidirectional communication
@@ -169,7 +169,7 @@ func (s *UIServerAPI) SetChainId(id math.HexOrDecimal64) math.HexOrDecimal64 {
 
 // Export returns encrypted private key associated with the given address in web3 keystore format.
 // Example
-// {"jsonrpc":"2.0","method":"clef_export","params":["0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a"], "id":4}
+// {"jsonrpc":"2.0","method":"clef_export","params":["Z19e7e376e7c213b7e7e7e46cc70a5dd086daff2a"], "id":4}
 func (s *UIServerAPI) Export(ctx context.Context, addr common.Address) (json.RawMessage, error) {
 	// Look up the wallet containing the requested signer
 	wallet, err := s.am.Find(accounts.Account{Address: addr})
@@ -186,7 +186,7 @@ func (s *UIServerAPI) Export(ctx context.Context, addr common.Address) (json.Raw
 // in web3 keystore format. It will decrypt the keyJSON with the given passphrase and on successful
 // decryption it will encrypt the key with the given newPassphrase and store it in the keystore.
 // Example (the address in question has privkey `11...11`):
-// {"jsonrpc":"2.0","method":"clef_import","params":[{"address":"19e7e376e7c213b7e7e7e46cc70a5dd086daff2a","crypto":{"cipher":"aes-128-ctr","ciphertext":"33e4cd3756091d037862bb7295e9552424a391a6e003272180a455ca2a9fb332","cipherparams":{"iv":"b54b263e8f89c42bb219b6279fba5cce"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"e4ca94644fd30569c1b1afbbc851729953c92637b7fe4bb9840bbb31ffbc64a5"},"mac":"f4092a445c2b21c0ef34f17c9cd0d873702b2869ec5df4439a0c2505823217e7"},"id":"216c7eac-e8c1-49af-a215-fa0036f29141","version":3},"test","yaddayadda"], "id":4}
+// {"jsonrpc":"2.0","method":"clef_import","params":[{"address":"Z19e7e376e7c213b7e7e7e46cc70a5dd086daff2a","crypto":{"cipher":"aes-128-ctr","ciphertext":"33e4cd3756091d037862bb7295e9552424a391a6e003272180a455ca2a9fb332","cipherparams":{"iv":"b54b263e8f89c42bb219b6279fba5cce"},"kdf":"scrypt","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"e4ca94644fd30569c1b1afbbc851729953c92637b7fe4bb9840bbb31ffbc64a5"},"mac":"f4092a445c2b21c0ef34f17c9cd0d873702b2869ec5df4439a0c2505823217e7"},"id":"216c7eac-e8c1-49af-a215-fa0036f29141","version":3},"test","yaddayadda"], "id":4}
 func (api *UIServerAPI) Import(ctx context.Context, keyJSON json.RawMessage, oldPassphrase, newPassphrase string) (accounts.Account, error) {
 	be := api.am.Backends(keystore.KeyStoreType)
 

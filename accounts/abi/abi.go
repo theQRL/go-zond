@@ -37,10 +37,10 @@ type ABI struct {
 	Events      map[string]Event
 	Errors      map[string]Error
 
-	// Additional "special" functions introduced in solidity v0.6.0.
+	// Additional "special" functions.
 	// It's separated from the original default fallback. Each contract
 	// can only define one fallback and receive function.
-	Fallback Method // Note it's also used to represent legacy fallback before v0.6.0
+	Fallback Method
 	Receive  Method
 }
 
@@ -268,7 +268,7 @@ var panicReasons = map[uint64]string{
 	0x51: "uninitialized function",
 }
 
-// UnpackRevert resolves the abi-encoded revert reason. According to the solidity
+// UnpackRevert resolves the abi-encoded revert reason. According to the hyperion
 // spec https://solidity.readthedocs.io/en/latest/control-structures.html#revert,
 // the provided revert reason is abi-encoded as if it were a call to function
 // `Error(string)` or `Panic(uint256)`. So it's a special tool for it.

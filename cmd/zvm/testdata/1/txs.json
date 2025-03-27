@@ -1,0 +1,32 @@
+[
+  {
+    "type": "0x2",
+    "chainID": "0x1",
+    "gas": "0x5208",
+    "maxFeePerGas": "0x3b9aca00",
+    "maxPriorityFeePerGas": "0x0",
+    "hash": "0x0557bacce3375c98d806609b8d5043072f0b6a8bae45ae5a67a00d3a1a18d673",
+    "input": "0x",
+    "nonce": "0x0",
+    "signature": "0x",
+    "publicKey": "0x",
+    "seed" : "0x41f6e321b31e72173f8ff2e292359e1862f24fba42fe6f97efaf641980eff29862f24fba42fe6f97efaf641980eff298",
+    "to": "Z20687Fa825ab4AD40A89C303F22F65FEf9778555",
+    "value": "0x1"
+  },
+  {
+    "type": "0x2",
+    "chainID": "0x1",
+    "gas": "0x5208",
+    "maxFeePerGas": "0x3b9aca00",
+    "maxPriorityFeePerGas": "0x0",
+    "hash": "0x0557bacce3375c98d806609b8d5043072f0b6a8bae45ae5a67a00d3a1a18d673",
+    "input": "0x",
+    "nonce": "0x0",
+    "signature": "0x",
+    "publicKey": "0x",
+    "seed" : "0x41f6e321b31e72173f8ff2e292359e1862f24fba42fe6f97efaf641980eff29862f24fba42fe6f97efaf641980eff298",
+    "to": "Z20687Fa825ab4AD40A89C303F22F65FEf9778555",
+    "value": "0x1"
+  }
+]

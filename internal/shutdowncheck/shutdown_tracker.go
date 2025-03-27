@@ -21,8 +21,8 @@ import (
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // ShutdownTracker is a service that reports previous unclean shutdowns

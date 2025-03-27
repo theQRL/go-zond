@@ -18,40 +18,23 @@ package zond
 
 import (
 	"math/big"
-	"time"
 
-	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/common/hexutil"
 )
 
 // MinerAPI provides an API to control the miner.
 type MinerAPI struct {
-	e *Ethereum
+	z *Zond
 }
 
 // NewMinerAPI create a new MinerAPI instance.
-func NewMinerAPI(e *Ethereum) *MinerAPI {
-	return &MinerAPI{e}
-}
-
-// Start starts the miner with the given number of threads. If threads is nil,
-// the number of workers started is equal to the number of logical CPUs that are
-// usable by this process. If mining is already running, this method adjust the
-// number of threads allowed to use and updates the minimum price required by the
-// transaction pool.
-func (api *MinerAPI) Start() error {
-	return api.e.StartMining()
-}
-
-// Stop terminates the miner, both at the consensus engine level as well as at
-// the block creation level.
-func (api *MinerAPI) Stop() {
-	api.e.StopMining()
+func NewMinerAPI(z *Zond) *MinerAPI {
+	return &MinerAPI{z}
 }
 
 // SetExtra sets the extra data string that is included when this miner mines a block.
 func (api *MinerAPI) SetExtra(extra string) (bool, error) {
-	if err := api.e.Miner().SetExtra([]byte(extra)); err != nil {
+	if err := api.z.Miner().SetExtra([]byte(extra)); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -59,27 +42,17 @@ func (api *MinerAPI) SetExtra(extra string) (bool, error) {
 
 // SetGasPrice sets the minimum accepted gas price for the miner.
 func (api *MinerAPI) SetGasPrice(gasPrice hexutil.Big) bool {
-	api.e.lock.Lock()
-	api.e.gasPrice = (*big.Int)(&gasPrice)
-	api.e.lock.Unlock()
+	api.z.lock.Lock()
+	api.z.gasPrice = (*big.Int)(&gasPrice)
+	api.z.lock.Unlock()
 
-	api.e.txPool.SetGasTip((*big.Int)(&gasPrice))
+	api.z.txPool.SetGasTip((*big.Int)(&gasPrice))
+	api.z.Miner().SetGasTip((*big.Int)(&gasPrice))
 	return true
 }
 
 // SetGasLimit sets the gaslimit to target towards during mining.
 func (api *MinerAPI) SetGasLimit(gasLimit hexutil.Uint64) bool {
-	api.e.Miner().SetGasCeil(uint64(gasLimit))
+	api.z.Miner().SetGasCeil(uint64(gasLimit))
 	return true
-}
-
-// SetEtherbase sets the etherbase of the miner.
-func (api *MinerAPI) SetEtherbase(etherbase common.Address) bool {
-	api.e.SetEtherbase(etherbase)
-	return true
-}
-
-// SetRecommitInterval updates the interval for miner sealing work recommitting.
-func (api *MinerAPI) SetRecommitInterval(interval int) {
-	api.e.Miner().SetRecommitInterval(time.Duration(interval) * time.Millisecond)
 }

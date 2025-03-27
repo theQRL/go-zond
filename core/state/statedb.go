@@ -47,7 +47,7 @@ type revision struct {
 	journalIndex int
 }
 
-// StateDB structs within the ethereum protocol are used to store anything
+// StateDB structs within the zond protocol are used to store anything
 // within the merkle trie. StateDBs take care of caching and storing
 // nested states. It's the general query interface to retrieve:
 //
@@ -108,9 +108,6 @@ type StateDB struct {
 	// Per-transaction access list
 	accessList *accessList
 
-	// Transient storage
-	transientStorage transientStorage
-
 	// Journal of state modifications. This is the backbone of
 	// Snapshot and RevertToSnapshot.
 	journal        *journal
@@ -163,7 +160,6 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 		preimages:            make(map[common.Hash][]byte),
 		journal:              newJournal(),
 		accessList:           newAccessList(),
-		transientStorage:     newTransientStorage(),
 		hasher:               crypto.NewKeccakState(),
 	}
 	if sdb.snaps != nil {
@@ -360,14 +356,6 @@ func (s *StateDB) Database() Database {
 	return s.db
 }
 
-func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
-	stateObject := s.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.selfDestructed
-	}
-	return false
-}
-
 /*
  * SETTERS
  */
@@ -435,63 +423,6 @@ func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common
 	for k, v := range storage {
 		stateObject.SetState(k, v)
 	}
-}
-
-// SelfDestruct marks the given account as selfdestructed.
-// This clears the account balance.
-//
-// The account's state object is still available until the state is committed,
-// getStateObject will return a non-nil account after SelfDestruct.
-func (s *StateDB) SelfDestruct(addr common.Address) {
-	stateObject := s.getStateObject(addr)
-	if stateObject == nil {
-		return
-	}
-	s.journal.append(selfDestructChange{
-		account:     &addr,
-		prev:        stateObject.selfDestructed,
-		prevbalance: new(big.Int).Set(stateObject.Balance()),
-	})
-	stateObject.markSelfdestructed()
-	stateObject.data.Balance = new(big.Int)
-}
-
-func (s *StateDB) Selfdestruct6780(addr common.Address) {
-	stateObject := s.getStateObject(addr)
-	if stateObject == nil {
-		return
-	}
-
-	if stateObject.created {
-		s.SelfDestruct(addr)
-	}
-}
-
-// SetTransientState sets transient storage for a given account. It
-// adds the change to the journal so that it can be rolled back
-// to its previous value if there is a revert.
-func (s *StateDB) SetTransientState(addr common.Address, key, value common.Hash) {
-	prev := s.GetTransientState(addr, key)
-	if prev == value {
-		return
-	}
-	s.journal.append(transientStorageChange{
-		account:  &addr,
-		key:      key,
-		prevalue: prev,
-	})
-	s.setTransientState(addr, key, value)
-}
-
-// setTransientState is a lower level setter for transient storage. It
-// is called during a revert to prevent modifications to the journal.
-func (s *StateDB) setTransientState(addr common.Address, key, value common.Hash) {
-	s.transientStorage.Set(addr, key, value)
-}
-
-// GetTransientState gets transient storage for a given account.
-func (s *StateDB) GetTransientState(addr common.Address, key common.Hash) common.Hash {
-	return s.transientStorage.Get(addr, key)
 }
 
 //
@@ -671,7 +602,7 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 // CreateAccount explicitly creates a state object. If a state object with the address
 // already exists the balance is carried over to the new account.
 //
-// CreateAccount is called during the EVM CREATE operation. The situation might arise that
+// CreateAccount is called during the ZVM CREATE operation. The situation might arise that
 // a contract does the following:
 //
 //  1. sends funds to sha(account ++ (nonce + 1))
@@ -771,14 +702,13 @@ func (s *StateDB) Copy() *StateDB {
 	for hash, preimage := range s.preimages {
 		state.preimages[hash] = preimage
 	}
-	// Do we need to copy the access list and transient storage?
+	// Do we need to copy the access list?
 	// In practice: No. At the start of a transaction, these two lists are empty.
 	// In practice, we only ever copy state _between_ transactions/blocks, never
 	// in the middle of a transaction. However, it doesn't cost us much to copy
 	// empty lists, so we do it anyway to not blow up if we ever decide copy them
 	// in the middle of a transaction.
 	state.accessList = s.accessList.Copy()
-	state.transientStorage = s.transientStorage.Copy()
 
 	// If there's a prefetcher running, make an inactive copy of it that can
 	// only access data but does not actively preload (since the user will not
@@ -834,7 +764,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-		if obj.selfDestructed || (deleteEmptyObjects && obj.empty()) {
+		if deleteEmptyObjects && obj.empty() {
 			obj.deleted = true
 
 			// We need to maintain account deletions explicitly (will remain
@@ -933,7 +863,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 }
 
 // SetTxContext sets the current transaction hash and index which are
-// used when the EVM emits new state logs. It should be invoked before
+// used when the ZVM emits new state logs. It should be invoked before
 // transaction execution.
 func (s *StateDB) SetTxContext(thash common.Hash, ti int) {
 	s.thash = thash
@@ -1097,7 +1027,7 @@ func (s *StateDB) deleteStorage(addr common.Address, addrHash common.Hash, root 
 // In case (d), **original** account along with its storages should be deleted,
 // with their values be tracked as original value.
 func (s *StateDB) handleDestruction(nodes *trienode.MergedNodeSet) (map[common.Address]struct{}, error) {
-	// Short circuit if geth is running with hash mode. This procedure can consume
+	// Short circuit if gzond is running with hash mode. This procedure can consume
 	// considerable time and storage deletion isn't supported in hash mode, thus
 	// preemptively avoiding unnecessary expenses.
 	incomplete := make(map[common.Address]struct{})
@@ -1311,33 +1241,26 @@ func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, er
 // Potential EIPs:
 // - Reset access list (Berlin)
 // - Add coinbase to access list (EIP-3651)
-// - Reset transient storage (EIP-1153)
 func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
-	if rules.IsBerlin {
-		// Clear out any leftover from previous executions
-		al := newAccessList()
-		s.accessList = al
+	// Clear out any leftover from previous executions
+	al := newAccessList()
+	s.accessList = al
 
-		al.AddAddress(sender)
-		if dst != nil {
-			al.AddAddress(*dst)
-			// If it's a create-tx, the destination will be added inside evm.create
-		}
-		for _, addr := range precompiles {
-			al.AddAddress(addr)
-		}
-		for _, el := range list {
-			al.AddAddress(el.Address)
-			for _, key := range el.StorageKeys {
-				al.AddSlot(el.Address, key)
-			}
-		}
-		if rules.IsShanghai { // EIP-3651: warm coinbase
-			al.AddAddress(coinbase)
+	al.AddAddress(sender)
+	if dst != nil {
+		al.AddAddress(*dst)
+		// If it's a create-tx, the destination will be added inside zvm.create
+	}
+	for _, addr := range precompiles {
+		al.AddAddress(addr)
+	}
+	for _, el := range list {
+		al.AddAddress(el.Address)
+		for _, key := range el.StorageKeys {
+			al.AddSlot(el.Address, key)
 		}
 	}
-	// Reset transient storage at the beginning of transaction execution
-	s.transientStorage = newTransientStorage()
+	al.AddAddress(coinbase)
 }
 
 // AddAddressToAccessList adds the given address to the access list

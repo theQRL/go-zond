@@ -21,7 +21,7 @@ import "fmt"
 // ResolveNameConflict returns the next available name for a given thing.
 // This helper can be used for lots of purposes:
 //
-//   - In solidity function overloading is supported, this function can fix
+//   - In hyperion function overloading is supported, this function can fix
 //     the name conflicts of overloaded functions.
 //   - In golang binding generation, the parameter(in function, event, error,
 //     and struct definition) name will be converted to camelcase style which

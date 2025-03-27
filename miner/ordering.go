@@ -119,11 +119,11 @@ func newTransactionsByPriceAndNonce(signer types.Signer, txs map[common.Address]
 }
 
 // Peek returns the next transaction by price.
-func (t *transactionsByPriceAndNonce) Peek() *txpool.LazyTransaction {
+func (t *transactionsByPriceAndNonce) Peek() (*txpool.LazyTransaction, *big.Int) {
 	if len(t.heads) == 0 {
-		return nil
+		return nil, nil
 	}
-	return t.heads[0].tx
+	return t.heads[0].tx, t.heads[0].fees
 }
 
 // Shift replaces the current best head with the next one from the same account.
@@ -144,4 +144,15 @@ func (t *transactionsByPriceAndNonce) Shift() {
 // and hence all subsequent ones should be discarded from the same account.
 func (t *transactionsByPriceAndNonce) Pop() {
 	heap.Pop(&t.heads)
+}
+
+// Empty returns if the price heap is empty. It can be used to check it simpler
+// than calling peek and checking for nil return.
+func (t *transactionsByPriceAndNonce) Empty() bool {
+	return len(t.heads) == 0
+}
+
+// Clear removes the entire content of the heap.
+func (t *transactionsByPriceAndNonce) Clear() {
+	t.heads, t.txs = nil, nil
 }

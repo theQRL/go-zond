@@ -112,7 +112,7 @@ func TestHTTPRespBodyUnlimited(t *testing.T) {
 	ts := httptest.NewServer(s)
 	defer ts.Close()
 
-	c, err := DialHTTP(ts.URL)
+	c, err := Dial(ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestHTTPErrorResponse(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	c, err := DialHTTP(ts.URL)
+	c, err := Dial(ts.URL)
 	if err != nil {
 		t.Fatal(err)
 	}

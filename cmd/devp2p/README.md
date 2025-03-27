@@ -45,7 +45,6 @@ set to standard output. The following filters are supported:
 - `-ip <CIDR>` filters nodes by IP subnet
 - `-min-age <duration>` filters nodes by 'first seen' time
 - `-eth-network <mainnet/goerli/sepolia/holesky>` filters nodes by "eth" ENR entry
-- `-les-server` filters nodes by LES server support
 - `-snap` filters nodes by snap protocol support
 
 For example, given a node set in `nodes.json`, you could create a filtered set containing

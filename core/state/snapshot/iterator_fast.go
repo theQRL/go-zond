@@ -19,10 +19,10 @@ package snapshot
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/theQRL/go-zond/common"
-	"golang.org/x/exp/slices"
 )
 
 // weightedIterator is a iterator with an assigned weight. It is used to prioritise

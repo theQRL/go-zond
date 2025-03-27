@@ -15,9 +15,9 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // opcountTracer is a sample tracer that just counts the number of instructions
-// executed by the EVM before the transaction terminated.
+// executed by the ZVM before the transaction terminated.
 {
-	// count tracks the number of EVM instructions executed.
+	// count tracks the number of ZVM instructions executed.
 	count: 0,
 
 	// step is invoked for every opcode that the VM executes.

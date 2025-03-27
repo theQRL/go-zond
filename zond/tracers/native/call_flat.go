@@ -36,24 +36,6 @@ func init() {
 	tracers.DefaultDirectory.Register("flatCallTracer", newFlatCallTracer, false)
 }
 
-var parityErrorMapping = map[string]string{
-	"contract creation code storage out of gas": "Out of gas",
-	"out of gas":                      "Out of gas",
-	"gas uint64 overflow":             "Out of gas",
-	"max code size exceeded":          "Out of gas",
-	"invalid jump destination":        "Bad jump destination",
-	"execution reverted":              "Reverted",
-	"return data out of bounds":       "Out of bounds",
-	"stack limit reached 1024 (1023)": "Out of stack",
-	"precompiled failed":              "Built-in failed",
-	"invalid input length":            "Built-in failed",
-}
-
-var parityErrorMappingStartingWith = map[string]string{
-	"invalid opcode:": "Bad instruction",
-	"stack underflow": "Stack underflow",
-}
-
 // flatCallFrame is a standalone callframe.
 type flatCallFrame struct {
 	Action              flatCallAction  `json:"action"`
@@ -71,7 +53,6 @@ type flatCallFrame struct {
 type flatCallAction struct {
 	Author         *common.Address `json:"author,omitempty"`
 	RewardType     string          `json:"rewardType,omitempty"`
-	SelfDestructed *common.Address `json:"address,omitempty"`
 	Balance        *big.Int        `json:"balance,omitempty"`
 	CallType       string          `json:"callType,omitempty"`
 	CreationMethod string          `json:"creationMethod,omitempty"`
@@ -116,8 +97,7 @@ type flatCallTracer struct {
 }
 
 type flatCallTracerConfig struct {
-	ConvertParityErrors bool `json:"convertParityErrors"` // If true, call tracer converts errors to parity format
-	IncludePrecompiles  bool `json:"includePrecompiles"`  // If true, call tracer includes calls to precompiled contracts
+	IncludePrecompiles bool `json:"includePrecompiles"` // If true, call tracer includes calls to precompiled contracts
 }
 
 // newFlatCallTracer returns a new flatCallTracer.
@@ -143,11 +123,11 @@ func newFlatCallTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Trace
 	return &flatCallTracer{tracer: t, ctx: ctx, config: config}, nil
 }
 
-// CaptureStart implements the EVMLogger interface to initialize the tracing operation.
-func (t *flatCallTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+// CaptureStart implements the ZVMLogger interface to initialize the tracing operation.
+func (t *flatCallTracer) CaptureStart(env *vm.ZVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	t.tracer.CaptureStart(env, from, to, create, input, gas, value)
 	// Update list of precompiles based on current block
-	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Random != nil, env.Context.Time)
+	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Time)
 	t.activePrecompiles = vm.ActivePrecompiles(rules)
 }
 
@@ -156,17 +136,17 @@ func (t *flatCallTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	t.tracer.CaptureEnd(output, gasUsed, err)
 }
 
-// CaptureState implements the EVMLogger interface to trace a single step of VM execution.
+// CaptureState implements the ZVMLogger interface to trace a single step of VM execution.
 func (t *flatCallTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	t.tracer.CaptureState(pc, op, gas, cost, scope, rData, depth, err)
 }
 
-// CaptureFault implements the EVMLogger interface to trace an execution fault.
+// CaptureFault implements the ZVMLogger interface to trace an execution fault.
 func (t *flatCallTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
 	t.tracer.CaptureFault(pc, op, gas, cost, scope, depth, err)
 }
 
-// CaptureEnter is called when EVM enters a new scope (via call, create or selfdestruct).
+// CaptureEnter is called when ZVM enters a new scope (via call or create).
 func (t *flatCallTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	t.tracer.CaptureEnter(typ, from, to, input, gas, value)
 
@@ -177,7 +157,7 @@ func (t *flatCallTracer) CaptureEnter(typ vm.OpCode, from common.Address, to com
 	}
 }
 
-// CaptureExit is called when EVM exits a scope, even if the scope didn't
+// CaptureExit is called when ZVM exits a scope, even if the scope didn't
 // execute any code.
 func (t *flatCallTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 	t.tracer.CaptureExit(output, gasUsed, err)
@@ -215,7 +195,7 @@ func (t *flatCallTracer) GetResult() (json.RawMessage, error) {
 		return nil, errors.New("invalid number of calls")
 	}
 
-	flat, err := flatFromNested(&t.tracer.callstack[0], []int{}, t.config.ConvertParityErrors, t.ctx)
+	flat, err := flatFromNested(&t.tracer.callstack[0], []int{}, t.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -242,14 +222,12 @@ func (t *flatCallTracer) isPrecompiled(addr common.Address) bool {
 	return false
 }
 
-func flatFromNested(input *callFrame, traceAddress []int, convertErrs bool, ctx *tracers.Context) (output []flatCallFrame, err error) {
+func flatFromNested(input *callFrame, traceAddress []int, ctx *tracers.Context) (output []flatCallFrame, err error) {
 	var frame *flatCallFrame
 	switch input.Type {
 	case vm.CREATE, vm.CREATE2:
 		frame = newFlatCreate(input)
-	case vm.SELFDESTRUCT:
-		frame = newFlatSelfdestruct(input)
-	case vm.CALL, vm.STATICCALL, vm.CALLCODE, vm.DELEGATECALL:
+	case vm.CALL, vm.STATICCALL, vm.DELEGATECALL:
 		frame = newFlatCall(input)
 	default:
 		return nil, fmt.Errorf("unrecognized call frame type: %s", input.Type)
@@ -259,9 +237,6 @@ func flatFromNested(input *callFrame, traceAddress []int, convertErrs bool, ctx 
 	frame.Error = input.Error
 	frame.Subtraces = len(input.Calls)
 	fillCallFrameFromContext(frame, ctx)
-	if convertErrs {
-		convertErrorToParity(frame)
-	}
 
 	// Revert output contains useful information (revert reason).
 	// Otherwise discard result.
@@ -274,7 +249,7 @@ func flatFromNested(input *callFrame, traceAddress []int, convertErrs bool, ctx 
 		for i, childCall := range input.Calls {
 			childAddr := childTraceAddress(traceAddress, i)
 			childCallCopy := childCall
-			flat, err := flatFromNested(&childCallCopy, childAddr, convertErrs, ctx)
+			flat, err := flatFromNested(&childCallCopy, childAddr, ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -330,17 +305,6 @@ func newFlatCall(input *callFrame) *flatCallFrame {
 	}
 }
 
-func newFlatSelfdestruct(input *callFrame) *flatCallFrame {
-	return &flatCallFrame{
-		Type: "suicide",
-		Action: flatCallAction{
-			SelfDestructed: &input.From,
-			Balance:        input.Value,
-			RefundAddress:  input.To,
-		},
-	}
-}
-
 func fillCallFrameFromContext(callFrame *flatCallFrame, ctx *tracers.Context) {
 	if ctx == nil {
 		return
@@ -355,22 +319,6 @@ func fillCallFrameFromContext(callFrame *flatCallFrame, ctx *tracers.Context) {
 		callFrame.TransactionHash = &ctx.TxHash
 	}
 	callFrame.TransactionPosition = uint64(ctx.TxIndex)
-}
-
-func convertErrorToParity(call *flatCallFrame) {
-	if call.Error == "" {
-		return
-	}
-
-	if parityError, ok := parityErrorMapping[call.Error]; ok {
-		call.Error = parityError
-	} else {
-		for gethError, parityError := range parityErrorMappingStartingWith {
-			if strings.HasPrefix(call.Error, gethError) {
-				call.Error = parityError
-			}
-		}
-	}
 }
 
 func childTraceAddress(a []int, i int) []int {

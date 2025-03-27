@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
-// bootnode runs a bootstrap node for the Ethereum Discovery Protocol.
+// bootnode runs a bootstrap node for the Zond Discovery Protocol.
 package main
 
 import (
@@ -47,6 +47,7 @@ func main() {
 		verbosity   = flag.Int("verbosity", int(log.LvlInfo), "log verbosity (0-5)")
 		vmodule     = flag.String("vmodule", "", "log verbosity pattern")
 
+		// TODO(now.youtrack.cloud/issue/TGZ-20)
 		nodeKey *ecdsa.PrivateKey
 		err     error
 	)

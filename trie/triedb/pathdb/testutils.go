@@ -19,13 +19,13 @@ package pathdb
 import (
 	"bytes"
 	"fmt"
+	"slices"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/trie/trienode"
 	"github.com/theQRL/go-zond/trie/triestate"
-	"golang.org/x/exp/slices"
 )
 
 // testHasher is a test utility for computing root hash of a batch of state

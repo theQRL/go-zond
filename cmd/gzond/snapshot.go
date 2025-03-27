@@ -46,14 +46,14 @@ var (
 		Subcommands: []*cli.Command{
 			{
 				Name:      "prune-state",
-				Usage:     "Prune stale ethereum state data based on the snapshot",
+				Usage:     "Prune stale zond state data based on the snapshot",
 				ArgsUsage: "<root>",
 				Action:    pruneState,
 				Flags: flags.Merge([]cli.Flag{
 					utils.BloomFilterSizeFlag,
 				}, utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
-geth snapshot prune-state <state-root>
+gzond snapshot prune-state <state-root>
 will prune historical state data with the help of the state snapshot.
 All trie nodes and contract codes that do not belong to the specified
 version state will be deleted from the database. After pruning, only
@@ -73,7 +73,7 @@ WARNING: it's only supported in hash mode(--state.scheme=hash)".
 					utils.StateSchemeFlag,
 				}, utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
-geth snapshot verify-state <state-root>
+gzond snapshot verify-state <state-root>
 will traverse the whole accounts and storages set based on the specified
 snapshot and recalculate the root hash of state for verification.
 In other words, this command does the snapshot to trie conversion.
@@ -86,7 +86,7 @@ In other words, this command does the snapshot to trie conversion.
 				Action:    checkDanglingStorage,
 				Flags:     flags.Merge(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
-geth snapshot check-dangling-storage <state-root> traverses the snap storage 
+gzond snapshot check-dangling-storage <state-root> traverses the snap storage 
 data, and verifies that all snapshot storage data has a corresponding account. 
 `,
 			},
@@ -97,7 +97,7 @@ data, and verifies that all snapshot storage data has a corresponding account.
 				Action:    checkAccount,
 				Flags:     flags.Merge(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
-geth snapshot inspect-account <address | hash> checks all snapshot layers and prints out
+gzond snapshot inspect-account <address | hash> checks all snapshot layers and prints out
 information about the specified address. 
 `,
 			},
@@ -110,7 +110,7 @@ information about the specified address.
 					utils.StateSchemeFlag,
 				}, utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
-geth snapshot traverse-state <state-root>
+gzond snapshot traverse-state <state-root>
 will traverse the whole state from the given state root and will abort if any
 referenced trie node or contract code is missing. This command can be used for
 state integrity verification. The default checking target is the HEAD state.
@@ -127,7 +127,7 @@ It's also usable without snapshot enabled.
 					utils.StateSchemeFlag,
 				}, utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
-geth snapshot traverse-rawstate <state-root>
+gzond snapshot traverse-rawstate <state-root>
 will traverse the whole state from the given root and will abort if any referenced
 trie node or contract code is missing. This command can be used for state integrity
 verification. The default checking target is the HEAD state. It's basically identical
@@ -138,7 +138,7 @@ It's also usable without snapshot enabled.
 			},
 			{
 				Name:      "dump",
-				Usage:     "Dump a specific block from storage (same as 'geth dump' but using snapshots)",
+				Usage:     "Dump a specific block from storage (same as 'gzond dump' but using snapshots)",
 				ArgsUsage: "[? <blockHash> | <blockNum>]",
 				Action:    dumpState,
 				Flags: flags.Merge([]cli.Flag{
@@ -149,7 +149,7 @@ It's also usable without snapshot enabled.
 					utils.StateSchemeFlag,
 				}, utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
-This command is semantically equivalent to 'geth dump', but uses the snapshots
+This command is semantically equivalent to 'gzond dump', but uses the snapshots
 as the backend data source, making this command a lot faster. 
 
 The argument is interpreted as block number or hash. If none is provided, the latest
@@ -609,10 +609,14 @@ func checkAccount(ctx *cli.Context) error {
 	var (
 		hash common.Hash
 		addr common.Address
+		err  error
 	)
 	switch arg := ctx.Args().First(); len(arg) {
-	case 40, 42:
-		addr = common.HexToAddress(arg)
+	case 41:
+		addr, err = common.NewAddressFromString(arg)
+		if err != nil {
+			return err
+		}
 		hash = crypto.Keccak256Hash(addr.Bytes())
 	case 64, 66:
 		hash = common.HexToHash(arg)

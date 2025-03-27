@@ -24,23 +24,12 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
 	"github.com/theQRL/go-zond/core/rawdb"
-	"github.com/theQRL/go-zond/core/vm"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/trie"
 	"github.com/theQRL/go-zond/trie/triedb/pathdb"
 	"github.com/theQRL/go-zond/zonddb"
 )
-
-func TestInvalidCliqueConfig(t *testing.T) {
-	block := DefaultGoerliGenesisBlock()
-	block.ExtraData = []byte{}
-	db := rawdb.NewMemoryDatabase()
-	if _, err := block.Commit(db, trie.NewDatabase(db, nil)); err == nil {
-		t.Fatal("Expected error on invalid clique config")
-	}
-}
 
 func TestSetupGenesis(t *testing.T) {
 	testSetupGenesis(t, rawdb.HashScheme)
@@ -49,16 +38,16 @@ func TestSetupGenesis(t *testing.T) {
 
 func testSetupGenesis(t *testing.T, scheme string) {
 	var (
-		customghash = common.HexToHash("0x89c99d90b79719238d2645c7642f2c9295246e80775b38cfd162b696817fbd50")
+		customghash = common.HexToHash("0x512a0d99941f1551db550852bdec6c9e213595356ede9dd23d1572199a8d66ba")
 		customg     = Genesis{
-			Config: &params.ChainConfig{HomesteadBlock: big.NewInt(3)},
+			Config: &params.ChainConfig{},
 			Alloc: GenesisAlloc{
 				{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 			},
 		}
 		oldcustomg = customg
 	)
-	oldcustomg.Config = &params.ChainConfig{HomesteadBlock: big.NewInt(2)}
+	oldcustomg.Config = &params.ChainConfig{}
 
 	tests := []struct {
 		name       string
@@ -73,25 +62,29 @@ func testSetupGenesis(t *testing.T, scheme string) {
 				return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), new(Genesis))
 			},
 			wantErr:    errGenesisNoConfig,
-			wantConfig: params.AllEthashProtocolChanges,
+			wantConfig: params.AllBeaconProtocolChanges,
 		},
-		{
-			name: "no block in DB, genesis == nil",
-			fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
-				return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil)
+		// TODO(now.youtrack.cloud/issue/TGZ-16)
+		/*
+			{
+				name: "no block in DB, genesis == nil",
+				fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
+					return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil)
+				},
+				// wantHash:   params.MainnetGenesisHash,
+				wantHash:   common.HexToHash("b3de630542cf9acf842e24f428c7c21b7824b38a7718a632e424b58ba0f562c6"),
+				wantConfig: params.MainnetChainConfig,
 			},
-			wantHash:   params.MainnetGenesisHash,
-			wantConfig: params.MainnetChainConfig,
-		},
-		{
-			name: "mainnet block in DB, genesis == nil",
-			fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
-				DefaultGenesisBlock().MustCommit(db, trie.NewDatabase(db, newDbConfig(scheme)))
-				return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil)
+			{
+				name: "mainnet block in DB, genesis == nil",
+				fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
+					DefaultGenesisBlock().MustCommit(db, trie.NewDatabase(db, newDbConfig(scheme)))
+					return SetupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil)
+				},
+				wantHash:   params.MainnetGenesisHash,
+				wantConfig: params.MainnetChainConfig,
 			},
-			wantHash:   params.MainnetGenesisHash,
-			wantConfig: params.MainnetChainConfig,
-		},
+		*/
 		{
 			name: "custom block in DB, genesis == nil",
 			fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
@@ -102,17 +95,20 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			wantHash:   customghash,
 			wantConfig: customg.Config,
 		},
-		{
-			name: "custom block in DB, genesis == goerli",
-			fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
-				tdb := trie.NewDatabase(db, newDbConfig(scheme))
-				customg.Commit(db, tdb)
-				return SetupGenesisBlock(db, tdb, DefaultGoerliGenesisBlock())
+		// TODO(now.youtrack.cloud/issue/TGZ-16)
+		/*
+			{
+				name: "custom block in DB, genesis == goerli",
+				fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
+					tdb := trie.NewDatabase(db, newDbConfig(scheme))
+					customg.Commit(db, tdb)
+					return SetupGenesisBlock(db, tdb, DefaultGoerliGenesisBlock())
+				},
+				wantErr:    &GenesisMismatchError{Stored: customghash, New: params.GoerliGenesisHash},
+				wantHash:   params.GoerliGenesisHash,
+				wantConfig: params.GoerliChainConfig,
 			},
-			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.GoerliGenesisHash},
-			wantHash:   params.GoerliGenesisHash,
-			wantConfig: params.GoerliChainConfig,
-		},
+		*/
 		{
 			name: "compatible config in DB",
 			fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
@@ -123,32 +119,35 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			wantHash:   customghash,
 			wantConfig: customg.Config,
 		},
-		{
-			name: "incompatible config in DB",
-			fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
-				// Commit the 'old' genesis block with Homestead transition at #2.
-				// Advance to block #4, past the homestead transition block of customg.
-				tdb := trie.NewDatabase(db, newDbConfig(scheme))
-				oldcustomg.Commit(db, tdb)
+		// NOTE(rgeraldes24): not valid for now
+		/*
+			{
+				name: "incompatible config in DB",
+				fn: func(db zonddb.Database) (*params.ChainConfig, common.Hash, error) {
+					// Commit the 'old' genesis block with Homestead transition at #2.
+					// Advance to block #4, past the homestead transition block of customg.
+					tdb := trie.NewDatabase(db, newDbConfig(scheme))
+					oldcustomg.Commit(db, tdb)
 
-				bc, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(scheme), &oldcustomg, nil, ethash.NewFullFaker(), vm.Config{}, nil, nil)
-				defer bc.Stop()
+					bc, _ := NewBlockChain(db, DefaultCacheConfigWithScheme(scheme), &oldcustomg, beacon.NewFullFaker(), vm.Config{}, nil, nil)
+					defer bc.Stop()
 
-				_, blocks, _ := GenerateChainWithGenesis(&oldcustomg, ethash.NewFaker(), 4, nil)
-				bc.InsertChain(blocks)
+					_, blocks, _ := GenerateChainWithGenesis(&oldcustomg, beacon.NewFaker(), 4, nil)
+					bc.InsertChain(blocks)
 
-				// This should return a compatibility error.
-				return SetupGenesisBlock(db, tdb, &customg)
+					// This should return a compatibility error.
+					return SetupGenesisBlock(db, tdb, &customg)
+				},
+				wantHash:   customghash,
+				wantConfig: customg.Config,
+				wantErr: &params.ConfigCompatError{
+					What:          "Homestead fork block",
+					StoredBlock:   big.NewInt(2),
+					NewBlock:      big.NewInt(3),
+					RewindToBlock: 1,
+				},
 			},
-			wantHash:   customghash,
-			wantConfig: customg.Config,
-			wantErr: &params.ConfigCompatError{
-				What:          "Homestead fork block",
-				StoredBlock:   big.NewInt(2),
-				NewBlock:      big.NewInt(3),
-				RewindToBlock: 1,
-			},
-		},
+		*/
 	}
 
 	for _, test := range tests {
@@ -181,10 +180,10 @@ func TestGenesisHashes(t *testing.T) {
 		genesis *Genesis
 		want    common.Hash
 	}{
+		// TODO(now.youtrack.cloud/issue/TGZ-16)
 		{DefaultGenesisBlock(), params.MainnetGenesisHash},
-		{DefaultGoerliGenesisBlock(), params.GoerliGenesisHash},
-		{DefaultSepoliaGenesisBlock(), params.SepoliaGenesisHash},
 		{DefaultBetaNetGenesisBlock(), params.BetaNetGenesisHash},
+		{DefaultTestnetGenesisBlock(), params.TestnetGenesisHash},
 	} {
 		// Test via MustCommit
 		db := rawdb.NewMemoryDatabase()
@@ -198,30 +197,49 @@ func TestGenesisHashes(t *testing.T) {
 	}
 }
 
+// TestGenesisExtraDataLen checks length of extra data
+// should be exactly 32 bytes
+func TestGenesisExtraDataLen(t *testing.T) {
+	for i, c := range []struct {
+		genesis *Genesis
+	}{
+		{DefaultGenesisBlock()},
+		{DefaultBetaNetGenesisBlock()},
+		{DefaultTestnetGenesisBlock()},
+	} {
+		if len(c.genesis.ExtraData) != 32 {
+			t.Errorf("case: %d a), want: %d, got: %d", i, 32, len(c.genesis.ExtraData))
+		}
+	}
+}
+
 func TestGenesis_Commit(t *testing.T) {
 	genesis := &Genesis{
-		BaseFee: big.NewInt(params.InitialBaseFee),
-		Config:  params.TestChainConfig,
-		// difficulty is nil
+		Config: params.TestChainConfig,
+		// basefee is nil
 	}
 
 	db := rawdb.NewMemoryDatabase()
 	genesisBlock := genesis.MustCommit(db, trie.NewDatabase(db, trie.HashDefaults))
 
-	if genesis.Difficulty != nil {
+	if genesis.BaseFee != nil {
 		t.Fatalf("assumption wrong")
 	}
 
 	// This value should have been set as default in the ToBlock method.
-	if genesisBlock.Difficulty().Cmp(params.GenesisDifficulty) != 0 {
-		t.Errorf("assumption wrong: want: %d, got: %v", params.GenesisDifficulty, genesisBlock.Difficulty())
+	if genesisBlock.BaseFee().Cmp(new(big.Int).SetUint64(params.InitialBaseFee)) != 0 {
+		t.Errorf("assumption wrong: want: %d, got: %v", params.InitialBaseFee, genesisBlock.BaseFee())
 	}
 
-	// Expect the stored total difficulty to be the difficulty of the genesis block.
-	stored := rawdb.ReadTd(db, genesisBlock.Hash(), genesisBlock.NumberU64())
+	// Expect the stored basefee to be the basefee of the genesis block.
+	blk := rawdb.ReadBlock(db, genesisBlock.Hash(), 0)
+	if blk == nil {
+		t.Errorf("unable to retrieve block %d for canonical hash: %s", blk.NumberU64(), blk.Hash())
+		return
+	}
 
-	if stored.Cmp(genesisBlock.Difficulty()) != 0 {
-		t.Errorf("inequal difficulty; stored: %v, genesisBlock: %v", stored, genesisBlock.Difficulty())
+	if blk.BaseFee().Cmp(genesisBlock.BaseFee()) != 0 {
+		t.Errorf("inequal difficulty; stored: %v, genesisBlock: %v", blk.BaseFee(), genesisBlock.BaseFee())
 	}
 }
 

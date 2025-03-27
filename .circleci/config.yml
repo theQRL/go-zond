@@ -46,7 +46,7 @@ commands:
 jobs:
   publish-linux-amd64-gzond-binary:
     docker:
-      - image: cimg/go:1.20
+      - image: cimg/go:1.22
     steps:
       - checkout
       - *restore_go_cache
@@ -60,7 +60,7 @@ jobs:
   
   publish-linux-arm64-gzond-binary:
     machine:
-      image: ubuntu-2204:2023.07.1
+      image: ubuntu-2204:2024.11.1
     resource_class: arm.medium
     steps:
       - checkout
@@ -76,14 +76,14 @@ jobs:
   publish-darwin-amd64-gzond-binary:
     macos:
       xcode: 14.2.0
-    resource_class: macos.x86.medium.gen2
+    resource_class: macos.m1.medium.gen1
     steps:
       - checkout
       - run: |
           # NOTE(rgeraldes24): currently relying on brew auto update to have the latest
           # versions of golang available but this can be achieved in other ways!
-          brew install go@1.20
-          echo 'export PATH="/usr/local/opt/go@1.20/bin:$PATH"' >> /Users/distiller/.bash_profile
+          brew install go@1.22
+          echo 'export PATH="/usr/local/opt/go@1.22/bin:$PATH"' >> /Users/distiller/.bash_profile
           brew install coreutils
           brew install gpg
       - *restore_go_cache
@@ -94,7 +94,16 @@ jobs:
           command: go run build/ci.go install ./cmd/gzond
       - prepare-publish-artifacts:
           platform: "darwin-amd64"
-          
+
+  build-and-deploy-docker-images:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Build and Deploy Docker Images
+          command: |
+            go run build/ci.go dockerx -platform linux/amd64,linux/arm64 -hub qrledger/go-zond -upload true
+
 workflows:
   release:
     jobs:
@@ -105,5 +114,8 @@ workflows:
           filters:
             <<: *filters-release
       - publish-darwin-amd64-gzond-binary:
+          filters:
+            <<: *filters-release
+      - build-and-deploy-docker-images:
           filters:
             <<: *filters-release

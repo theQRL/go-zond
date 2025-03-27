@@ -28,7 +28,7 @@ import (
 )
 
 // Context contains some contextual infos for a transaction execution that is not
-// available from within the EVM object.
+// available from within the ZVM object.
 type Context struct {
 	BlockHash   common.Hash // Hash of the block the tx is contained within (zero if dangling tx or call)
 	BlockNumber *big.Int    // Number of the block the tx is contained within (zero if dangling tx or call)
@@ -36,10 +36,10 @@ type Context struct {
 	TxHash      common.Hash // Hash of the transaction being traced (zero if dangling call)
 }
 
-// Tracer interface extends vm.EVMLogger and additionally
+// Tracer interface extends vm.ZVMLogger and additionally
 // allows collecting the tracing result.
 type Tracer interface {
-	vm.EVMLogger
+	vm.ZVMLogger
 	GetResult() (json.RawMessage, error)
 	// Stop terminates execution of the tracer at the first opportune moment.
 	Stop(err error)

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"slices"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
@@ -32,7 +33,6 @@ import (
 	"github.com/theQRL/go-zond/trie/trienode"
 	"github.com/theQRL/go-zond/zonddb"
 	"golang.org/x/crypto/sha3"
-	"golang.org/x/exp/slices"
 )
 
 type fuzzer struct {
@@ -69,9 +69,9 @@ type spongeDb struct {
 func (s *spongeDb) Has(key []byte) (bool, error)             { panic("implement me") }
 func (s *spongeDb) Get(key []byte) ([]byte, error)           { return nil, errors.New("no such elem") }
 func (s *spongeDb) Delete(key []byte) error                  { panic("implement me") }
-func (s *spongeDb) NewBatch() zonddb.Batch                    { return &spongeBatch{s} }
-func (s *spongeDb) NewBatchWithSize(size int) zonddb.Batch    { return &spongeBatch{s} }
-func (s *spongeDb) NewSnapshot() (zonddb.Snapshot, error)     { panic("implement me") }
+func (s *spongeDb) NewBatch() zonddb.Batch                   { return &spongeBatch{s} }
+func (s *spongeDb) NewBatchWithSize(size int) zonddb.Batch   { return &spongeBatch{s} }
+func (s *spongeDb) NewSnapshot() (zonddb.Snapshot, error)    { panic("implement me") }
 func (s *spongeDb) Stat(property string) (string, error)     { panic("implement me") }
 func (s *spongeDb) Compact(start []byte, limit []byte) error { panic("implement me") }
 func (s *spongeDb) Close() error                             { return nil }
@@ -95,10 +95,10 @@ func (b *spongeBatch) Put(key, value []byte) error {
 	b.db.Put(key, value)
 	return nil
 }
-func (b *spongeBatch) Delete(key []byte) error             { panic("implement me") }
-func (b *spongeBatch) ValueSize() int                      { return 100 }
-func (b *spongeBatch) Write() error                        { return nil }
-func (b *spongeBatch) Reset()                              {}
+func (b *spongeBatch) Delete(key []byte) error              { panic("implement me") }
+func (b *spongeBatch) ValueSize() int                       { return 100 }
+func (b *spongeBatch) Write() error                         { return nil }
+func (b *spongeBatch) Reset()                               {}
 func (b *spongeBatch) Replay(w zonddb.KeyValueWriter) error { return nil }
 
 type kv struct {

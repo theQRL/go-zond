@@ -18,19 +18,44 @@ package catalyst
 
 import (
 	"context"
+	"time"
 
 	"github.com/theQRL/go-zond/common"
+	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/types"
+	"github.com/theQRL/go-zond/log"
 )
 
 type api struct {
-	simBeacon *SimulatedBeacon
+	sim *SimulatedBeacon
+}
+
+func (a *api) loop() {
+	var (
+		newTxs = make(chan core.NewTxsEvent)
+		sub    = a.sim.zond.TxPool().SubscribeTransactions(newTxs)
+	)
+	defer sub.Unsubscribe()
+
+	for {
+		select {
+		case <-a.sim.shutdownCh:
+			return
+		case w := <-a.sim.withdrawals.pending:
+			withdrawals := append(a.sim.withdrawals.gatherPending(9), w)
+			if err := a.sim.sealBlock(withdrawals, uint64(time.Now().Unix())); err != nil {
+				log.Warn("Error performing sealing work", "err", err)
+			}
+		case <-newTxs:
+			a.sim.Commit()
+		}
+	}
 }
 
 func (a *api) AddWithdrawal(ctx context.Context, withdrawal *types.Withdrawal) error {
-	return a.simBeacon.withdrawals.add(withdrawal)
+	return a.sim.withdrawals.add(withdrawal)
 }
 
 func (a *api) SetFeeRecipient(ctx context.Context, feeRecipient common.Address) {
-	a.simBeacon.setFeeRecipient(feeRecipient)
+	a.sim.setFeeRecipient(feeRecipient)
 }

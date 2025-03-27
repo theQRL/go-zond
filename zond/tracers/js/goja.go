@@ -34,7 +34,7 @@ import (
 
 var assetTracers = make(map[string]string)
 
-// init retrieves the JavaScript transaction tracers included in go-ethereum.
+// init retrieves the JavaScript transaction tracers included in go-zond.
 func init() {
 	var err error
 	assetTracers, err = jsassets.Load()
@@ -73,6 +73,11 @@ func fromBuf(vm *goja.Runtime, bufType goja.Value, buf goja.Value, allowString b
 		if !allowString {
 			break
 		}
+		// If the specified value is a valid address, return it
+		if addr, err := common.NewAddressFromString(obj.String()); err == nil {
+			return addr.Bytes(), nil
+		}
+
 		return common.FromHex(obj.String()), nil
 
 	case "Array":
@@ -93,10 +98,10 @@ func fromBuf(vm *goja.Runtime, bufType goja.Value, buf goja.Value, allowString b
 }
 
 // jsTracer is an implementation of the Tracer interface which evaluates
-// JS functions on the relevant EVM hooks. It uses Goja as its JS engine.
+// JS functions on the relevant ZVM hooks. It uses Goja as its JS engine.
 type jsTracer struct {
 	vm                *goja.Runtime
-	env               *vm.EVM
+	env               *vm.ZVM
 	toBig             toBigFn               // Converts a hex string into a JS bigint
 	toBuf             toBufFn               // Converts a []byte into a JS buffer
 	fromBuf           fromBufFn             // Converts an array, hex string or Uint8Array to a []byte
@@ -223,7 +228,7 @@ func (t *jsTracer) CaptureTxEnd(restGas uint64) {
 }
 
 // CaptureStart implements the Tracer interface to initialize the tracing operation.
-func (t *jsTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
+func (t *jsTracer) CaptureStart(env *vm.ZVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	t.env = env
 	db := &dbObj{db: env.StateDB, vm: t.vm, toBig: t.toBig, toBuf: t.toBuf, fromBuf: t.fromBuf}
 	t.dbValue = db.setupObject()
@@ -250,7 +255,7 @@ func (t *jsTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Addr
 	t.ctx["value"] = valueBig
 	t.ctx["block"] = t.vm.ToValue(env.Context.BlockNumber.Uint64())
 	// Update list of precompiles based on current block
-	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Random != nil, env.Context.Time)
+	rules := env.ChainConfig().Rules(env.Context.BlockNumber, env.Context.Time)
 	t.activePrecompiles = vm.ActivePrecompiles(rules)
 }
 
@@ -299,7 +304,7 @@ func (t *jsTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	}
 }
 
-// CaptureEnter is called when EVM enters a new scope (via call, create or selfdestruct).
+// CaptureEnter is called when ZVM enters a new scope (via call or create).
 func (t *jsTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	if !t.traceFrame {
 		return
@@ -323,7 +328,7 @@ func (t *jsTracer) CaptureEnter(typ vm.OpCode, from common.Address, to common.Ad
 	}
 }
 
-// CaptureExit is called when EVM exits a scope, even if the scope didn't
+// CaptureExit is called when ZVM exits a scope, even if the scope didn't
 // execute any code.
 func (t *jsTracer) CaptureExit(output []byte, gasUsed uint64, err error) {
 	if !t.traceFrame {
@@ -359,7 +364,7 @@ func (t *jsTracer) Stop(err error) {
 }
 
 // onError is called anytime the running JS code is interrupted
-// and returns an error. It in turn pings the EVM to cancel its
+// and returns an error. It in turn pings the ZVM to cancel its
 // execution.
 func (t *jsTracer) onError(context string, err error) {
 	t.err = wrapError(context, err)

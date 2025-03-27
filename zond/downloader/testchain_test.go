@@ -23,20 +23,20 @@ import (
 	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/ethash"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/crypto"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/trie"
 )
 
 // Test chain parameters.
 var (
-	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
+	testKey, _  = pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	testAddress = testKey.GetAddress()
 	testDB      = rawdb.NewMemoryDatabase()
 
 	testGspec = &core.Genesis{
@@ -50,39 +50,21 @@ var (
 // The common prefix of all test chains:
 var testChainBase *testChain
 
-// Different forks on top of the base chain:
-var testChainForkLightA, testChainForkLightB, testChainForkHeavy *testChain
-
 var pregenerated bool
 
 func init() {
 	// Reduce some of the parameters to make the tester faster
-	fullMaxForkAncestry = 10000
-	lightMaxForkAncestry = 10000
 	blockCacheMaxItems = 1024
 	fsHeaderSafetyNet = 256
 	fsHeaderContCheck = 500 * time.Millisecond
 
 	testChainBase = newTestChain(blockCacheMaxItems+200, testGenesis)
 
-	var forkLen = int(fullMaxForkAncestry + 50)
-	var wg sync.WaitGroup
-
-	// Generate the test chains to seed the peers with
-	wg.Add(3)
-	go func() { testChainForkLightA = testChainBase.makeFork(forkLen, false, 1); wg.Done() }()
-	go func() { testChainForkLightB = testChainBase.makeFork(forkLen, false, 2); wg.Done() }()
-	go func() { testChainForkHeavy = testChainBase.makeFork(forkLen, true, 3); wg.Done() }()
-	wg.Wait()
-
 	// Generate the test peers used by the tests to avoid overloading during testing.
 	// These seemingly random chains are used in various downloader tests. We're just
 	// pre-generating them here.
 	chains := []*testChain{
 		testChainBase,
-		testChainForkLightA,
-		testChainForkLightB,
-		testChainForkHeavy,
 		testChainBase.shorten(1),
 		testChainBase.shorten(blockCacheMaxItems - 15),
 		testChainBase.shorten((blockCacheMaxItems - 15) / 2),
@@ -98,12 +80,8 @@ func init() {
 		testChainBase.shorten(800 / 8),
 		testChainBase.shorten(3*fsHeaderSafetyNet + 256 + fsMinFullBlocks),
 		testChainBase.shorten(fsMinFullBlocks + 256 - 1),
-		testChainForkLightA.shorten(len(testChainBase.blocks) + 80),
-		testChainForkLightB.shorten(len(testChainBase.blocks) + 81),
-		testChainForkLightA.shorten(len(testChainBase.blocks) + MaxHeaderFetch),
-		testChainForkLightB.shorten(len(testChainBase.blocks) + MaxHeaderFetch),
-		testChainForkHeavy.shorten(len(testChainBase.blocks) + 79),
 	}
+	var wg sync.WaitGroup
 	wg.Add(len(chains))
 	for _, chain := range chains {
 		go func(blocks []*types.Block) {
@@ -126,15 +104,8 @@ func newTestChain(length int, genesis *types.Block) *testChain {
 	tc := &testChain{
 		blocks: []*types.Block{genesis},
 	}
-	tc.generate(length-1, 0, genesis, false)
+	tc.generate(length-1, 0, genesis)
 	return tc
-}
-
-// makeFork creates a fork on top of the test chain.
-func (tc *testChain) makeFork(length int, heavy bool, seed byte) *testChain {
-	fork := tc.copy(len(tc.blocks) + length)
-	fork.generate(length, seed, tc.blocks[len(tc.blocks)-1], heavy)
-	return fork
 }
 
 // shorten creates a copy of the chain with the given length. It panics if the
@@ -160,28 +131,18 @@ func (tc *testChain) copy(newlen int) *testChain {
 // the returned hash chain is ordered head->parent. In addition, every 22th block
 // contains a transaction and every 5th an uncle to allow testing correct block
 // reassembly.
-func (tc *testChain) generate(n int, seed byte, parent *types.Block, heavy bool) {
-	blocks, _ := core.GenerateChain(testGspec.Config, parent, ethash.NewFaker(), testDB, n, func(i int, block *core.BlockGen) {
+func (tc *testChain) generate(n int, seed byte, parent *types.Block) {
+	blocks, _ := core.GenerateChain(testGspec.Config, parent, beacon.NewFaker(), testDB, n, func(i int, block *core.BlockGen) {
 		block.SetCoinbase(common.Address{seed})
-		// If a heavy chain is requested, delay blocks to raise difficulty
-		if heavy {
-			block.OffsetTime(-9)
-		}
 		// Include transactions to the miner to make blocks more interesting.
 		if parent == tc.blocks[0] && i%22 == 0 {
-			signer := types.MakeSigner(params.TestChainConfig, block.Number(), block.Timestamp())
-			tx, err := types.SignTx(types.NewTransaction(block.TxNonce(testAddress), common.Address{seed}, big.NewInt(1000), params.TxGas, block.BaseFee(), nil), signer, testKey)
+			signer := types.MakeSigner(params.TestChainConfig)
+
+			tx, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{Nonce: block.TxNonce(testAddress), To: &common.Address{seed}, Value: big.NewInt(1000), Gas: params.TxGas, GasFeeCap: block.BaseFee(), Data: nil}), signer, testKey)
 			if err != nil {
 				panic(err)
 			}
 			block.AddTx(tx)
-		}
-		// if the block number is a multiple of 5, add a bonus uncle to the block
-		if i > 0 && i%5 == 0 {
-			block.AddUncle(&types.Header{
-				ParentHash: block.PrevBlock(i - 2).Hash(),
-				Number:     big.NewInt(block.Number().Int64() - 1),
-			})
 		}
 	})
 	tc.blocks = append(tc.blocks, blocks...)
@@ -218,7 +179,7 @@ func newTestBlockchain(blocks []*types.Block) *core.BlockChain {
 		if pregenerated {
 			panic("Requested chain generation outside of init")
 		}
-		chain, err := core.NewBlockChain(rawdb.NewMemoryDatabase(), nil, testGspec, nil, ethash.NewFaker(), vm.Config{}, nil, nil)
+		chain, err := core.NewBlockChain(rawdb.NewMemoryDatabase(), nil, testGspec, beacon.NewFaker(), vm.Config{}, nil)
 		if err != nil {
 			panic(err)
 		}

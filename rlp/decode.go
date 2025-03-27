@@ -711,15 +711,6 @@ func (s *Stream) Raw() ([]byte, error) {
 	return buf, nil
 }
 
-// Uint reads an RLP string of up to 8 bytes and returns its contents
-// as an unsigned integer. If the input does not contain an RLP string, the
-// returned error will be ErrExpectedString.
-//
-// Deprecated: use s.Uint64 instead.
-func (s *Stream) Uint() (uint64, error) {
-	return s.uint(64)
-}
-
 func (s *Stream) Uint64() (uint64, error) {
 	return s.uint(64)
 }

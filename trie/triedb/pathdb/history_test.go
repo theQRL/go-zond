@@ -25,10 +25,10 @@ import (
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/rlp"
 	"github.com/theQRL/go-zond/trie/testutil"
 	"github.com/theQRL/go-zond/trie/triestate"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // randomStateSet generates a random state change set.

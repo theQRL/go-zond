@@ -207,9 +207,8 @@ func NewType(t string, internalType string, components []ArgumentMarshaling) (ty
 		typ.stringKind = expression
 
 		const structPrefix = "struct "
-		// After solidity 0.5.10, a new field of abi "internalType"
-		// is introduced. From that we can obtain the struct name
-		// user defined in the source code.
+		// We can obtain the struct name user defined in
+		// the source code from "internalType"
 		if internalType != "" && strings.HasPrefix(internalType, structPrefix) {
 			// Foo.Bar type definition is not allowed in golang,
 			// convert the format to FooBar

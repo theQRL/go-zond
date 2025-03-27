@@ -72,13 +72,6 @@ func (j *journal) revert(statedb *StateDB, snapshot int) {
 	j.entries = j.entries[:snapshot]
 }
 
-// dirty explicitly sets an address to dirty, even if the change entries would
-// otherwise suggest it as clean. This method is an ugly hack to handle the RIPEMD
-// precompile consensus exception.
-func (j *journal) dirty(addr common.Address) {
-	j.dirties[addr]++
-}
-
 // length returns the current number of entries in the journal.
 func (j *journal) length() int {
 	return len(j.entries)
@@ -99,11 +92,6 @@ type (
 		prevAccountOriginExist bool
 		prevAccountOrigin      []byte
 		prevStorageOrigin      map[common.Hash][]byte
-	}
-	selfDestructChange struct {
-		account     *common.Address
-		prev        bool // whether account had already self-destructed
-		prevbalance *big.Int
 	}
 
 	// Changes to individual accounts.
@@ -145,11 +133,6 @@ type (
 		address *common.Address
 		slot    *common.Hash
 	}
-
-	transientStorageChange struct {
-		account       *common.Address
-		key, prevalue common.Hash
-	}
 )
 
 func (ch createObjectChange) revert(s *StateDB) {
@@ -183,20 +166,6 @@ func (ch resetObjectChange) revert(s *StateDB) {
 func (ch resetObjectChange) dirtied() *common.Address {
 	return ch.account
 }
-
-func (ch selfDestructChange) revert(s *StateDB) {
-	obj := s.getStateObject(*ch.account)
-	if obj != nil {
-		obj.selfDestructed = ch.prev
-		obj.setBalance(ch.prevbalance)
-	}
-}
-
-func (ch selfDestructChange) dirtied() *common.Address {
-	return ch.account
-}
-
-var ripemd = common.HexToAddress("0000000000000000000000000000000000000003")
 
 func (ch touchChange) revert(s *StateDB) {
 }
@@ -235,14 +204,6 @@ func (ch storageChange) revert(s *StateDB) {
 
 func (ch storageChange) dirtied() *common.Address {
 	return ch.account
-}
-
-func (ch transientStorageChange) revert(s *StateDB) {
-	s.setTransientState(*ch.account, ch.key, ch.prevalue)
-}
-
-func (ch transientStorageChange) dirtied() *common.Address {
-	return nil
 }
 
 func (ch refundChange) revert(s *StateDB) {

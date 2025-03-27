@@ -32,9 +32,9 @@ import (
 	"github.com/theQRL/go-zond/core/state"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
+	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/zond/tracers"
 	"github.com/theQRL/go-zond/zond/tracers/logger"
-	"github.com/theQRL/go-zond/params"
 
 	// force-load js tracers to trigger registration
 	_ "github.com/theQRL/go-zond/zond/tracers/js"
@@ -43,10 +43,6 @@ import (
 func TestDefaults(t *testing.T) {
 	cfg := new(Config)
 	setDefaults(cfg)
-
-	if cfg.Difficulty == nil {
-		t.Error("expected difficulty to be non nil")
-	}
 
 	if cfg.GasLimit == 0 {
 		t.Error("didn't expect gaslimit to be zero")
@@ -65,7 +61,7 @@ func TestDefaults(t *testing.T) {
 	}
 }
 
-func TestEVM(t *testing.T) {
+func TestZVM(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Fatalf("crashed with: %v", r)
@@ -73,7 +69,8 @@ func TestEVM(t *testing.T) {
 	}()
 
 	Execute([]byte{
-		byte(vm.DIFFICULTY),
+		byte(vm.RANDOM),
+		byte(vm.PREVRANDAO),
 		byte(vm.TIMESTAMP),
 		byte(vm.GASLIMIT),
 		byte(vm.PUSH1),
@@ -104,7 +101,7 @@ func TestExecute(t *testing.T) {
 
 func TestCall(t *testing.T) {
 	state, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	address := common.HexToAddress("0x0a")
+	address, _ := common.NewAddressFromString("Z000000000000000000000000000000000000000a")
 	state.SetCode(address, []byte{
 		byte(vm.PUSH1), 10,
 		byte(vm.PUSH1), 0,
@@ -157,7 +154,7 @@ func BenchmarkCall(b *testing.B) {
 		}
 	}
 }
-func benchmarkEVM_Create(bench *testing.B, code string) {
+func benchmarkZVM_Create(bench *testing.B, code string) {
 	var (
 		statedb, _ = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		sender     = common.BytesToAddress([]byte("sender"))
@@ -170,22 +167,13 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 		Origin:      sender,
 		State:       statedb,
 		GasLimit:    10000000,
-		Difficulty:  big.NewInt(0x200000),
 		Time:        0,
 		Coinbase:    common.Address{},
 		BlockNumber: new(big.Int).SetUint64(1),
 		ChainConfig: &params.ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      new(big.Int),
-			ByzantiumBlock:      new(big.Int),
-			ConstantinopleBlock: new(big.Int),
-			DAOForkBlock:        new(big.Int),
-			DAOForkSupport:      false,
-			EIP150Block:         new(big.Int),
-			EIP155Block:         new(big.Int),
-			EIP158Block:         new(big.Int),
+			ChainID: big.NewInt(1),
 		},
-		EVMConfig: vm.Config{},
+		ZVMConfig: vm.Config{},
 	}
 	// Warm up the intpools and stuff
 	bench.ResetTimer()
@@ -195,32 +183,31 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 	bench.StopTimer()
 }
 
-func BenchmarkEVM_CREATE_500(bench *testing.B) {
+func BenchmarkZVM_CREATE_500(bench *testing.B) {
 	// initcode size 500K, repeatedly calls CREATE and then modifies the mem contents
-	benchmarkEVM_Create(bench, "5b6207a120600080f0600152600056")
+	benchmarkZVM_Create(bench, "5b6207a120600080f0600152600056")
 }
-func BenchmarkEVM_CREATE2_500(bench *testing.B) {
+func BenchmarkZVM_CREATE2_500(bench *testing.B) {
 	// initcode size 500K, repeatedly calls CREATE2 and then modifies the mem contents
-	benchmarkEVM_Create(bench, "5b586207a120600080f5600152600056")
+	benchmarkZVM_Create(bench, "5b586207a120600080f5600152600056")
 }
-func BenchmarkEVM_CREATE_1200(bench *testing.B) {
+func BenchmarkZVM_CREATE_1200(bench *testing.B) {
 	// initcode size 1200K, repeatedly calls CREATE and then modifies the mem contents
-	benchmarkEVM_Create(bench, "5b62124f80600080f0600152600056")
+	benchmarkZVM_Create(bench, "5b62124f80600080f0600152600056")
 }
-func BenchmarkEVM_CREATE2_1200(bench *testing.B) {
+func BenchmarkZVM_CREATE2_1200(bench *testing.B) {
 	// initcode size 1200K, repeatedly calls CREATE2 and then modifies the mem contents
-	benchmarkEVM_Create(bench, "5b5862124f80600080f5600152600056")
+	benchmarkZVM_Create(bench, "5b5862124f80600080f5600152600056")
 }
 
 func fakeHeader(n uint64, parentHash common.Hash) *types.Header {
+	coinbase, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
 	header := types.Header{
-		Coinbase:   common.HexToAddress("0x00000000000000000000000000000000deadbeef"),
+		Coinbase:   coinbase,
 		Number:     big.NewInt(int64(n)),
 		ParentHash: parentHash,
 		Time:       1000,
-		Nonce:      types.BlockNonce{0x1},
 		Extra:      []byte{},
-		Difficulty: big.NewInt(0),
 		GasLimit:   100000,
 	}
 	return &header
@@ -267,8 +254,8 @@ func TestBlockhash(t *testing.T) {
 	// verify that it obtained the right hashes where it should
 
 	/*
-
-		pragma solidity ^0.5.3;
+		// TODO(now.youtrack.cloud/issue/TGZ-30)
+		pragma hyperion ^0.5.3;
 		contract Hasher{
 
 			function test() public view returns (bytes32, bytes32, bytes32){
@@ -334,7 +321,7 @@ func benchmarkNonModifyingCode(gas uint64, code []byte, name string, tracerCode 
 		if err != nil {
 			b.Fatal(err)
 		}
-		cfg.EVMConfig = vm.Config{
+		cfg.ZVMConfig = vm.Config{
 			Tracer: tracer,
 		}
 	}
@@ -344,12 +331,12 @@ func benchmarkNonModifyingCode(gas uint64, code []byte, name string, tracerCode 
 		sender      = vm.AccountRef(cfg.Origin)
 	)
 	cfg.State.CreateAccount(destination)
-	eoa := common.HexToAddress("E0")
+	eoa, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000E0")
 	{
 		cfg.State.CreateAccount(eoa)
 		cfg.State.SetNonce(eoa, 100)
 	}
-	reverting := common.HexToAddress("EE")
+	reverting, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000EE")
 	{
 		cfg.State.CreateAccount(reverting)
 		cfg.State.SetCode(reverting, []byte{
@@ -471,7 +458,7 @@ func BenchmarkSimpleLoop(b *testing.B) {
 
 	//tracer := logger.NewJSONLogger(nil, os.Stdout)
 	//Execute(loopingCode, nil, &Config{
-	//	EVMConfig: vm.Config{
+	//	ZVMConfig: vm.Config{
 	//		Debug:  true,
 	//		Tracer: tracer,
 	//	}})
@@ -509,7 +496,7 @@ func TestEip2929Cases(t *testing.T) {
 			comment,
 			code, ops)
 		Execute(code, nil, &Config{
-			EVMConfig: vm.Config{
+			ZVMConfig: vm.Config{
 				Tracer:    logger.NewMarkdownLogger(nil, os.Stdout),
 				ExtraEips: []int{2929},
 			},
@@ -625,15 +612,6 @@ func TestColdAccountAccessCost(t *testing.T) {
 			step: 7,
 			want: 2855,
 		},
-		{ // CALLCODE(0xff)
-			code: []byte{
-				byte(vm.PUSH1), 0x0,
-				byte(vm.DUP1), byte(vm.DUP1), byte(vm.DUP1), byte(vm.DUP1),
-				byte(vm.PUSH1), 0xff, byte(vm.DUP1), byte(vm.CALLCODE), byte(vm.POP),
-			},
-			step: 7,
-			want: 2855,
-		},
 		{ // DELEGATECALL(0xff)
 			code: []byte{
 				byte(vm.PUSH1), 0x0,
@@ -652,17 +630,10 @@ func TestColdAccountAccessCost(t *testing.T) {
 			step: 6,
 			want: 2855,
 		},
-		{ // SELFDESTRUCT(0xff)
-			code: []byte{
-				byte(vm.PUSH1), 0xff, byte(vm.SELFDESTRUCT),
-			},
-			step: 1,
-			want: 7600,
-		},
 	} {
 		tracer := logger.NewStructLogger(nil)
 		Execute(tc.code, nil, &Config{
-			EVMConfig: vm.Config{
+			ZVMConfig: vm.Config{
 				Tracer: tracer,
 			},
 		})
@@ -671,7 +642,7 @@ func TestColdAccountAccessCost(t *testing.T) {
 			for ii, op := range tracer.StructLogs() {
 				t.Logf("%d: %v %d", ii, op.OpName(), op.GasCost)
 			}
-			t.Fatalf("tescase %d, gas report wrong, step %d, have %d want %d", i, tc.step, have, want)
+			t.Fatalf("testcase %d, gas report wrong, step %d, have %d want %d", i, tc.step, have, want)
 		}
 	}
 }
@@ -724,7 +695,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,952855,6,12"`, `"1,1,952855,6,0"`},
+			results: []string{`"1,1,952853,6,12"`, `"1,1,952853,6,0"`},
 		},
 		{
 			// CREATE2
@@ -740,7 +711,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE2),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,952846,6,13"`, `"1,1,952846,6,0"`},
+			results: []string{`"1,1,952844,6,13"`, `"1,1,952844,6,0"`},
 		},
 		{
 			// CALL
@@ -751,19 +722,6 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.PUSH1), 0xbb, //address
 				byte(vm.GAS), // gas
 				byte(vm.CALL),
-				byte(vm.POP),
-			},
-			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
-		},
-		{
-			// CALLCODE
-			code: []byte{
-				// outsize, outoffset, insize, inoffset
-				byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0,
-				byte(vm.PUSH1), 0, // value
-				byte(vm.PUSH1), 0xcc, //address
-				byte(vm.GAS), // gas
-				byte(vm.CALLCODE),
 				byte(vm.POP),
 			},
 			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
@@ -792,39 +750,25 @@ func TestRuntimeJSTracer(t *testing.T) {
 			},
 			results: []string{`"1,1,981799,6,12"`, `"1,1,981799,6,0"`},
 		},
-		{
-			// CALL self-destructing contract
-			code: []byte{
-				// outsize, outoffset, insize, inoffset
-				byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.PUSH1), 0,
-				byte(vm.PUSH1), 0, // value
-				byte(vm.PUSH1), 0xff, //address
-				byte(vm.GAS), // gas
-				byte(vm.CALL),
-				byte(vm.POP),
-			},
-			results: []string{`"2,2,0,5003,12"`, `"2,2,0,5003,0"`},
-		},
 	}
 	calleeCode := []byte{
 		byte(vm.PUSH1), 0,
 		byte(vm.PUSH1), 0,
 		byte(vm.RETURN),
 	}
-	depressedCode := []byte{
-		byte(vm.PUSH1), 0xaa,
-		byte(vm.SELFDESTRUCT),
-	}
-	main := common.HexToAddress("0xaa")
+	main, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000aa")
+	address0, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000bb")
+	address1, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000cc")
+	address2, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000dd")
+	address3, _ := common.NewAddressFromString("Z00000000000000000000000000000000000000ee")
 	for i, jsTracer := range jsTracers {
 		for j, tc := range tests {
 			statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 			statedb.SetCode(main, tc.code)
-			statedb.SetCode(common.HexToAddress("0xbb"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xcc"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xdd"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xee"), calleeCode)
-			statedb.SetCode(common.HexToAddress("0xff"), depressedCode)
+			statedb.SetCode(address0, calleeCode)
+			statedb.SetCode(address1, calleeCode)
+			statedb.SetCode(address2, calleeCode)
+			statedb.SetCode(address3, calleeCode)
 
 			tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 			if err != nil {
@@ -833,7 +777,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 			_, _, err = Call(main, nil, &Config{
 				GasLimit: 1000000,
 				State:    statedb,
-				EVMConfig: vm.Config{
+				ZVMConfig: vm.Config{
 					Tracer: tracer,
 				}})
 			if err != nil {
@@ -867,7 +811,7 @@ func TestJSTracerCreateTx(t *testing.T) {
 	}
 	_, _, _, err = Create(code, &Config{
 		State: statedb,
-		EVMConfig: vm.Config{
+		ZVMConfig: vm.Config{
 			Tracer: tracer,
 		}})
 	if err != nil {

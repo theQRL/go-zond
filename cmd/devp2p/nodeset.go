@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/p2p/enode"
-	"golang.org/x/exp/slices"
 )
 
 const jsonIndent = "    "

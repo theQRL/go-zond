@@ -34,9 +34,9 @@ directory.
 | **`gzond`** | Our main Zond CLI client. It is the entry point into the Zond network (main-, test- or private net), capable of running as a full node (default), archive node (retaining all historical state) or a light node (retrieving data live). It can be used by other processes as a gateway into the Zond network via JSON RPC endpoints exposed on top of HTTP, WebSocket and/or IPC transports. Based on geth, `gzond --help` and the [geth CLI page](https://geth.ethereum.org/docs/fundamentals/command-line-options) show command line options. |
 |   `clef`    | Stand-alone signing tool, which can be used as a backend signer for `gzond`.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |  `devp2p`   | Utilities to interact with nodes on the networking layer, without running a full blockchain.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-|  `abigen`   | Source code generator to convert Zond contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Zond contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Solidity source files, making development much more streamlined. Please see the [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
+|  `abigen`   | Source code generator to convert Zond contract definitions into easy-to-use, compile-time type-safe Go packages. It operates on plain [Zond contract ABIs](https://docs.soliditylang.org/en/develop/abi-spec.html) with expanded functionality if the contract bytecode is also available. However, it also accepts Hyperion source files, making development much more streamlined. Please see the [Native DApps](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings) page for details.                                  |
 | `bootnode`  | Stripped down version of our Zond client implementation that only takes part in the network node discovery protocol, but does not run any of the higher level application protocols. It can be used as a lightweight bootstrap node to aid in finding peers in private networks.                                                                                                                                                                                                                                               |
-|   `evm`     | Developer utility version of the EVM (Ethereum Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of EVM opcodes (e.g. `evm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                               |
+|   `zvm`     | Developer utility version of the ZVM (Zond Virtual Machine) that is capable of running bytecode snippets within a configurable environment and execution mode. Its purpose is to allow isolated, fine-grained debugging of ZVM opcodes (e.g. `zvm --code 60ff60ff --debug run`).                                                                                                                                                                                                                                               |
 | `rlpdump`   | Developer utility tool to convert binary RLP ([Recursive Length Prefix](https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp)) dumps (data encoding used by the Zond protocol both network as well as consensus wise) to user-friendlier hierarchical representation (e.g. `rlpdump --hex CE0183FFFFFFC4C304050583616263`).                                                                                                                                                                                |
 
 ## Running `gzond`
@@ -110,7 +110,7 @@ Docker:
 ```shell
 docker run -d --name zond-node -v /Users/alice/zond:/root \
            -p 8545:8545 -p 30303:30303 \
-           zond/client-go
+           theqrl/gzond
 ```
 
 This will start `gzond` in snap-sync mode with a DB memory allowance of 1GB, as the
@@ -176,24 +176,12 @@ aware of and agree upon. This consists of a small JSON file (e.g. call it `genes
 ```json
 {
   "config": {
-    "chainId": <arbitrary positive integer>,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "berlinBlock": 0,
-    "londonBlock": 0
+    "chainId": <arbitrary positive integer>
   },
   "alloc": {},
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "difficulty": "0x20000",
+  "coinbase": "Z0000000000000000000000000000000000000000",
   "extraData": "",
   "gasLimit": "0x2fefd8",
-  "nonce": "0x0000000000000042",
   "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "timestamp": "0x00"
@@ -207,10 +195,10 @@ the accounts and populate the `alloc` field with their addresses.
 
 ```json
 "alloc": {
-  "0x0000000000000000000000000000000000000001": {
+  "Z0000000000000000000000000000000000000001": {
     "balance": "111111111"
   },
-  "0x0000000000000000000000000000000000000002": {
+  "Z0000000000000000000000000000000000000002": {
     "balance": "222222222"
   }
 }
@@ -257,24 +245,6 @@ $ gzond --datadir=path/to/custom/data/folder --bootnodes=<bootnode-enode-url-fro
 
 *Note: Since your network will be completely cut off from the main and test networks, you'll
 also need to configure a miner to process transactions and create new blocks for you.*
-
-#### Running a private miner
-
-
-In a private network setting a single CPU miner instance is more than enough for
-practical purposes as it can produce a stable stream of blocks at the correct intervals
-without needing heavy resources (consider running on a single thread, no need for multiple
-ones either). To start a `gzond` instance for mining, run it with all your usual flags, extended
-by:
-
-```shell
-$ gzond <usual-flags> --mine --miner.threads=1 --miner.etherbase=0x0000000000000000000000000000000000000000
-```
-
-Which will start mining blocks and transactions on a single CPU thread, crediting all
-proceedings to the account specified by `--miner.etherbase`. You can further tune the mining
-by changing the default gas limit blocks converge to (`--miner.targetgaslimit`) and the price
-transactions are accepted at (`--miner.gasprice`).
 
 ## Contribution
 

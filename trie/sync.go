@@ -25,8 +25,8 @@ import (
 	"github.com/theQRL/go-zond/common/prque"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 // ErrNotRequested is returned by the trie sync when it's requested to process a
@@ -157,7 +157,7 @@ func (batch *syncMemBatch) hasCode(hash common.Hash) bool {
 // and reconstructs the trie step by step until all is done.
 type Sync struct {
 	scheme   string                       // Node scheme descriptor used in database.
-	database zonddb.KeyValueReader         // Persistent database to check for existing entries
+	database zonddb.KeyValueReader        // Persistent database to check for existing entries
 	membatch *syncMemBatch                // Memory buffer to avoid frequent database writes
 	nodeReqs map[string]*nodeRequest      // Pending requests pertaining to a trie node path
 	codeReqs map[common.Hash]*codeRequest // Pending requests pertaining to a code hash

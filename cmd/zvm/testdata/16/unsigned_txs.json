@@ -1,0 +1,32 @@
+[
+  {
+    "input" : "0x",
+    "gas" : "0x5208",
+    "nonce" : "0x0",
+    "to" : "Z1111111111111111111111111111111111111111",
+    "value" : "0x20",
+    "publicKey" : "0x",
+    "signature" : "0x",
+    "seed" : "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8334393093061116b197e3240065ff2d8",
+    "chainId" : "0x1",
+    "type" : "0x2",
+    "maxFeePerGas": "0x1",
+    "accessList" : [
+    ]
+  },
+  {
+    "input" : "0x",
+    "gas" : "0x52",
+    "nonce" : "0x0",
+    "to" : "Z1111111111111111111111111111111111111111",
+    "value" : "0x20",
+    "publicKey" : "0x",
+    "signature" : "0x",
+    "seed" : "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8334393093061116b197e3240065ff2d8",
+    "chainId" : "0x1",
+    "type" : "0x2",
+    "maxFeePerGas": "0x1",
+    "accessList" : [
+    ]
+  }
+]

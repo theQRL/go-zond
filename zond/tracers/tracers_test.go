@@ -25,24 +25,24 @@ import (
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
 	"github.com/theQRL/go-zond/core/vm"
-	"github.com/theQRL/go-zond/crypto"
-	"github.com/theQRL/go-zond/zond/tracers/logger"
+	"github.com/theQRL/go-zond/crypto/pqcrypto"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/tests"
+	"github.com/theQRL/go-zond/zond/tracers/logger"
 )
 
 func BenchmarkTransactionTrace(b *testing.B) {
-	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	from := crypto.PubkeyToAddress(key.PublicKey)
+	key, _ := pqcrypto.HexToDilithium("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	from := key.GetAddress()
 	gas := uint64(1000000) // 1M gas
-	to := common.HexToAddress("0x00000000000000000000000000000000deadbeef")
+	to, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
 	signer := types.LatestSignerForChainID(big.NewInt(1337))
 	tx, err := types.SignNewTx(key, signer,
-		&types.LegacyTx{
-			Nonce:    1,
-			GasPrice: big.NewInt(500),
-			Gas:      gas,
-			To:       &to,
+		&types.DynamicFeeTx{
+			Nonce:     1,
+			GasFeeCap: big.NewInt(500),
+			Gas:       gas,
+			To:        &to,
 		})
 	if err != nil {
 		b.Fatal(err)
@@ -57,7 +57,6 @@ func BenchmarkTransactionTrace(b *testing.B) {
 		Coinbase:    common.Address{},
 		BlockNumber: new(big.Int).SetUint64(uint64(5)),
 		Time:        5,
-		Difficulty:  big.NewInt(0xffffffff),
 		GasLimit:    gas,
 		BaseFee:     big.NewInt(8),
 	}
@@ -69,7 +68,8 @@ func BenchmarkTransactionTrace(b *testing.B) {
 		byte(vm.PUSH1), 0, // jumpdestination
 		byte(vm.JUMP),
 	}
-	alloc[common.HexToAddress("0x00000000000000000000000000000000deadbeef")] = core.GenesisAccount{
+	address, _ := common.NewAddressFromString("Z00000000000000000000000000000000deadbeef")
+	alloc[address] = core.GenesisAccount{
 		Nonce:   1,
 		Code:    loop,
 		Balance: big.NewInt(1),
@@ -82,14 +82,14 @@ func BenchmarkTransactionTrace(b *testing.B) {
 	triedb, _, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), alloc, false, rawdb.HashScheme)
 	defer triedb.Close()
 
-	// Create the tracer, the EVM environment and run it
+	// Create the tracer, the ZVM environment and run it
 	tracer := logger.NewStructLogger(&logger.Config{
 		Debug: false,
 		//DisableStorage: true,
 		//EnableMemory: false,
 		//EnableReturnData: false,
 	})
-	evm := vm.NewEVM(context, txContext, statedb, params.AllEthashProtocolChanges, vm.Config{Tracer: tracer})
+	zvm := vm.NewZVM(context, txContext, statedb, params.AllBeaconProtocolChanges, vm.Config{Tracer: tracer})
 	msg, err := core.TransactionToMessage(tx, signer, nil)
 	if err != nil {
 		b.Fatalf("failed to prepare transaction for tracing: %v", err)
@@ -99,7 +99,7 @@ func BenchmarkTransactionTrace(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		snap := statedb.Snapshot()
-		st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+		st := core.NewStateTransition(zvm, msg, new(core.GasPool).AddGas(tx.Gas()))
 		_, err = st.TransitionDb()
 		if err != nil {
 			b.Fatal(err)

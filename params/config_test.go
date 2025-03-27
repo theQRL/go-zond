@@ -17,12 +17,11 @@
 package params
 
 import (
-	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/theQRL/go-zond/common/math"
+	"github.com/theQRL/go-zond/common"
 )
 
 func TestCheckCompatible(t *testing.T) {
@@ -33,82 +32,94 @@ func TestCheckCompatible(t *testing.T) {
 		wantErr       *ConfigCompatError
 	}
 	tests := []test{
-		{stored: AllEthashProtocolChanges, new: AllEthashProtocolChanges, headBlock: 0, headTimestamp: 0, wantErr: nil},
-		{stored: AllEthashProtocolChanges, new: AllEthashProtocolChanges, headBlock: 0, headTimestamp: uint64(time.Now().Unix()), wantErr: nil},
-		{stored: AllEthashProtocolChanges, new: AllEthashProtocolChanges, headBlock: 100, wantErr: nil},
+		{stored: AllBeaconProtocolChanges, new: AllBeaconProtocolChanges, headBlock: 0, headTimestamp: 0, wantErr: nil},
+		{stored: AllBeaconProtocolChanges, new: AllBeaconProtocolChanges, headBlock: 0, headTimestamp: uint64(time.Now().Unix()), wantErr: nil},
+		{stored: AllBeaconProtocolChanges, new: AllBeaconProtocolChanges, headBlock: 100, wantErr: nil},
 		{
-			stored:    &ChainConfig{EIP150Block: big.NewInt(10)},
-			new:       &ChainConfig{EIP150Block: big.NewInt(20)},
-			headBlock: 9,
-			wantErr:   nil,
+			stored: &ChainConfig{},
+			new:    &ChainConfig{},
+			// headBlock: 9,
+			wantErr: nil,
 		},
 		{
-			stored:    AllEthashProtocolChanges,
-			new:       &ChainConfig{HomesteadBlock: nil},
-			headBlock: 3,
+			stored: &ChainConfig{ChainID: common.Big1},
+			new:    &ChainConfig{ChainID: common.Big32},
 			wantErr: &ConfigCompatError{
-				What:          "Homestead fork block",
-				StoredBlock:   big.NewInt(0),
-				NewBlock:      nil,
-				RewindToBlock: 0,
+				What:        "chain ID",
+				StoredBlock: common.Big1,
+				NewBlock:    common.Big32,
 			},
 		},
-		{
-			stored:    AllEthashProtocolChanges,
-			new:       &ChainConfig{HomesteadBlock: big.NewInt(1)},
-			headBlock: 3,
-			wantErr: &ConfigCompatError{
-				What:          "Homestead fork block",
-				StoredBlock:   big.NewInt(0),
-				NewBlock:      big.NewInt(1),
-				RewindToBlock: 0,
+		// NOTE(rgeraldes24): not valid at the moment
+		/*
+			{
+				stored:    AllBeaconProtocolChanges,
+				new:       &ChainConfig{},
+				headBlock: 3,
+				wantErr: &ConfigCompatError{
+					What:          "Homestead fork block",
+					StoredBlock:   big.NewInt(0),
+					NewBlock:      nil,
+					RewindToBlock: 0,
+				},
 			},
-		},
-		{
-			stored:    &ChainConfig{HomesteadBlock: big.NewInt(30), EIP150Block: big.NewInt(10)},
-			new:       &ChainConfig{HomesteadBlock: big.NewInt(25), EIP150Block: big.NewInt(20)},
-			headBlock: 25,
-			wantErr: &ConfigCompatError{
-				What:          "EIP150 fork block",
-				StoredBlock:   big.NewInt(10),
-				NewBlock:      big.NewInt(20),
-				RewindToBlock: 9,
+			{
+				stored:    AllBeaconProtocolChanges,
+				new:       &ChainConfig{},
+				headBlock: 3,
+				wantErr: &ConfigCompatError{
+					What:          "Homestead fork block",
+					StoredBlock:   big.NewInt(0),
+					NewBlock:      big.NewInt(1),
+					RewindToBlock: 0,
+				},
 			},
-		},
-		{
-			stored:    &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
-			new:       &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(30)},
-			headBlock: 40,
-			wantErr:   nil,
-		},
-		{
-			stored:    &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
-			new:       &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(31)},
-			headBlock: 40,
-			wantErr: &ConfigCompatError{
-				What:          "Petersburg fork block",
-				StoredBlock:   nil,
-				NewBlock:      big.NewInt(31),
-				RewindToBlock: 30,
+			{
+				stored:    &ChainConfig{},
+				new:       &ChainConfig{},
+				headBlock: 25,
+				wantErr: &ConfigCompatError{
+					What:          "EIP150 fork block",
+					StoredBlock:   big.NewInt(10),
+					NewBlock:      big.NewInt(20),
+					RewindToBlock: 9,
+				},
 			},
-		},
-		{
-			stored:        &ChainConfig{ShanghaiTime: newUint64(10)},
-			new:           &ChainConfig{ShanghaiTime: newUint64(20)},
-			headTimestamp: 9,
-			wantErr:       nil,
-		},
-		{
-			stored:        &ChainConfig{ShanghaiTime: newUint64(10)},
-			new:           &ChainConfig{ShanghaiTime: newUint64(20)},
-			headTimestamp: 25,
-			wantErr: &ConfigCompatError{
-				What:         "Shanghai fork timestamp",
-				StoredTime:   newUint64(10),
-				NewTime:      newUint64(20),
-				RewindToTime: 9,
+			{
+				stored:    &ChainConfig{},
+				new:       &ChainConfig{},
+				headBlock: 40,
+				wantErr:   nil,
 			},
-		},
+			{
+				stored:    &ChainConfig{},
+				new:       &ChainConfig{},
+				headBlock: 40,
+				wantErr: &ConfigCompatError{
+					What:          "Petersburg fork block",
+					StoredBlock:   nil,
+					NewBlock:      big.NewInt(31),
+					RewindToBlock: 30,
+				},
+			},
+			{
+				stored:        &ChainConfig{},
+				new:           &ChainConfig{},
+				headTimestamp: 9,
+				wantErr:       nil,
+			},
+			{
+				stored:        &ChainConfig{},
+				new:           &ChainConfig{},
+				headTimestamp: 25,
+				wantErr: &ConfigCompatError{
+					What:         "Shanghai fork timestamp",
+					StoredTime:   newUint64(10),
+					NewTime:      newUint64(20),
+					RewindToTime: 9,
+				},
+			},
+		*/
 	}
 
 	for _, test := range tests {
@@ -119,9 +130,10 @@ func TestCheckCompatible(t *testing.T) {
 	}
 }
 
+// NOTE(rgeraldes24): not valid at the moment
+/*
 func TestConfigRules(t *testing.T) {
 	c := &ChainConfig{
-		LondonBlock:  new(big.Int),
 		ShanghaiTime: newUint64(500),
 	}
 	var stamp uint64
@@ -137,3 +149,4 @@ func TestConfigRules(t *testing.T) {
 		t.Errorf("expected %v to be shanghai", stamp)
 	}
 }
+*/

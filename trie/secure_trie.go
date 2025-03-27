@@ -23,21 +23,6 @@ import (
 	"github.com/theQRL/go-zond/trie/trienode"
 )
 
-// SecureTrie is the old name of StateTrie.
-// Deprecated: use StateTrie.
-type SecureTrie = StateTrie
-
-// NewSecure creates a new StateTrie.
-// Deprecated: use NewStateTrie.
-func NewSecure(stateRoot common.Hash, owner common.Hash, root common.Hash, db *Database) (*SecureTrie, error) {
-	id := &ID{
-		StateRoot: stateRoot,
-		Owner:     owner,
-		Root:      root,
-	}
-	return NewStateTrie(id, db)
-}
-
 // StateTrie wraps a trie with key hashing. In a stateTrie trie, all
 // access operations hash the key using keccak256. This prevents
 // calling code from creating long chains of nodes that

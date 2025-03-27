@@ -37,7 +37,7 @@ type txSenderCacherRequest struct {
 	inc    int
 }
 
-// txSenderCacher is a helper structure to concurrently ecrecover transaction
+// txSenderCacher is a helper structure to concurrently get transaction
 // senders from digital signatures on background threads.
 type txSenderCacher struct {
 	threads int

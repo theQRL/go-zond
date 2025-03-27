@@ -14,17 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package miner implements Ethereum block creation and mining.
+// Package miner implements Zond block creation.
 package miner
 
 import (
-	"errors"
 	"math/big"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/theQRL/go-zond/common"
-	"github.com/theQRL/go-zond/consensus/clique"
+	"github.com/theQRL/go-zond/consensus/beacon"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/state"
@@ -36,7 +35,6 @@ import (
 	"github.com/theQRL/go-zond/event"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/trie"
-	"github.com/theQRL/go-zond/zond/downloader"
 )
 
 type mockBackend struct {
@@ -59,11 +57,8 @@ func (m *mockBackend) TxPool() *txpool.TxPool {
 	return m.txPool
 }
 
-func (m *mockBackend) StateAtBlock(block *types.Block, reexec uint64, base *state.StateDB, checkLive bool, preferDisk bool) (statedb *state.StateDB, err error) {
-	return nil, errors.New("not supported")
-}
-
 type testBlockChain struct {
+	root          common.Hash
 	config        *params.ChainConfig
 	statedb       *state.StateDB
 	gasLimit      uint64
@@ -82,193 +77,46 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 }
 
 func (bc *testBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
-	return types.NewBlock(bc.CurrentBlock(), nil, nil, nil, trie.NewStackTrie(nil))
+	return types.NewBlock(bc.CurrentBlock(), nil, nil, trie.NewStackTrie(nil))
 }
 
 func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 	return bc.statedb, nil
 }
 
+func (bc *testBlockChain) HasState(root common.Hash) bool {
+	return bc.root == root
+}
+
 func (bc *testBlockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return bc.chainHeadFeed.Subscribe(ch)
 }
 
-func TestMiner(t *testing.T) {
-	miner, mux, cleanup := createMiner(t)
-	defer cleanup(false)
-
-	miner.Start()
-	waitForMiningState(t, miner, true)
-	// Start the downloader
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-	// Stop the downloader and wait for the update loop to run
-	mux.Post(downloader.DoneEvent{})
-	waitForMiningState(t, miner, true)
-
-	// Subsequent downloader events after a successful DoneEvent should not cause the
-	// miner to start or stop. This prevents a security vulnerability
-	// that would allow entities to present fake high blocks that would
-	// stop mining operations by causing a downloader sync
-	// until it was discovered they were invalid, whereon mining would resume.
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, true)
-
-	mux.Post(downloader.FailedEvent{})
-	waitForMiningState(t, miner, true)
-}
-
-// TestMinerDownloaderFirstFails tests that mining is only
-// permitted to run indefinitely once the downloader sees a DoneEvent (success).
-// An initial FailedEvent should allow mining to stop on a subsequent
-// downloader StartEvent.
-func TestMinerDownloaderFirstFails(t *testing.T) {
-	miner, mux, cleanup := createMiner(t)
-	defer cleanup(false)
-
-	miner.Start()
-	waitForMiningState(t, miner, true)
-	// Start the downloader
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-
-	// Stop the downloader and wait for the update loop to run
-	mux.Post(downloader.FailedEvent{})
-	waitForMiningState(t, miner, true)
-
-	// Since the downloader hasn't yet emitted a successful DoneEvent,
-	// we expect the miner to stop on next StartEvent.
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-
-	// Downloader finally succeeds.
-	mux.Post(downloader.DoneEvent{})
-	waitForMiningState(t, miner, true)
-
-	// Downloader starts again.
-	// Since it has achieved a DoneEvent once, we expect miner
-	// state to be unchanged.
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, true)
-
-	mux.Post(downloader.FailedEvent{})
-	waitForMiningState(t, miner, true)
-}
-
-func TestMinerStartStopAfterDownloaderEvents(t *testing.T) {
-	miner, mux, cleanup := createMiner(t)
-	defer cleanup(false)
-
-	miner.Start()
-	waitForMiningState(t, miner, true)
-	// Start the downloader
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-
-	// Downloader finally succeeds.
-	mux.Post(downloader.DoneEvent{})
-	waitForMiningState(t, miner, true)
-
-	miner.Stop()
-	waitForMiningState(t, miner, false)
-
-	miner.Start()
-	waitForMiningState(t, miner, true)
-
-	miner.Stop()
-	waitForMiningState(t, miner, false)
-}
-
-func TestStartWhileDownload(t *testing.T) {
-	miner, mux, cleanup := createMiner(t)
-	defer cleanup(false)
-	waitForMiningState(t, miner, false)
-	miner.Start()
-	waitForMiningState(t, miner, true)
-	// Stop the downloader and wait for the update loop to run
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-	// Starting the miner after the downloader should not work
-	miner.Start()
-	waitForMiningState(t, miner, false)
-}
-
-func TestStartStopMiner(t *testing.T) {
-	miner, _, cleanup := createMiner(t)
-	defer cleanup(false)
-	waitForMiningState(t, miner, false)
-	miner.Start()
-	waitForMiningState(t, miner, true)
-	miner.Stop()
-	waitForMiningState(t, miner, false)
-}
-
-func TestCloseMiner(t *testing.T) {
-	miner, _, cleanup := createMiner(t)
-	defer cleanup(true)
-	waitForMiningState(t, miner, false)
-	miner.Start()
-	waitForMiningState(t, miner, true)
-	// Terminate the miner and wait for the update loop to run
-	miner.Close()
-	waitForMiningState(t, miner, false)
-}
-
-// TestMinerSetEtherbase checks that etherbase becomes set even if mining isn't
-// possible at the moment
-func TestMinerSetEtherbase(t *testing.T) {
-	miner, mux, cleanup := createMiner(t)
-	defer cleanup(false)
-	miner.Start()
-	waitForMiningState(t, miner, true)
-	// Start the downloader
-	mux.Post(downloader.StartEvent{})
-	waitForMiningState(t, miner, false)
-	// Now user tries to configure proper mining address
-	miner.Start()
-	// Stop the downloader and wait for the update loop to run
-	mux.Post(downloader.DoneEvent{})
-	waitForMiningState(t, miner, true)
-
-	coinbase := common.HexToAddress("0xdeedbeef")
-	miner.SetEtherbase(coinbase)
-	if addr := miner.worker.etherbase(); addr != coinbase {
-		t.Fatalf("Unexpected etherbase want %x got %x", coinbase, addr)
-	}
-}
-
-// waitForMiningState waits until either
-// * the desired mining state was reached
-// * a timeout was reached which fails the test
-func waitForMiningState(t *testing.T, m *Miner, mining bool) {
-	t.Helper()
-
-	var state bool
-	for i := 0; i < 100; i++ {
-		time.Sleep(10 * time.Millisecond)
-		if state = m.Mining(); state == mining {
-			return
+func TestBuildPendingBlocks(t *testing.T) {
+	miner := createMiner(t)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		block, _, _ := miner.Pending()
+		if block == nil {
+			t.Error("Pending failed")
 		}
-	}
-	t.Fatalf("Mining() == %t, want %t", state, mining)
+	}()
+	wg.Wait()
 }
 
-func minerTestGenesisBlock(period uint64, gasLimit uint64, faucet common.Address) *core.Genesis {
-	config := *params.AllCliqueProtocolChanges
-	config.Clique = &params.CliqueConfig{
-		Period: period,
-		Epoch:  config.Clique.Epoch,
-	}
+func minerTestGenesisBlock(gasLimit uint64, faucet common.Address) *core.Genesis {
+	config := *params.AllBeaconProtocolChanges
 
 	// Assemble and return the genesis with the precompiles and faucet pre-funded
 	return &core.Genesis{
-		Config:     &config,
-		ExtraData:  append(append(make([]byte, 32), faucet[:]...), make([]byte, crypto.SignatureLength)...),
-		GasLimit:   gasLimit,
-		BaseFee:    big.NewInt(params.InitialBaseFee),
-		Difficulty: big.NewInt(1),
+		Config:    &config,
+		ExtraData: append(append(make([]byte, 32), faucet[:]...), make([]byte, crypto.SignatureLength)...),
+		GasLimit:  gasLimit,
+		BaseFee:   big.NewInt(params.InitialBaseFee),
 		Alloc: map[common.Address]core.GenesisAccount{
-			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
+			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // Deposit
 			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
 			common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
 			common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
@@ -281,44 +129,37 @@ func minerTestGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 		},
 	}
 }
-func createMiner(t *testing.T) (*Miner, *event.TypeMux, func(skipMiner bool)) {
+
+func createMiner(t *testing.T) *Miner {
 	// Create Ethash config
+	feeRecipient, _ := common.NewAddressFromString("Z0000000000000000000000000000000123456789")
 	config := Config{
-		Etherbase: common.HexToAddress("123456789"),
+		PendingFeeRecipient: feeRecipient,
 	}
 	// Create chainConfig
 	chainDB := rawdb.NewMemoryDatabase()
 	triedb := trie.NewDatabase(chainDB, nil)
-	genesis := minerTestGenesisBlock(15, 11_500_000, common.HexToAddress("12345"))
+	faucet, _ := common.NewAddressFromString("Z0000000000000000000000000000000000012345")
+	genesis := minerTestGenesisBlock(11_500_000, faucet)
 	chainConfig, _, err := core.SetupGenesisBlock(chainDB, triedb, genesis)
 	if err != nil {
 		t.Fatalf("can't create new chain config: %v", err)
 	}
 	// Create consensus engine
-	engine := clique.New(chainConfig.Clique, chainDB)
-	// Create Ethereum backend
-	bc, err := core.NewBlockChain(chainDB, nil, genesis, nil, engine, vm.Config{}, nil, nil)
+	engine := beacon.New()
+	// Create Zond backend
+	bc, err := core.NewBlockChain(chainDB, nil, genesis, engine, vm.Config{}, nil)
 	if err != nil {
 		t.Fatalf("can't create new chain %v", err)
 	}
 	statedb, _ := state.New(bc.Genesis().Root(), bc.StateCache(), nil)
-	blockchain := &testBlockChain{chainConfig, statedb, 10000000, new(event.Feed)}
+	blockchain := &testBlockChain{bc.Genesis().Root(), chainConfig, statedb, 10000000, new(event.Feed)}
 
 	pool := legacypool.New(testTxPoolConfig, blockchain)
 	txpool, _ := txpool.New(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain, []txpool.SubPool{pool})
 
-	backend := NewMockBackend(bc, txpool)
-	// Create event Mux
-	mux := new(event.TypeMux)
 	// Create Miner
-	miner := New(backend, &config, chainConfig, mux, engine, nil)
-	cleanup := func(skipMiner bool) {
-		bc.Stop()
-		engine.Close()
-		txpool.Close()
-		if !skipMiner {
-			miner.Close()
-		}
-	}
-	return miner, mux, cleanup
+	backend := NewMockBackend(bc, txpool)
+	miner := New(backend, config, engine)
+	return miner
 }

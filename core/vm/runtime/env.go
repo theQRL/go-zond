@@ -21,11 +21,10 @@ import (
 	"github.com/theQRL/go-zond/core/vm"
 )
 
-func NewEnv(cfg *Config) *vm.EVM {
+func NewEnv(cfg *Config) *vm.ZVM {
 	txContext := vm.TxContext{
-		Origin:     cfg.Origin,
-		GasPrice:   cfg.GasPrice,
-		BlobHashes: cfg.BlobHashes,
+		Origin:   cfg.Origin,
+		GasPrice: cfg.GasPrice,
 	}
 	blockContext := vm.BlockContext{
 		CanTransfer: core.CanTransfer,
@@ -34,11 +33,10 @@ func NewEnv(cfg *Config) *vm.EVM {
 		Coinbase:    cfg.Coinbase,
 		BlockNumber: cfg.BlockNumber,
 		Time:        cfg.Time,
-		Difficulty:  cfg.Difficulty,
 		GasLimit:    cfg.GasLimit,
 		BaseFee:     cfg.BaseFee,
 		Random:      cfg.Random,
 	}
 
-	return vm.NewEVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.EVMConfig)
+	return vm.NewZVM(blockContext, txContext, cfg.State, cfg.ChainConfig, cfg.ZVMConfig)
 }

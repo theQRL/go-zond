@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/theQRL/go-zond/cmd/devp2p/internal/ethtest"
 	"github.com/theQRL/go-zond/crypto"
 	"github.com/theQRL/go-zond/p2p"
 	"github.com/theQRL/go-zond/p2p/rlpx"
@@ -35,7 +34,7 @@ var (
 		Usage: "RLPx Commands",
 		Subcommands: []*cli.Command{
 			rlpxPingCommand,
-			rlpxEthTestCommand,
+			rlpxZondTestCommand,
 			rlpxSnapTestCommand,
 		},
 	}
@@ -44,11 +43,11 @@ var (
 		Usage:  "ping <node>",
 		Action: rlpxPing,
 	}
-	rlpxEthTestCommand = &cli.Command{
+	rlpxZondTestCommand = &cli.Command{
 		Name:      "zond-test",
 		Usage:     "Runs tests against a node",
 		ArgsUsage: "<node> <chain.rlp> <genesis.json>",
-		Action:    rlpxEthTest,
+		Action:    rlpxZondTest,
 		Flags: []cli.Flag{
 			testPatternFlag,
 			testTAPFlag,
@@ -84,11 +83,12 @@ func rlpxPing(ctx *cli.Context) error {
 	}
 	switch code {
 	case 0:
-		var h ethtest.Hello
-		if err := rlp.DecodeBytes(data, &h); err != nil {
-			return fmt.Errorf("invalid handshake: %v", err)
-		}
-		fmt.Printf("%+v\n", h)
+		// TODO(now.youtrack.cloud/issue/TGZ-6)
+		// var h zondtest.Hello
+		// if err := rlp.DecodeBytes(data, &h); err != nil {
+		// 	return fmt.Errorf("invalid handshake: %v", err)
+		// }
+		// fmt.Printf("%+v\n", h)
 	case 1:
 		var msg []p2p.DiscReason
 		if rlp.DecodeBytes(data, &msg); len(msg) == 0 {
@@ -101,16 +101,18 @@ func rlpxPing(ctx *cli.Context) error {
 	return nil
 }
 
-// rlpxEthTest runs the zond protocol test suite.
-func rlpxEthTest(ctx *cli.Context) error {
+// rlpxZondTest runs the zond protocol test suite.
+func rlpxZondTest(ctx *cli.Context) error {
 	if ctx.NArg() < 3 {
 		exit("missing path to chain.rlp as command-line argument")
 	}
-	suite, err := ethtest.NewSuite(getNodeArg(ctx), ctx.Args().Get(1), ctx.Args().Get(2))
-	if err != nil {
-		exit(err)
-	}
-	return runTests(ctx, suite.EthTests())
+	// TODO(now.youtrack.cloud/issue/TGZ-6)
+	// suite, err := zondtest.NewSuite(getNodeArg(ctx), ctx.Args().Get(1), ctx.Args().Get(2))
+	// if err != nil {
+	// 	exit(err)
+	// }
+	// return runTests(ctx, suite.ZondTests())
+	return nil
 }
 
 // rlpxSnapTest runs the snap protocol test suite.
@@ -118,9 +120,11 @@ func rlpxSnapTest(ctx *cli.Context) error {
 	if ctx.NArg() < 3 {
 		exit("missing path to chain.rlp as command-line argument")
 	}
-	suite, err := ethtest.NewSuite(getNodeArg(ctx), ctx.Args().Get(1), ctx.Args().Get(2))
-	if err != nil {
-		exit(err)
-	}
-	return runTests(ctx, suite.SnapTests())
+	// TODO(now.youtrack.cloud/issue/TGZ-6)
+	// suite, err := zondtest.NewSuite(getNodeArg(ctx), ctx.Args().Get(1), ctx.Args().Get(2))
+	// if err != nil {
+	// 	exit(err)
+	// }
+	// return runTests(ctx, suite.SnapTests())
+	return nil
 }

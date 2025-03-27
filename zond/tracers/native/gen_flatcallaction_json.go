@@ -17,7 +17,6 @@ func (f flatCallAction) MarshalJSON() ([]byte, error) {
 	type flatCallAction struct {
 		Author         *common.Address `json:"author,omitempty"`
 		RewardType     string          `json:"rewardType,omitempty"`
-		SelfDestructed *common.Address `json:"address,omitempty"`
 		Balance        *hexutil.Big    `json:"balance,omitempty"`
 		CallType       string          `json:"callType,omitempty"`
 		CreationMethod string          `json:"creationMethod,omitempty"`
@@ -32,7 +31,6 @@ func (f flatCallAction) MarshalJSON() ([]byte, error) {
 	var enc flatCallAction
 	enc.Author = f.Author
 	enc.RewardType = f.RewardType
-	enc.SelfDestructed = f.SelfDestructed
 	enc.Balance = (*hexutil.Big)(f.Balance)
 	enc.CallType = f.CallType
 	enc.CreationMethod = f.CreationMethod
@@ -51,7 +49,6 @@ func (f *flatCallAction) UnmarshalJSON(input []byte) error {
 	type flatCallAction struct {
 		Author         *common.Address `json:"author,omitempty"`
 		RewardType     *string         `json:"rewardType,omitempty"`
-		SelfDestructed *common.Address `json:"address,omitempty"`
 		Balance        *hexutil.Big    `json:"balance,omitempty"`
 		CallType       *string         `json:"callType,omitempty"`
 		CreationMethod *string         `json:"creationMethod,omitempty"`
@@ -72,9 +69,6 @@ func (f *flatCallAction) UnmarshalJSON(input []byte) error {
 	}
 	if dec.RewardType != nil {
 		f.RewardType = *dec.RewardType
-	}
-	if dec.SelfDestructed != nil {
-		f.SelfDestructed = dec.SelfDestructed
 	}
 	if dec.Balance != nil {
 		f.Balance = (*big.Int)(dec.Balance)

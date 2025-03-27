@@ -44,11 +44,18 @@ func init() {
 	}
 	txs = make([]*types.Transaction, 65536) // We need to bump enough to hit all the limits
 	for i := 0; i < len(txs); i++ {
-		txs[i] = types.NewTransaction(rand.Uint64(), common.Address{byte(rand.Intn(256))}, new(big.Int), 0, new(big.Int), nil)
+		txs[i] = types.NewTx(&types.DynamicFeeTx{
+			Nonce:     rand.Uint64(),
+			To:        &common.Address{byte(rand.Intn(256))},
+			Value:     new(big.Int),
+			Gas:       0,
+			GasFeeCap: new(big.Int),
+			Data:      nil,
+		})
 	}
 }
 
-func Fuzz(input []byte) int {
+func fuzz(input []byte) int {
 	// Don't generate insanely large test cases, not much value in them
 	if len(input) > 16*1024 {
 		return 0
@@ -83,6 +90,7 @@ func Fuzz(input []byte) int {
 			return make([]error, len(txs))
 		},
 		func(string, []common.Hash) error { return nil },
+		nil,
 		clock, rand,
 	)
 	f.Start()
@@ -116,6 +124,8 @@ func Fuzz(input []byte) int {
 			var (
 				announceIdxs = make([]int, announce)
 				announces    = make([]common.Hash, announce)
+				types        = make([]byte, announce)
+				sizes        = make([]uint32, announce)
 			)
 			for i := 0; i < len(announces); i++ {
 				annBuf := make([]byte, 2)
@@ -124,11 +134,13 @@ func Fuzz(input []byte) int {
 				}
 				announceIdxs[i] = (int(annBuf[0])*256 + int(annBuf[1])) % len(txs)
 				announces[i] = txs[announceIdxs[i]].Hash()
+				types[i] = txs[announceIdxs[i]].Type()
+				sizes[i] = uint32(txs[announceIdxs[i]].Size())
 			}
 			if verbose {
 				fmt.Println("Notify", peer, announceIdxs)
 			}
-			if err := f.Notify(peer, announces); err != nil {
+			if err := f.Notify(peer, types, sizes, announces); err != nil {
 				panic(err)
 			}
 

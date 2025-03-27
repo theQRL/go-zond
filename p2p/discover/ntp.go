@@ -22,10 +22,10 @@ package discover
 import (
 	"fmt"
 	"net"
+	"slices"
 	"time"
 
 	"github.com/theQRL/go-zond/log"
-	"golang.org/x/exp/slices"
 )
 
 const (

@@ -29,34 +29,58 @@ import (
 // do not use e.g. SetInt() on the numbers. For testing only
 func copyConfig(original *params.ChainConfig) *params.ChainConfig {
 	return &params.ChainConfig{
-		ChainID:                 original.ChainID,
-		HomesteadBlock:          original.HomesteadBlock,
-		DAOForkBlock:            original.DAOForkBlock,
-		DAOForkSupport:          original.DAOForkSupport,
-		EIP150Block:             original.EIP150Block,
-		EIP155Block:             original.EIP155Block,
-		EIP158Block:             original.EIP158Block,
-		ByzantiumBlock:          original.ByzantiumBlock,
-		ConstantinopleBlock:     original.ConstantinopleBlock,
-		PetersburgBlock:         original.PetersburgBlock,
-		IstanbulBlock:           original.IstanbulBlock,
-		MuirGlacierBlock:        original.MuirGlacierBlock,
-		BerlinBlock:             original.BerlinBlock,
-		LondonBlock:             original.LondonBlock,
-		TerminalTotalDifficulty: original.TerminalTotalDifficulty,
-		Ethash:                  original.Ethash,
-		Clique:                  original.Clique,
+		ChainID: original.ChainID,
 	}
 }
 
 func config() *params.ChainConfig {
 	config := copyConfig(params.TestChainConfig)
-	config.LondonBlock = big.NewInt(5)
 	return config
 }
 
 // TestBlockGasLimits tests the gasLimit checks for blocks both across
 // the EIP-1559 boundary and post-1559 blocks
+//func TestBlockGasLimits(t *testing.T) {
+//	initial := new(big.Int).SetUint64(params.InitialBaseFee)
+//
+//	for i, tc := range []struct {
+//		pGasLimit uint64
+//		pNum      int64
+//		gasLimit  uint64
+//		ok        bool
+//	}{
+//		{20000000, 5, 20000000, true},
+//		{20000000, 5, 20019530, true},  // Upper limit
+//		{20000000, 5, 20019531, false}, // Upper limit +1
+//		{20000000, 5, 19980470, true},  // Lower limit
+//		{20000000, 5, 19980469, false}, // Lower limit -1
+//		{40000000, 5, 40039061, true},  // Upper limit
+//		{40000000, 5, 40039062, false}, // Upper limit +1
+//		{40000000, 5, 39960939, true},  // lower limit
+//		{40000000, 5, 39960938, false}, // Lower limit -1
+//	} {
+//		parent := &types.Header{
+//			GasUsed:  tc.pGasLimit / 2,
+//			GasLimit: tc.pGasLimit,
+//			BaseFee:  initial,
+//			Number:   big.NewInt(tc.pNum),
+//		}
+//		header := &types.Header{
+//			GasUsed:  tc.gasLimit / 2,
+//			GasLimit: tc.gasLimit,
+//			BaseFee:  initial,
+//			Number:   big.NewInt(tc.pNum + 1),
+//		}
+//		err := VerifyEIP1559Header(config(), parent, header)
+//		if tc.ok && err != nil {
+//			t.Errorf("test %d: Expected valid header: %s", i, err)
+//		}
+//		if !tc.ok && err == nil {
+//			t.Errorf("test %d: Expected invalid header", i)
+//		}
+//	}
+//}
+
 func TestBlockGasLimits(t *testing.T) {
 	initial := new(big.Int).SetUint64(params.InitialBaseFee)
 
@@ -66,22 +90,17 @@ func TestBlockGasLimits(t *testing.T) {
 		gasLimit  uint64
 		ok        bool
 	}{
-		// Transitions from non-london to london
-		{10000000, 4, 20000000, true},  // No change
-		{10000000, 4, 20019530, true},  // Upper limit
-		{10000000, 4, 20019531, false}, // Upper +1
-		{10000000, 4, 19980470, true},  // Lower limit
-		{10000000, 4, 19980469, false}, // Lower limit -1
-		// London to London
-		{20000000, 5, 20000000, true},
-		{20000000, 5, 20019530, true},  // Upper limit
-		{20000000, 5, 20019531, false}, // Upper limit +1
-		{20000000, 5, 19980470, true},  // Lower limit
-		{20000000, 5, 19980469, false}, // Lower limit -1
-		{40000000, 5, 40039061, true},  // Upper limit
-		{40000000, 5, 40039062, false}, // Upper limit +1
-		{40000000, 5, 39960939, true},  // lower limit
-		{40000000, 5, 39960938, false}, // Lower limit -1
+		{20000000, 5, 20000000, true},  // within min and max gas limit
+		{20000000, 5, 5000, true},      // within min and max gas limit
+		{20000000, 5, 4999, false},     // within min and max gas limit
+		{20000000, 5, 20019530, false}, // Upper limit
+		{20000000, 5, 20019531, false}, // Beyond max gas limit
+		{20000000, 5, 19980470, true},  // within min and max gas limit
+		{20000000, 5, 19980469, true},  // within min and max gas limit
+		{40000000, 5, 40039061, false}, // Beyond max gas limit
+		{40000000, 5, 40039062, false}, // Beyond max gas limit
+		{40000000, 5, 39960939, false}, // Beyond max gas limit
+		{40000000, 5, 39960938, false}, // Beyond max gas limit
 	} {
 		parent := &types.Header{
 			GasUsed:  tc.pGasLimit / 2,

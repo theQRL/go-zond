@@ -30,12 +30,12 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"slices"
 	"strconv"
 
 	"github.com/theQRL/go-zond/common"
 	"github.com/theQRL/go-zond/core"
 	"github.com/theQRL/go-zond/rlp"
-	"golang.org/x/exp/slices"
 )
 
 type allocItem struct {

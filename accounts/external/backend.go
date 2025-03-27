@@ -163,10 +163,7 @@ func (api *ExternalSigner) SignData(account accounts.Account, mimeType string, d
 		hexutil.Encode(data)); err != nil {
 		return nil, err
 	}
-	// If V is on 27/28-form, convert to 0/1 for Clique
-	if mimeType == accounts.MimetypeClique && (res[64] == 27 || res[64] == 28) {
-		res[64] -= 27 // Transform V from 27/28 to 0/1 for Clique use
-	}
+
 	return res, nil
 }
 
@@ -179,11 +176,6 @@ func (api *ExternalSigner) SignText(account accounts.Account, text []byte) ([]by
 		hexutil.Encode(text)); err != nil {
 		return nil, err
 	}
-	if signature[64] == 27 || signature[64] == 28 {
-		// If clef is used as a backend, it may already have transformed
-		// the signature to ethereum-type signature.
-		signature[64] -= 27 // Transform V from Ethereum-legacy to 0/1
-	}
 	return signature, nil
 }
 
@@ -195,8 +187,8 @@ type signTransactionResult struct {
 
 // SignTx sends the transaction to the external signer.
 // If chainID is nil, or tx.ChainID is zero, the chain ID will be assigned
-// by the external signer. For non-legacy transactions, the chain ID of the
-// transaction overrides the chainID parameter.
+// by the external signer. The chain ID of the transaction overrides the
+// chainID parameter.
 func (api *ExternalSigner) SignTx(account accounts.Account, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
 	data := hexutil.Bytes(tx.Data())
 	var to *common.MixedcaseAddress
@@ -213,8 +205,6 @@ func (api *ExternalSigner) SignTx(account accounts.Account, tx *types.Transactio
 		From:  common.NewMixedcaseAddress(account.Address),
 	}
 	switch tx.Type() {
-	case types.LegacyTxType, types.AccessListTxType:
-		args.GasPrice = (*hexutil.Big)(tx.GasPrice())
 	case types.DynamicFeeTxType:
 		args.MaxFeePerGas = (*hexutil.Big)(tx.GasFeeCap())
 		args.MaxPriorityFeePerGas = (*hexutil.Big)(tx.GasTipCap())
@@ -226,15 +216,13 @@ func (api *ExternalSigner) SignTx(account accounts.Account, tx *types.Transactio
 	if chainID != nil && chainID.Sign() != 0 {
 		args.ChainID = (*hexutil.Big)(chainID)
 	}
-	if tx.Type() != types.LegacyTxType {
-		// However, if the user asked for a particular chain id, then we should
-		// use that instead.
-		if tx.ChainId().Sign() != 0 {
-			args.ChainID = (*hexutil.Big)(tx.ChainId())
-		}
-		accessList := tx.AccessList()
-		args.AccessList = &accessList
+	// However, if the user asked for a particular chain id, then we should
+	// use that instead.
+	if tx.ChainId().Sign() != 0 {
+		args.ChainID = (*hexutil.Big)(tx.ChainId())
 	}
+	accessList := tx.AccessList()
+	args.AccessList = &accessList
 	var res signTransactionResult
 	if err := api.client.Call(&res, "account_signTransaction", args); err != nil {
 		return nil, err

@@ -31,20 +31,18 @@ import (
 	"github.com/theQRL/go-zond/consensus"
 	"github.com/theQRL/go-zond/core/rawdb"
 	"github.com/theQRL/go-zond/core/types"
-	"github.com/theQRL/go-zond/zonddb"
 	"github.com/theQRL/go-zond/log"
 	"github.com/theQRL/go-zond/params"
 	"github.com/theQRL/go-zond/rlp"
+	"github.com/theQRL/go-zond/zonddb"
 )
 
 const (
 	headerCacheLimit = 512
-	tdCacheLimit     = 1024
 	numberCacheLimit = 2048
 )
 
-// HeaderChain implements the basic block header chain logic that is shared by
-// core.BlockChain and light.LightChain. It is not usable in itself, only as
+// HeaderChain implements the basic block header chain logic. It is not usable in itself, only as
 // a part of either structure.
 //
 // HeaderChain is responsible for maintaining the header chain including the
@@ -65,8 +63,7 @@ type HeaderChain struct {
 	currentHeaderHash common.Hash  // Hash of the current head of the header chain (prevent recomputing all the time)
 
 	headerCache *lru.Cache[common.Hash, *types.Header]
-	tdCache     *lru.Cache[common.Hash, *big.Int] // most recent total difficulties
-	numberCache *lru.Cache[common.Hash, uint64]   // most recent block numbers
+	numberCache *lru.Cache[common.Hash, uint64] // most recent block numbers
 
 	procInterrupt func() bool
 
@@ -86,7 +83,6 @@ func NewHeaderChain(chainDb zonddb.Database, config *params.ChainConfig, engine 
 		config:        config,
 		chainDb:       chainDb,
 		headerCache:   lru.NewCache[common.Hash, *types.Header](headerCacheLimit),
-		tdCache:       lru.NewCache[common.Hash, *big.Int](tdCacheLimit),
 		numberCache:   lru.NewCache[common.Hash, uint64](numberCacheLimit),
 		procInterrupt: procInterrupt,
 		rand:          mrand.New(mrand.NewSource(seed.Int64())),
@@ -205,14 +201,9 @@ func (hc *HeaderChain) WriteHeaders(headers []*types.Header) (int, error) {
 	if len(headers) == 0 {
 		return 0, nil
 	}
-	ptd := hc.GetTd(headers[0].ParentHash, headers[0].Number.Uint64()-1)
-	if ptd == nil {
-		return 0, consensus.ErrUnknownAncestor
-	}
 	var (
-		newTD       = new(big.Int).Set(ptd) // Total difficulty of inserted chain
-		inserted    []rawdb.NumberHash      // Ephemeral lookup of number/hash for the chain
-		parentKnown = true                  // Set to true to force hc.HasHeader check the first iteration
+		inserted    []rawdb.NumberHash // Ephemeral lookup of number/hash for the chain
+		parentKnown = true             // Set to true to force hc.HasHeader check the first iteration
 		batch       = hc.chainDb.NewBatch()
 	)
 	for i, header := range headers {
@@ -226,16 +217,11 @@ func (hc *HeaderChain) WriteHeaders(headers []*types.Header) (int, error) {
 			hash = header.Hash()
 		}
 		number := header.Number.Uint64()
-		newTD.Add(newTD, header.Difficulty)
 
 		// If the parent was not present, store it
 		// If the header is already known, skip it, otherwise store
 		alreadyKnown := parentKnown && hc.HasHeader(hash, number)
 		if !alreadyKnown {
-			// Irrelevant of the canonical status, write the TD and header to the database.
-			rawdb.WriteTd(batch, hash, number, newTD)
-			hc.tdCache.Add(hash, new(big.Int).Set(newTD))
-
 			rawdb.WriteHeader(batch, header)
 			inserted = append(inserted, rawdb.NumberHash{Number: number, Hash: hash})
 			hc.headerCache.Add(hash, header)
@@ -262,7 +248,7 @@ func (hc *HeaderChain) WriteHeaders(headers []*types.Header) (int, error) {
 // without the real blocks. Hence, writing headers directly should only be done
 // in two scenarios: pure-header mode of operation (light clients), or properly
 // separated header/block phases (non-archive clients).
-func (hc *HeaderChain) writeHeadersAndSetHead(headers []*types.Header, forker *ForkChoice) (*headerWriteResult, error) {
+func (hc *HeaderChain) writeHeadersAndSetHead(headers []*types.Header) (*headerWriteResult, error) {
 	inserted, err := hc.WriteHeaders(headers)
 	if err != nil {
 		return nil, err
@@ -278,15 +264,7 @@ func (hc *HeaderChain) writeHeadersAndSetHead(headers []*types.Header, forker *F
 			lastHeader: lastHeader,
 		}
 	)
-	// Ask the fork choicer if the reorg is necessary
-	if reorg, err := forker.ReorgNeeded(hc.CurrentHeader(), lastHeader); err != nil {
-		return nil, err
-	} else if !reorg {
-		if inserted != 0 {
-			result.status = SideStatTy
-		}
-		return result, nil
-	}
+
 	// Special case, all the inserted headers are already on the canonical
 	// header chain, skip the reorg operation.
 	if hc.GetCanonicalHash(lastHeader.Number.Uint64()) == lastHash && lastHeader.Number.Uint64() <= hc.CurrentHeader().Number.Uint64() {
@@ -312,14 +290,6 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header) (int, error) {
 
 			return 0, fmt.Errorf("non contiguous insert: item %d is #%d [%x..], item %d is #%d [%x..] (parent [%x..])", i-1, chain[i-1].Number,
 				parentHash.Bytes()[:4], i, chain[i].Number, hash.Bytes()[:4], chain[i].ParentHash[:4])
-		}
-		// If the header is a banned one, straight out abort
-		if BadHashes[chain[i].ParentHash] {
-			return i - 1, ErrBannedHash
-		}
-		// If it's the last header in the cunk, we need to check it too
-		if i == len(chain)-1 && BadHashes[chain[i].Hash()] {
-			return i, ErrBannedHash
 		}
 	}
 	// Start the parallel verifier
@@ -352,11 +322,11 @@ func (hc *HeaderChain) ValidateHeaderChain(chain []*types.Header) (int, error) {
 //
 // The returned 'write status' says if the inserted headers are part of the canonical chain
 // or a side chain.
-func (hc *HeaderChain) InsertHeaderChain(chain []*types.Header, start time.Time, forker *ForkChoice) (WriteStatus, error) {
+func (hc *HeaderChain) InsertHeaderChain(chain []*types.Header, start time.Time) (WriteStatus, error) {
 	if hc.procInterrupt() {
 		return 0, errors.New("aborted")
 	}
-	res, err := hc.writeHeadersAndSetHead(chain, forker)
+	res, err := hc.writeHeadersAndSetHead(chain)
 	if err != nil {
 		return 0, err
 	}
@@ -415,22 +385,6 @@ func (hc *HeaderChain) GetAncestor(hash common.Hash, number, ancestor uint64, ma
 		number--
 	}
 	return hash, number
-}
-
-// GetTd retrieves a block's total difficulty in the canonical chain from the
-// database by hash and number, caching it if found.
-func (hc *HeaderChain) GetTd(hash common.Hash, number uint64) *big.Int {
-	// Short circuit if the td's already in the cache, retrieve otherwise
-	if cached, ok := hc.tdCache.Get(hash); ok {
-		return cached
-	}
-	td := rawdb.ReadTd(hc.chainDb, hash, number)
-	if td == nil {
-		return nil
-	}
-	// Cache the found body for next time and return
-	hc.tdCache.Add(hash, td)
-	return td
 }
 
 // GetHeader retrieves a block header from the database by hash and number,
@@ -597,7 +551,7 @@ func (hc *HeaderChain) setHead(headBlock uint64, headTime uint64, updateFn Updat
 		}
 		parentHash = parent.Hash()
 
-		// Notably, since geth has the possibility for setting the head to a low
+		// Notably, since gzond has the possibility for setting the head to a low
 		// height which is even lower than ancient head.
 		// In order to ensure that the head is always no higher than the data in
 		// the database (ancient store or active store), we need to update head
@@ -645,7 +599,6 @@ func (hc *HeaderChain) setHead(headBlock uint64, headTime uint64, updateFn Updat
 					delFn(batch, hash, num)
 				}
 				rawdb.DeleteHeader(batch, hash, num)
-				rawdb.DeleteTd(batch, hash, num)
 			}
 			rawdb.DeleteCanonicalHash(batch, num)
 		}
@@ -656,7 +609,6 @@ func (hc *HeaderChain) setHead(headBlock uint64, headTime uint64, updateFn Updat
 	}
 	// Clear out any stale content from the caches
 	hc.headerCache.Purge()
-	hc.tdCache.Purge()
 	hc.numberCache.Purge()
 }
 
