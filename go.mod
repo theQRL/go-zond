@@ -1,8 +1,10 @@
 module github.com/theQRL/go-zond
 
+// Note: Go 1.23.6 is not supported on Windows due to incompatibility with github.com/fjl/memsize
+// Please use Go 1.22.12 or earlier for Windows builds
 go 1.22
 
-toolchain go1.22.0
+toolchain go1.23.6
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.3.0
