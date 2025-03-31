@@ -7,6 +7,12 @@ Official Golang execution layer implementation of the Zond protocol.
 
 **This code is a test release. All code, features and documentation are subject to change and may represent a work in progress**
 
+## Prerequisites
+
+- Go version 1.21 or later (Note: Go 1.23.6 has known compatibility issues on Windows - please use Go 1.22.12 or earlier for Windows builds)
+- Git
+- Make (optional, for using Makefile commands)
+
 ## Building the source
 
 For prerequisites and detailed build instructions please read the [Installation Instructions](https://test-zond.theqrl.org/install).
