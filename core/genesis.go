@@ -507,7 +507,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Config:    params.TestnetChainConfig,
 		ExtraData: hexutil.MustDecode("0x82efec7f3c6d3b266171cb97fd52afced535c77d77979e24add05a6ea0ff3794"),
 		GasLimit:  0x1312d00,
-		Timestamp: 1743071966,
+		Timestamp: 1754651675,
 		Alloc:     decodePreallocWithContractCode(testnetAllocData),
 	}
 }
